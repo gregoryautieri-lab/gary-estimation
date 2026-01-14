@@ -24,11 +24,14 @@ const typeBienOptions: { value: TypeBien | ''; label: string; icon: React.Elemen
 // Sous-catégories
 const sousCategorieAppart = [
   { value: 'standard', label: 'Standard' },
+  { value: 'standing', label: 'Standing' },
   { value: 'attique', label: 'Attique' },
-  { value: 'duplex', label: 'Duplex' },
-  { value: 'triplex', label: 'Triplex' },
+  { value: 'duplex_triplex', label: 'Duplex / Triplex' },
+  { value: 'sousplex', label: 'Sousplex' },
   { value: 'loft', label: 'Loft' },
   { value: 'studio', label: 'Studio' },
+  { value: 'rez_jardin', label: 'Rez-jardin' },
+  { value: 'hotel_particulier', label: 'Hôtel particulier' },
 ];
 
 const sousCategorieMaison = [
