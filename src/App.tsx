@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
+import EstimationsList from "./pages/EstimationsList";
+import Module1Identification from "./pages/estimation/Module1Identification";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -18,14 +19,45 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          
+          {/* Dashboard */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <Index />
+                <Navigate to="/estimations" replace />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/estimations"
+            element={
+              <ProtectedRoute>
+                <EstimationsList />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Estimation Modules */}
+          <Route
+            path="/estimation/:id/1"
+            element={
+              <ProtectedRoute>
+                <Module1Identification />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Fallback module routes */}
+          <Route
+            path="/estimation/:id/:module"
+            element={
+              <ProtectedRoute>
+                <Module1Identification />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

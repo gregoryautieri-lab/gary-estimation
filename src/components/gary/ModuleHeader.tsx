@@ -1,0 +1,57 @@
+import { ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+
+interface ModuleHeaderProps {
+  moduleNumber: number;
+  title: string;
+  subtitle?: string;
+  backPath?: string;
+  onBack?: () => void;
+}
+
+export const ModuleHeader = ({ 
+  moduleNumber, 
+  title, 
+  subtitle, 
+  backPath,
+  onBack 
+}: ModuleHeaderProps) => {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (backPath) {
+      navigate(backPath);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  return (
+    <div className="sticky top-0 z-40 bg-background border-b border-border">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleBack}
+          className="shrink-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+              MODULE {moduleNumber}
+            </span>
+          </div>
+          <h1 className="text-lg font-bold text-foreground truncate">{title}</h1>
+          {subtitle && (
+            <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
