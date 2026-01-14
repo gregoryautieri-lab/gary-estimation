@@ -9,9 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
-import { EstimationData, StrategiePitch, defaultStrategiePitch } from '@/types/estimation';
+import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2 } from 'lucide-react';
 
 // Composants stratégie
 import { CapitalGauge } from '@/components/strategie/CapitalGauge';
@@ -22,6 +22,8 @@ import { LevierChip, LEVIERS_MARKETING } from '@/components/strategie/LevierChip
 import { RecapExpress } from '@/components/strategie/RecapExpress';
 import { PitchEditor } from '@/components/strategie/PitchEditor';
 import { EtapeChecklist, ETAPES_PROCHAINES } from '@/components/strategie/EtapeChecklist';
+import { Phase0Checklist } from '@/components/strategie/Phase0Checklist';
+import { DateVenteIdeale } from '@/components/strategie/DateVenteIdeale';
 import { format, nextMonday } from 'date-fns';
 
 export default function Module5Strategie() {
@@ -33,6 +35,8 @@ export default function Module5Strategie() {
   const [strategie, setStrategie] = useState<StrategiePitch>(defaultStrategiePitch);
   const [saving, setSaving] = useState(false);
   const [pitchCustom, setPitchCustom] = useState('');
+  const [customPhase0Actions, setCustomPhase0Actions] = useState<string[]>([]);
+  const [checkedPhase0Actions, setCheckedPhase0Actions] = useState<string[]>([]);
 
   useEffect(() => {
     if (id) loadEstimation();
@@ -44,11 +48,11 @@ export default function Module5Strategie() {
     if (data) {
       setEstimation(data);
       const strat = { ...defaultStrategiePitch, ...data.strategiePitch };
-      // Date par défaut : prochain lundi
       if (!strat.dateDebut) {
         strat.dateDebut = format(nextMonday(new Date()), 'yyyy-MM-dd');
       }
       setStrategie(strat);
+      setCheckedPhase0Actions(strat.phase0Actions || []);
     }
   };
 
@@ -63,6 +67,16 @@ export default function Module5Strategie() {
 
   const updateField = <K extends keyof StrategiePitch>(field: K, value: StrategiePitch[K]) => {
     setStrategie(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updatePhaseDuree = (phaseKey: keyof PhaseDurees, delta: number) => {
+    const current = strategie.phaseDurees || defaultStrategiePitch.phaseDurees;
+    const newDuree = Math.max(1, current[phaseKey] + delta);
+    updateField('phaseDurees', { ...current, [phaseKey]: newDuree });
+    // Clear date ideale when manually editing
+    if (strategie.dateVenteIdeale) {
+      updateField('dateVenteIdeale', '');
+    }
   };
 
   const toggleCanal = (canalId: string) => {
@@ -89,10 +103,23 @@ export default function Module5Strategie() {
     updateField('etapesCochees', newEtapes);
   };
 
+  const togglePhase0Action = (actionId: string) => {
+    setCheckedPhase0Actions(prev => 
+      prev.includes(actionId) 
+        ? prev.filter(a => a !== actionId)
+        : [...prev, actionId]
+    );
+  };
+
   const handleSave = async () => {
     if (!id || !estimation) return;
     setSaving(true);
-    await updateEstimation(id, { strategiePitch: strategie });
+    await updateEstimation(id, { 
+      strategiePitch: { 
+        ...strategie, 
+        phase0Actions: [...checkedPhase0Actions, ...customPhase0Actions] 
+      } 
+    });
     setSaving(false);
     toast.success('Stratégie enregistrée');
   };
@@ -120,6 +147,12 @@ export default function Module5Strategie() {
   const adresse = estimation?.identification?.adresse?.rue || '';
   const localite = estimation?.identification?.adresse?.localite || '';
 
+  // Préparer actions Phase 0 avec état checked
+  const phase0ActionsWithState = logic.actionsPhase0.map(a => ({
+    ...a,
+    checked: checkedPhase0Actions.includes(a.id)
+  }));
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <ModuleHeader 
@@ -143,13 +176,16 @@ export default function Module5Strategie() {
         {logic.ajustementPhases.alerteCourtier && (
           <AlerteCourtier
             type={logic.ajustementPhases.alerteCourtier.type}
+            title={logic.ajustementPhases.alerteCourtier.title}
             message={logic.ajustementPhases.alerteCourtier.message}
+            actions={logic.ajustementPhases.alerteCourtier.actions}
           />
         )}
 
         {/* Capital-Visibilité */}
         <FormSection title="Capital-Visibilité" icon={<BarChart3 className="h-5 w-5" />}>
           <CapitalGauge {...logic.capitalVisibilite} />
+          <p className="text-xs text-muted-foreground mt-2">{logic.capitalVisibilite.message}</p>
         </FormSection>
 
         {/* Date de début */}
@@ -158,6 +194,27 @@ export default function Module5Strategie() {
             type="date"
             value={strategie.dateDebut}
             onChange={(e) => updateField('dateDebut', e.target.value)}
+          />
+        </FormSection>
+
+        {/* Date de vente idéale */}
+        <FormSection title="Date de vente idéale" icon={<Target className="h-5 w-5" />}>
+          <DateVenteIdeale
+            value={strategie.dateVenteIdeale}
+            onChange={(v) => updateField('dateVenteIdeale', v)}
+            message={logic.phasesCalculees.message}
+            isUrgent={logic.phasesCalculees.isUrgent}
+          />
+        </FormSection>
+
+        {/* Actions Phase 0 */}
+        <FormSection title="Préparation (Phase 0)" icon={<Settings2 className="h-5 w-5" />}>
+          <Phase0Checklist
+            actions={phase0ActionsWithState}
+            customActions={customPhase0Actions}
+            onToggleAction={togglePhase0Action}
+            onAddCustomAction={(a) => setCustomPhase0Actions(prev => [...prev, a])}
+            onRemoveCustomAction={(a) => setCustomPhase0Actions(prev => prev.filter(x => x !== a))}
           />
         </FormSection>
 
@@ -175,11 +232,21 @@ export default function Module5Strategie() {
                   dateFin={phase.dateFin}
                   isActive={idx === 1}
                   isFirst={idx === 0}
+                  editable={!strategie.dateVenteIdeale}
+                  onDureeChange={(delta) => {
+                    const keys: (keyof PhaseDurees)[] = ['phase0', 'phase1', 'phase2', 'phase3'];
+                    updatePhaseDuree(keys[idx], delta);
+                  }}
                 />
               ))}
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
+          {strategie.dateVenteIdeale && (
+            <p className="text-xs text-muted-foreground">
+              💡 Durées calculées automatiquement. Effacez la date idéale pour éditer manuellement.
+            </p>
+          )}
         </FormSection>
 
         {/* Canaux de Diffusion */}
