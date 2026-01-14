@@ -9,6 +9,7 @@ import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
 import Module3AnalyseTerrain from "./pages/estimation/Module3AnalyseTerrain";
 import Module4PreEstimation from "./pages/estimation/Module4PreEstimation";
+import Module5Strategie from "./pages/estimation/Module5Strategie";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Module4PreEstimation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/estimation/:id/5"
+            element={
+              <ProtectedRoute>
+                <Module5Strategie />
               </ProtectedRoute>
             }
           />
