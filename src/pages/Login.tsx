@@ -18,8 +18,6 @@ const Login = () => {
     password: "",
   });
 
-  const [fullName, setFullName] = useState("");
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,9 +29,6 @@ const Login = () => {
           password: formData.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: {
-              full_name: fullName,
-            },
           },
         });
         if (error) throw error;
@@ -42,7 +37,6 @@ const Login = () => {
           description: "Vous pouvez maintenant vous connecter.",
         });
         setIsSignUp(false);
-        setFullName("");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
@@ -89,22 +83,6 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nom complet</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Jean Dupont"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  autoComplete="name"
-                  className="h-12"
-                />
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

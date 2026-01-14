@@ -1,20 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Users, FolderKanban, CheckSquare, Clock, Settings, Loader2 } from "lucide-react";
+import { LogOut, Users, FolderKanban, CheckSquare, Clock, Settings } from "lucide-react";
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const { profile, roles, isLoading: isProfileLoading } = useProfile();
-
-  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Utilisateur";
-  const initials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -26,79 +15,48 @@ const Index = () => {
           </div>
           <span className="font-bold text-foreground">GARY</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || undefined} />
-            <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            aria-label="Se déconnecter"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={signOut}
+          aria-label="Se déconnecter"
+        >
+          <LogOut className="h-5 w-5" />
+        </Button>
       </header>
 
       {/* Main content */}
       <main className="flex-1 p-4 pb-24">
-        {isProfileLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Bonjour{user?.email ? `, ${user.email.split("@")[0]}` : ""} 👋
+            </h1>
+            <p className="text-muted-foreground">
+              Bienvenue sur GARY, votre outil de gestion.
+            </p>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Bonjour, {displayName} 👋
-              </h1>
-              <p className="text-muted-foreground">
-                {roles.length > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <span className="capitalize">{roles.join(", ")}</span>
-                    <span>•</span>
-                  </span>
-                )}{" "}
-                Bienvenue sur GARY
-              </p>
-            </div>
 
-            {/* Quick stats placeholder */}
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard value={0} label="Clients" />
-              <StatCard value={0} label="Projets" />
-              <StatCard value={0} label="Tâches" />
-              <StatCard value={0} label="Heures" />
+          {/* Quick stats placeholder */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-lg p-4">
+              <div className="text-2xl font-bold text-primary">0</div>
+              <div className="text-sm text-muted-foreground">Clients</div>
             </div>
-
-            {/* Quick actions */}
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold text-foreground">Actions rapides</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <QuickActionCard
-                  icon={<Users className="h-5 w-5" />}
-                  label="Nouveau client"
-                />
-                <QuickActionCard
-                  icon={<FolderKanban className="h-5 w-5" />}
-                  label="Nouveau projet"
-                />
-                <QuickActionCard
-                  icon={<CheckSquare className="h-5 w-5" />}
-                  label="Nouvelle tâche"
-                />
-                <QuickActionCard
-                  icon={<Clock className="h-5 w-5" />}
-                  label="Pointer le temps"
-                />
-              </div>
+            <div className="bg-card border border-border rounded-lg p-4">
+              <div className="text-2xl font-bold text-primary">0</div>
+              <div className="text-sm text-muted-foreground">Projets</div>
+            </div>
+            <div className="bg-card border border-border rounded-lg p-4">
+              <div className="text-2xl font-bold text-primary">0</div>
+              <div className="text-sm text-muted-foreground">Tâches</div>
+            </div>
+            <div className="bg-card border border-border rounded-lg p-4">
+              <div className="text-2xl font-bold text-primary">0</div>
+              <div className="text-sm text-muted-foreground">Heures</div>
             </div>
           </div>
-        )}
+        </div>
       </main>
 
       {/* Bottom Navigation - Mobile first */}
@@ -114,30 +72,6 @@ const Index = () => {
     </div>
   );
 };
-
-interface StatCardProps {
-  value: number;
-  label: string;
-}
-
-const StatCard = ({ value, label }: StatCardProps) => (
-  <div className="bg-card border border-border rounded-lg p-4">
-    <div className="text-2xl font-bold text-primary">{value}</div>
-    <div className="text-sm text-muted-foreground">{label}</div>
-  </div>
-);
-
-interface QuickActionCardProps {
-  icon: React.ReactNode;
-  label: string;
-}
-
-const QuickActionCard = ({ icon, label }: QuickActionCardProps) => (
-  <button className="flex items-center gap-3 bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors text-left w-full">
-    <div className="text-primary">{icon}</div>
-    <span className="text-sm font-medium text-foreground">{label}</span>
-  </button>
-);
 
 interface NavItemProps {
   icon: React.ReactNode;
