@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import EstimationsList from "./pages/EstimationsList";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
+import Module3AnalyseTerrain from "./pages/estimation/Module3AnalyseTerrain";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Module2Caracteristiques />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/estimation/:id/3"
+            element={
+              <ProtectedRoute>
+                <Module3AnalyseTerrain />
               </ProtectedRoute>
             }
           />
