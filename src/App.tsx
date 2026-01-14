@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import EstimationsList from "./pages/EstimationsList";
 import Module1Identification from "./pages/estimation/Module1Identification";
+import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Module1Identification />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/estimation/:id/2"
+            element={
+              <ProtectedRoute>
+                <Module2Caracteristiques />
               </ProtectedRoute>
             }
           />
