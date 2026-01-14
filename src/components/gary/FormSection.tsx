@@ -18,17 +18,20 @@ export const FormSection = ({ icon, title, children, className = '' }: FormSecti
 );
 
 interface FormRowProps {
-  label: string;
+  label?: string;
   children: ReactNode;
   required?: boolean;
+  horizontal?: boolean;
 }
 
-export const FormRow = ({ label, children, required }: FormRowProps) => (
-  <div className="space-y-1.5">
-    <label className="text-sm font-medium text-foreground">
-      {label}
-      {required && <span className="text-primary ml-1">*</span>}
-    </label>
-    {children}
+export const FormRow = ({ label, children, required, horizontal }: FormRowProps) => (
+  <div className={horizontal ? "flex items-center gap-3" : "space-y-1.5"}>
+    {label && (
+      <label className="text-sm font-medium text-foreground">
+        {label}
+        {required && <span className="text-primary ml-1">*</span>}
+      </label>
+    )}
+    {horizontal ? <div className="flex-1 flex gap-3">{children}</div> : children}
   </div>
 );
