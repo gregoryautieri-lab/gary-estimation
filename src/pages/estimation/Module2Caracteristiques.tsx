@@ -91,40 +91,27 @@ const sdbOptions = Array.from({ length: 6 }, (_, i) => ({
   label: i.toString()
 }));
 
-const wcOptions = [
-  { value: '', label: '--' },
-  ...Array.from({ length: 5 }, (_, i) => ({
-    value: i.toString(),
-    label: i.toString()
-  }))
-];
+const wcOptions = Array.from({ length: 6 }, (_, i) => ({
+  value: i.toString(),
+  label: i.toString()
+}));
 
-const niveauxOptions = [
-  { value: '', label: '--' },
-  ...Array.from({ length: 5 }, (_, i) => ({
-    value: (i + 1).toString(),
-    label: (i + 1).toString()
-  }))
-];
+const niveauxOptions = Array.from({ length: 5 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: (i + 1).toString()
+}));
 
-const parkingOptions = [
-  { value: '', label: '--' },
-  ...Array.from({ length: 6 }, (_, i) => ({
-    value: i.toString(),
-    label: i.toString()
-  }))
-];
+const parkingOptions = Array.from({ length: 6 }, (_, i) => ({
+  value: i.toString(),
+  label: i.toString()
+}));
 
-const boxOptions = [
-  { value: '', label: '--' },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    value: i.toString(),
-    label: i.toString()
-  }))
-];
+const boxOptions = Array.from({ length: 4 }, (_, i) => ({
+  value: i.toString(),
+  label: i.toString()
+}));
 
 const buanderieAppartOptions = [
-  { value: '', label: 'Sélectionner...' },
   { value: 'privee', label: "Privée dans l'appartement" },
   { value: 'privee_cave', label: 'Privée en cave' },
   { value: 'commune', label: 'Commune' },
@@ -141,14 +128,12 @@ const diffusionChaleurOptions = [
 ];
 
 const vitrageOptions = [
-  { value: '', label: '--' },
   { value: 'simple', label: 'Simple vitrage' },
   { value: 'double', label: 'Double vitrage' },
   { value: 'triple', label: 'Triple vitrage' },
 ];
 
 const cecbOptions = [
-  { value: '', label: '--' },
   { value: 'A', label: 'A' },
   { value: 'B', label: 'B' },
   { value: 'C', label: 'C' },
