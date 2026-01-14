@@ -355,17 +355,16 @@ export default function Module3AnalyseTerrain() {
           <Button 
             variant="outline" 
             className="flex-1"
-            onClick={handleSave}
-            disabled={saving}
+            onClick={() => navigate(`/estimation/${id}/2`)}
           >
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
+            Précédent
           </Button>
           <Button 
             className="flex-1 bg-primary hover:bg-primary/90"
             onClick={handleNext}
             disabled={saving}
           >
-            Suivant
+            {saving ? 'Enregistrement...' : 'Suivant'}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
