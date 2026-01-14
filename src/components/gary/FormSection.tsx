@@ -1,16 +1,25 @@
 import { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 interface FormSectionProps {
-  icon?: string;
+  icon?: ReactNode;
   title: string;
   children: ReactNode;
   className?: string;
+  variant?: 'default' | 'highlight';
 }
 
-export const FormSection = ({ icon, title, children, className = '' }: FormSectionProps) => (
-  <div className={`bg-card border border-border rounded-xl p-4 space-y-4 ${className}`}>
-    <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-      {icon && <span>{icon}</span>}
+export const FormSection = ({ icon, title, children, className = '', variant = 'default' }: FormSectionProps) => (
+  <div className={cn(
+    "rounded-xl p-4 space-y-4",
+    variant === 'highlight' 
+      ? "bg-background" 
+      : "bg-card border border-border",
+    className
+  )}>
+    <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 uppercase tracking-wide">
+      <span className="w-1 h-4 bg-primary rounded-full" />
+      {icon}
       {title}
     </h2>
     {children}
