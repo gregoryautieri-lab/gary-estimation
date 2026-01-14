@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
+import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -392,26 +393,28 @@ const Module1Identification = () => {
         </FormSection>
       </main>
 
-      {/* Bottom actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 pb-safe flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => handleSave(false)}
-          disabled={saving}
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-          Sauvegarder
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={() => handleSave(true)}
-          disabled={saving}
-        >
-          Suivant
-          <ChevronRight className="h-4 w-4 ml-2" />
-        </Button>
+      {/* Footer actions */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background border-t border-border p-4">
+        <div className="flex gap-3 max-w-lg mx-auto">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => navigate('/estimations')}
+          >
+            Retour
+          </Button>
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90"
+            onClick={() => handleSave(true)}
+            disabled={saving}
+          >
+            {saving ? 'Enregistrement...' : 'Suivant'}
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
       </div>
+
+      <BottomNav />
     </div>
   );
 };
