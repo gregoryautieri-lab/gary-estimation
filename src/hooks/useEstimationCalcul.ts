@@ -98,21 +98,25 @@ export interface EstimationCalculResult {
 }
 
 export function useEstimationCalcul(
-  caracteristiques: Caracteristiques,
-  preEstimation: PreEstimation
+  caracteristiques: Caracteristiques | null | undefined,
+  preEstimation: PreEstimation | null | undefined
 ): EstimationCalculResult {
   return useMemo(() => {
-    const isAppartement = caracteristiques.typeBien === 'appartement';
-    const isMaison = caracteristiques.typeBien === 'maison';
+    // Handle null/undefined safely
+    const carac = caracteristiques || {} as Partial<Caracteristiques>;
+    const preEst = preEstimation || {} as Partial<PreEstimation>;
+    
+    const isAppartement = carac.typeBien === 'appartement';
+    const isMaison = carac.typeBien === 'maison';
     
     // ============================================
     // APPARTEMENT - Surface pondérée
     // ============================================
-    const surfacePPE = parseNum(caracteristiques.surfacePPE);
-    const surfaceNonHab = parseNum(caracteristiques.surfaceNonHabitable);
-    const surfaceBalcon = parseNum(caracteristiques.surfaceBalcon);
-    const surfaceTerrasse = parseNum(caracteristiques.surfaceTerrasse);
-    const surfaceJardin = parseNum(caracteristiques.surfaceJardin);
+    const surfacePPE = parseNum(carac.surfacePPE);
+    const surfaceNonHab = parseNum(carac.surfaceNonHabitable);
+    const surfaceBalcon = parseNum(carac.surfaceBalcon);
+    const surfaceTerrasse = parseNum(carac.surfaceTerrasse);
+    const surfaceJardin = parseNum(carac.surfaceJardin);
     
     // Surface habitable = PPE - non habitable
     const surfaceHabitable = surfacePPE - surfaceNonHab;
@@ -126,17 +130,17 @@ export function useEstimationCalcul(
     // ============================================
     // MAISON - Cubage SIA
     // ============================================
-    const surfaceHabMaison = parseNum(caracteristiques.surfaceHabitableMaison);
-    const surfaceUtile = parseNum(caracteristiques.surfaceUtile);
-    const surfaceTerrain = parseNum(caracteristiques.surfaceTerrain);
-    const nombreNiveaux = parseNum(caracteristiques.nombreNiveaux) || 1;
+    const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
+    const surfaceUtile = parseNum(carac.surfaceUtile);
+    const surfaceTerrain = parseNum(carac.surfaceTerrain);
+    const nombreNiveaux = parseNum(carac.nombreNiveaux) || 1;
     
     // Cubage automatique SIA: (surface hab / niveaux) * hauteur * coef murs * niveaux
     const surfaceParNiveau = surfaceHabMaison / nombreNiveaux;
     const cubageAuto = surfaceParNiveau * HAUTEUR_ETAGE * COEF_MURS * nombreNiveaux;
     
     // Cubage utilisé (manuel ou auto)
-    const cubageManuel = parseNum(preEstimation.cubageManuel);
+    const cubageManuel = parseNum(preEst.cubageManuel);
     const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
     
     // Surface aménagement = utile - habitable
@@ -145,12 +149,12 @@ export function useEstimationCalcul(
     // ============================================
     // PRIX & VETUSTE
     // ============================================
-    const prixM2 = parseNum(preEstimation.prixM2);
-    const tauxVetuste = preEstimation.tauxVetuste || 0;
+    const prixM2 = parseNum(preEst.prixM2);
+    const tauxVetuste = preEst.tauxVetuste || 0;
     const prixM2Ajuste = prixM2 * (1 - tauxVetuste / 100);
     
-    const prixM3 = parseNum(preEstimation.prixM3);
-    const tauxVetusteMaison = preEstimation.tauxVetusteMaison || 0;
+    const prixM3 = parseNum(preEst.prixM3);
+    const tauxVetusteMaison = preEst.tauxVetusteMaison || 0;
     const prixM3Ajuste = prixM3 * (1 - tauxVetusteMaison / 100);
     
     // ============================================
@@ -159,27 +163,27 @@ export function useEstimationCalcul(
     const valeurSurfaceBrute = surfacePonderee * prixM2;
     const valeurSurface = surfacePonderee * prixM2Ajuste;
     
-    const nbPlaceInt = parseNum(caracteristiques.parkingInterieur);
-    const nbPlaceExt = parseNum(caracteristiques.parkingExterieur);
-    const nbBox = parseNum(caracteristiques.box);
-    const hasCave = caracteristiques.cave;
+    const nbPlaceInt = parseNum(carac.parkingInterieur);
+    const nbPlaceExt = parseNum(carac.parkingExterieur);
+    const nbBox = parseNum(carac.box);
+    const hasCave = carac.cave || false;
     
-    const valeurPlaceInt = nbPlaceInt * parseNum(preEstimation.prixPlaceInt);
-    const valeurPlaceExt = nbPlaceExt * parseNum(preEstimation.prixPlaceExt);
-    const valeurBox = nbBox * parseNum(preEstimation.prixBox);
-    const valeurCave = hasCave ? parseNum(preEstimation.prixCave) : 0;
+    const valeurPlaceInt = nbPlaceInt * parseNum(preEst.prixPlaceInt);
+    const valeurPlaceExt = nbPlaceExt * parseNum(preEst.prixPlaceExt);
+    const valeurBox = nbBox * parseNum(preEst.prixBox);
+    const valeurCave = hasCave ? parseNum(preEst.prixCave) : 0;
     
-    const valeurLignesSupp = (preEstimation.lignesSupp || []).reduce(
+    const valeurLignesSupp = (preEst.lignesSupp || []).reduce(
       (sum, l) => sum + parseNum(l.prix), 0
     );
     
     // ============================================
     // VALEURS MAISON
     // ============================================
-    const valeurTerrain = surfaceTerrain * parseNum(preEstimation.prixM2Terrain);
+    const valeurTerrain = surfaceTerrain * parseNum(preEst.prixM2Terrain);
     const valeurCubage = cubage * prixM3Ajuste;
-    const valeurAmenagement = surfaceAmenagement * parseNum(preEstimation.prixM2Amenagement);
-    const valeurAnnexes = (preEstimation.annexes || []).reduce(
+    const valeurAmenagement = surfaceAmenagement * parseNum(preEst.prixM2Amenagement);
+    const valeurAnnexes = (preEst.annexes || []).reduce(
       (sum, a) => sum + parseNum(a.prix), 0
     );
     
@@ -195,10 +199,10 @@ export function useEstimationCalcul(
     // ============================================
     // VALEUR DE RENDEMENT
     // ============================================
-    const loyerBrut = parseNum(preEstimation.loyerMensuel);
+    const loyerBrut = parseNum(preEst.loyerMensuel);
     const loyerNet = loyerBrut * 0.9; // 10% charges
     const loyerAnnuel = loyerNet * 12;
-    const tauxCapi = (preEstimation.tauxCapitalisation || 2.5) / 100;
+    const tauxCapi = (preEst.tauxCapitalisation || 2.5) / 100;
     const valeurRendement = tauxCapi > 0 ? arrondir5000(loyerAnnuel / tauxCapi) : 0;
     
     // ============================================
@@ -216,15 +220,15 @@ export function useEstimationCalcul(
     // ============================================
     // PRIX MISE EN VENTE PAR TYPE
     // ============================================
-    const pourcOffmarket = preEstimation.pourcOffmarket ?? 15;
-    const pourcComingsoon = preEstimation.pourcComingsoon ?? 10;
-    const pourcPublic = preEstimation.pourcPublic ?? 6;
+    const pourcOffmarket = preEst.pourcOffmarket ?? 15;
+    const pourcComingsoon = preEst.pourcComingsoon ?? 10;
+    const pourcPublic = preEst.pourcPublic ?? 6;
     
     const prixOffmarket = arrondir5000(totalVenale * (1 + pourcOffmarket / 100));
     const prixComingSoon = arrondir5000(totalVenale * (1 + pourcComingsoon / 100));
     const prixPublic = arrondir5000(totalVenale * (1 + pourcPublic / 100));
     
-    const typeMV = preEstimation.typeMiseEnVente || 'public';
+    const typeMV = preEst.typeMiseEnVente || 'public';
     const prixMiseEnVente = typeMV === 'offmarket' ? prixOffmarket : 
       (typeMV === 'comingsoon' ? prixComingSoon : prixPublic);
     
@@ -359,28 +363,32 @@ export function useCapitalVisibilite(historique: Historique): CapitalVisibilite 
 // Hook LuxMode (calcul automatique)
 // ============================================
 export function useLuxMode(
-  caracteristiques: Caracteristiques,
-  contexte: Contexte,
-  historique: Historique,
+  caracteristiques: Caracteristiques | null | undefined,
+  contexte: Contexte | null | undefined,
+  historique: Historique | null | undefined,
   totalVenaleArrondi: number
 ): LuxMode {
   return useMemo(() => {
+    const carac = caracteristiques || {} as Partial<Caracteristiques>;
+    const ctx = contexte || {} as Partial<Contexte>;
+    const hist = historique || {} as Partial<Historique>;
+    
     let luxScore = 0;
     
-    const isAppartement = caracteristiques.typeBien === 'appartement';
-    const isMaison = caracteristiques.typeBien === 'maison';
+    const isAppartement = carac.typeBien === 'appartement';
+    const isMaison = carac.typeBien === 'maison';
     
     // Type de bien premium
-    const sousTypePremium = ['attique', 'penthouse', 'loft', 'duplex'].includes(caracteristiques.sousType);
-    const sousTypeMaisonPremium = ['villa', 'propriete', 'chalet'].includes(caracteristiques.sousType);
+    const sousTypePremium = ['attique', 'penthouse', 'loft', 'duplex'].includes(carac.sousType || '');
+    const sousTypeMaisonPremium = ['villa', 'propriete', 'chalet'].includes(carac.sousType || '');
     
     if (sousTypePremium) luxScore += 15;
     if (sousTypeMaisonPremium) luxScore += 12;
-    if (caracteristiques.dernierEtage && isAppartement) luxScore += 8;
+    if (carac.dernierEtage && isAppartement) luxScore += 8;
     
     // Surfaces hors norme
-    const surfacePonderee = parseNum(caracteristiques.surfacePPE) - parseNum(caracteristiques.surfaceNonHabitable);
-    const surfaceHabMaison = parseNum(caracteristiques.surfaceHabitableMaison);
+    const surfacePonderee = parseNum(carac.surfacePPE) - parseNum(carac.surfaceNonHabitable);
+    const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
     const surfaceHab = isAppartement ? surfacePonderee : surfaceHabMaison;
     
     if (surfaceHab > 300) luxScore += 15;
@@ -388,22 +396,22 @@ export function useLuxMode(
     else if (surfaceHab > 150) luxScore += 5;
     
     // Terrain (maison)
-    const surfaceTerrain = parseNum(caracteristiques.surfaceTerrain);
+    const surfaceTerrain = parseNum(carac.surfaceTerrain);
     if (isMaison && surfaceTerrain > 3000) luxScore += 15;
     else if (isMaison && surfaceTerrain > 1500) luxScore += 10;
     else if (isMaison && surfaceTerrain > 800) luxScore += 5;
     
     // Annexes premium
-    if (caracteristiques.piscine) luxScore += 12;
+    if (carac.piscine) luxScore += 12;
     
     // Contexte vendeur
-    if (contexte.confidentialite === 'confidentielle') luxScore += 12;
-    else if (contexte.confidentialite === 'discrete') luxScore += 8;
-    if (contexte.horizon === 'flexible') luxScore += 5;
-    if (contexte.prioriteVendeur === 'prixMax') luxScore += 5;
+    if (ctx.confidentialite === 'confidentielle') luxScore += 12;
+    else if (ctx.confidentialite === 'discrete') luxScore += 8;
+    if (ctx.horizon === 'flexible') luxScore += 5;
+    if (ctx.prioriteVendeur === 'prixMax') luxScore += 5;
     
     // Bien déjà exposé + volonté de protéger
-    if (historique.dejaDiffuse && contexte.confidentialite !== 'normale') {
+    if (hist.dejaDiffuse && ctx.confidentialite !== 'normale') {
       luxScore += 8;
     }
     
