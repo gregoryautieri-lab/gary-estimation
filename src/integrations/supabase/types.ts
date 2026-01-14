@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      estimations: {
+        Row: {
+          adresse: string | null
+          analyse_terrain: Json | null
+          caracteristiques: Json | null
+          code_postal: string | null
+          comparables: Json | null
+          courtier_id: string
+          created_at: string
+          etapes_completees: string[] | null
+          historique: Json | null
+          id: string
+          identification: Json | null
+          localite: string | null
+          notes_libres: string | null
+          photos: Json | null
+          pre_estimation: Json | null
+          prix_final: number | null
+          prix_max: number | null
+          prix_min: number | null
+          statut: Database["public"]["Enums"]["estimation_status"]
+          strategie: Json | null
+          timeline: Json | null
+          type_bien: Database["public"]["Enums"]["type_bien"] | null
+          updated_at: string
+          vendeur_email: string | null
+          vendeur_nom: string | null
+          vendeur_telephone: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          analyse_terrain?: Json | null
+          caracteristiques?: Json | null
+          code_postal?: string | null
+          comparables?: Json | null
+          courtier_id: string
+          created_at?: string
+          etapes_completees?: string[] | null
+          historique?: Json | null
+          id?: string
+          identification?: Json | null
+          localite?: string | null
+          notes_libres?: string | null
+          photos?: Json | null
+          pre_estimation?: Json | null
+          prix_final?: number | null
+          prix_max?: number | null
+          prix_min?: number | null
+          statut?: Database["public"]["Enums"]["estimation_status"]
+          strategie?: Json | null
+          timeline?: Json | null
+          type_bien?: Database["public"]["Enums"]["type_bien"] | null
+          updated_at?: string
+          vendeur_email?: string | null
+          vendeur_nom?: string | null
+          vendeur_telephone?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          analyse_terrain?: Json | null
+          caracteristiques?: Json | null
+          code_postal?: string | null
+          comparables?: Json | null
+          courtier_id?: string
+          created_at?: string
+          etapes_completees?: string[] | null
+          historique?: Json | null
+          id?: string
+          identification?: Json | null
+          localite?: string | null
+          notes_libres?: string | null
+          photos?: Json | null
+          pre_estimation?: Json | null
+          prix_final?: number | null
+          prix_max?: number | null
+          prix_min?: number | null
+          statut?: Database["public"]["Enums"]["estimation_status"]
+          strategie?: Json | null
+          timeline?: Json | null
+          type_bien?: Database["public"]["Enums"]["type_bien"] | null
+          updated_at?: string
+          vendeur_email?: string | null
+          vendeur_nom?: string | null
+          vendeur_telephone?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -81,6 +168,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "courtier" | "back_office"
+      estimation_status: "brouillon" | "en_cours" | "termine" | "archive"
+      type_bien:
+        | "appartement"
+        | "maison"
+        | "terrain"
+        | "immeuble"
+        | "commercial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -209,6 +303,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "courtier", "back_office"],
+      estimation_status: ["brouillon", "en_cours", "termine", "archive"],
+      type_bien: ["appartement", "maison", "terrain", "immeuble", "commercial"],
     },
   },
 } as const
