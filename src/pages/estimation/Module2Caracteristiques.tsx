@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -8,51 +8,192 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronRight, Home, Building2, Mountain, Building } from 'lucide-react';
+import { ChevronRight, Home, Building2, Key } from 'lucide-react';
 
+// Type de bien options
 const typeBienOptions: { value: TypeBien | ''; label: string; icon: React.ElementType }[] = [
   { value: 'appartement', label: 'Appartement', icon: Building2 },
   { value: 'maison', label: 'Maison', icon: Home },
-  { value: 'immeuble', label: 'Immeuble', icon: Building },
-  { value: 'terrain', label: 'Terrain', icon: Mountain },
-  { value: 'commercial', label: 'Commercial', icon: Building2 },
+];
+
+// Sous-catégories
+const sousCategorieAppart = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'attique', label: 'Attique' },
+  { value: 'duplex', label: 'Duplex' },
+  { value: 'triplex', label: 'Triplex' },
+  { value: 'loft', label: 'Loft' },
+  { value: 'studio', label: 'Studio' },
+];
+
+const sousCategorieMaison = [
+  { value: 'villa', label: 'Villa individuelle' },
+  { value: 'villa_mitoyenne', label: 'Villa mitoyenne' },
+  { value: 'villa_jumelee', label: 'Villa jumelée' },
+  { value: 'chalet', label: 'Chalet' },
+  { value: 'fermette', label: 'Fermette' },
+  { value: 'maison_village', label: 'Maison de village' },
+];
+
+// Options zones
+const zoneOptions = [
+  { value: 'villa', label: '5 - Zone villa' },
+  { value: 'residentielle', label: '4 - Zone résidentielle' },
+  { value: 'mixte', label: '3 - Zone mixte' },
+  { value: 'developpement', label: 'Zone de développement' },
+  { value: 'agricole', label: 'Zone agricole' },
 ];
 
 const vueOptions = [
-  { value: 'lac', label: 'Vue lac' },
-  { value: 'montagne', label: 'Vue montagne' },
-  { value: 'lac_montagne', label: 'Vue lac et montagne' },
-  { value: 'degagee', label: 'Vue dégagée' },
-  { value: 'jardin', label: 'Vue jardin' },
-  { value: 'urbaine', label: 'Vue urbaine' },
+  { value: 'lac', label: 'Lac' },
+  { value: 'montagne', label: 'Montagne' },
+  { value: 'lac_montagne', label: 'Lac et montagne' },
+  { value: 'degagee', label: 'Dégagée' },
+  { value: 'jardin', label: 'Jardin' },
+  { value: 'urbaine', label: 'Urbaine' },
   { value: 'aucune', label: 'Sans vue particulière' },
 ];
 
-const expositionOptions = [
-  { value: 'nord', label: 'Nord' },
-  { value: 'nord-est', label: 'Nord-Est' },
-  { value: 'est', label: 'Est' },
-  { value: 'sud-est', label: 'Sud-Est' },
-  { value: 'sud', label: 'Sud' },
-  { value: 'sud-ouest', label: 'Sud-Ouest' },
-  { value: 'ouest', label: 'Ouest' },
-  { value: 'nord-ouest', label: 'Nord-Ouest' },
-];
+const expositionSimple = ['Nord', 'Est', 'Sud', 'Ouest'];
 
 const ascenseurOptions = [
   { value: 'oui', label: 'Oui' },
   { value: 'non', label: 'Non' },
-  { value: 'projet', label: 'En projet' },
 ];
 
 const etageOptions = Array.from({ length: 21 }, (_, i) => ({
   value: i.toString(),
-  label: i === 0 ? 'Rez-de-chaussée' : `${i}${i === 1 ? 'er' : 'e'} étage`
+  label: i === 0 ? 'Rez' : `${i}e`
 }));
+
+const etagesImmeubleOptions = Array.from({ length: 20 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: `${i + 1}`
+}));
+
+const piecesOptions = Array.from({ length: 17 }, (_, i) => {
+  const val = 1 + i * 0.5;
+  return { value: val.toString(), label: val.toString() };
+});
+
+const chambresOptions = Array.from({ length: 10 }, (_, i) => ({
+  value: i.toString(),
+  label: i.toString()
+}));
+
+const sdbOptions = Array.from({ length: 6 }, (_, i) => ({
+  value: i.toString(),
+  label: i.toString()
+}));
+
+const wcOptions = [
+  { value: '', label: '--' },
+  ...Array.from({ length: 5 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }))
+];
+
+const niveauxOptions = [
+  { value: '', label: '--' },
+  ...Array.from({ length: 5 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: (i + 1).toString()
+  }))
+];
+
+const parkingOptions = [
+  { value: '', label: '--' },
+  ...Array.from({ length: 6 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }))
+];
+
+const boxOptions = [
+  { value: '', label: '--' },
+  ...Array.from({ length: 4 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }))
+];
+
+const buanderieAppartOptions = [
+  { value: '', label: 'Sélectionner...' },
+  { value: 'privee', label: "Privée dans l'appartement" },
+  { value: 'privee_cave', label: 'Privée en cave' },
+  { value: 'commune', label: 'Commune' },
+  { value: 'aucune', label: 'Aucune' },
+];
+
+const diffusionChaleurOptions = [
+  { value: 'sol', label: 'Au sol', icon: '🔥' },
+  { value: 'radiateurs', label: 'Radiateurs', icon: '📻' },
+  { value: 'convecteurs', label: 'Convecteurs', icon: '🌀' },
+  { value: 'poele', label: 'Poêle', icon: '🔥' },
+  { value: 'cheminee', label: 'Cheminée', icon: '🏠' },
+  { value: 'plafond', label: 'Plafond', icon: '⬆️' },
+];
+
+const vitrageOptions = [
+  { value: '', label: '--' },
+  { value: 'simple', label: 'Simple vitrage' },
+  { value: 'double', label: 'Double vitrage' },
+  { value: 'triple', label: 'Triple vitrage' },
+];
+
+const cecbOptions = [
+  { value: '', label: '--' },
+  { value: 'A', label: 'A' },
+  { value: 'B', label: 'B' },
+  { value: 'C', label: 'C' },
+  { value: 'D', label: 'D' },
+  { value: 'E', label: 'E' },
+  { value: 'F', label: 'F' },
+  { value: 'G', label: 'G' },
+  { value: 'NC', label: 'Non certifié' },
+];
+
+// Espaces maison complet
+const espacesMaisonOptions = [
+  { value: 'cave', label: 'Cave', icon: '🍷' },
+  { value: 'buanderie', label: 'Buanderie', icon: '🧺' },
+  { value: 'local_technique', label: 'Local technique', icon: '⚙️' },
+  { value: 'salle_jeux', label: 'Salle de jeux', icon: '🎮' },
+  { value: 'home_cinema', label: 'Home cinéma', icon: '🎬' },
+  { value: 'cellier', label: 'Cellier', icon: '🍾' },
+  { value: 'abri_pc', label: 'Abri PC', icon: '🛡️' },
+  { value: 'chambre_ss', label: 'Chambre', icon: '🛏️' },
+  { value: 'sdb_ss', label: 'Salle de bain', icon: '🛁' },
+  { value: 'wc_ss', label: 'WC', icon: '🚽' },
+  { value: 'bureau', label: 'Bureau', icon: '💼' },
+  { value: 'studio', label: 'Studio indép.', icon: '🏠' },
+  { value: 'spa', label: 'Spa / Wellness', icon: '💆' },
+  { value: 'sauna', label: 'Sauna', icon: '🧖' },
+  { value: 'hammam', label: 'Hammam', icon: '♨️' },
+  { value: 'piscine_int', label: 'Piscine int.', icon: '🏊' },
+  { value: 'piscine_ext', label: 'Piscine ext.', icon: '🏊' },
+  { value: 'dressing', label: 'Dressing', icon: '👔' },
+  { value: 'bibliotheque', label: 'Bibliothèque', icon: '📚' },
+  { value: 'atelier', label: 'Atelier', icon: '🔧' },
+  { value: 'local_ski', label: 'Local ski', icon: '⛷️' },
+  { value: 'cabanon', label: 'Cabanon', icon: '🏡' },
+  { value: 'pool_house', label: 'Pool house', icon: '🏖️' },
+  { value: 'dependance', label: 'Dépendance', icon: '🏚️' },
+  { value: 'conciergerie', label: 'Conciergerie', icon: '🔑' },
+];
+
+// Équipements luxe appartement
+const equipementsLuxeAppart = [
+  { value: 'piscine', label: 'Piscine' },
+  { value: 'caveVin', label: 'Cave à vin' },
+  { value: 'fitness', label: 'Fitness' },
+];
 
 export default function Module2Caracteristiques() {
   const { id } = useParams<{ id: string }>();
@@ -106,6 +247,49 @@ export default function Module2Caracteristiques() {
   const isAppartement = carac.typeBien === 'appartement';
   const isMaison = carac.typeBien === 'maison';
 
+  // Calcul surface pondérée totale (appartement)
+  const surfacePonderee = useMemo(() => {
+    if (!isAppartement) return 0;
+    const ppe = parseFloat(carac.surfacePPE) || 0;
+    const sousSol = (parseFloat(carac.surfaceNonHabitable) || 0) * 0.5; // pondéré 50%
+    const balcon = (parseFloat(carac.surfaceBalcon) || 0) * 0.5; // pondéré 50%
+    const terrasse = (parseFloat(carac.surfaceTerrasse) || 0) * 0.33; // pondéré 33%
+    const jardin = (parseFloat(carac.surfaceJardin) || 0) * 0.1; // pondéré 10%
+    return ppe + sousSol + balcon + terrasse + jardin;
+  }, [isAppartement, carac.surfacePPE, carac.surfaceNonHabitable, carac.surfaceBalcon, carac.surfaceTerrasse, carac.surfaceJardin]);
+
+  // Toggle exposition
+  const toggleExposition = (dir: string) => {
+    const current = carac.exposition || [];
+    const lowerDir = dir.toLowerCase();
+    if (current.includes(lowerDir)) {
+      updateField('exposition', current.filter(v => v !== lowerDir));
+    } else {
+      updateField('exposition', [...current, lowerDir]);
+    }
+  };
+
+  // Toggle diffusion
+  const toggleDiffusion = (val: string) => {
+    const field = isMaison ? 'diffusionMaison' : 'diffusion';
+    const current = (isMaison ? carac.diffusionMaison : carac.diffusion) || [];
+    if (current.includes(val)) {
+      updateField(field, current.filter(v => v !== val));
+    } else {
+      updateField(field, [...current, val]);
+    }
+  };
+
+  // Toggle espaces maison
+  const toggleEspaceMaison = (val: string) => {
+    const current = carac.espacesMaison || [];
+    if (current.includes(val)) {
+      updateField('espacesMaison', current.filter(v => v !== val));
+    } else {
+      updateField('espacesMaison', [...current, val]);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -125,475 +309,702 @@ export default function Module2Caracteristiques() {
       <ModuleHeader 
         moduleNumber={2} 
         title="Caractéristiques" 
-        subtitle={estimation?.identification?.vendeur?.nom || 'Nouveau bien'}
+        subtitle="Fiche technique complète du bien"
         backPath={`/estimation/${id}/1`}
       />
 
       <div className="p-4 space-y-6">
         {/* Type de bien */}
         <FormSection title="Type de bien">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             {typeBienOptions.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
                 onClick={() => updateField('typeBien', value)}
-                className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                   carac.typeBien === value 
-                    ? 'border-primary bg-primary/10 text-primary' 
+                    ? 'border-primary bg-primary/5 text-primary' 
                     : 'border-border bg-card hover:border-primary/50'
                 }`}
               >
                 <Icon className="h-6 w-6" />
-                <span className="text-xs font-medium text-center">{label}</span>
+                <span className="text-sm font-medium">{label}</span>
               </button>
             ))}
           </div>
+
+          {/* Sous-catégorie */}
+          {(isAppartement || isMaison) && (
+            <FormRow label="Sous-catégorie">
+              <Select 
+                value={carac.sousType} 
+                onValueChange={(v) => updateField('sousType', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(isAppartement ? sousCategorieAppart : sousCategorieMaison).map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
+          )}
         </FormSection>
 
         {/* Surfaces */}
-        <FormSection title="Surfaces">
-          <div className="space-y-4">
-            {isAppartement && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Surface PPE (m²)">
+        {(isAppartement || isMaison) && (
+          <FormSection title="Surfaces">
+            <div className="space-y-4">
+              {isAppartement && (
+                <>
+                  <FormRow label="Surface PPE (m²)" helper="Surface officielle du règlement PPE">
                     <Input
                       type="number"
                       value={carac.surfacePPE}
                       onChange={(e) => updateField('surfacePPE', e.target.value)}
-                      placeholder="135"
+                      placeholder="127"
                     />
                   </FormRow>
-                  <FormRow label="Non habitable (m²)">
+
+                  <FormRow label="Sous-sol habitable (m²)" optional helper="Sous-sol directement accessible dans l'appartement — Pondéré 50%">
                     <Input
                       type="number"
                       value={carac.surfaceNonHabitable}
                       onChange={(e) => updateField('surfaceNonHabitable', e.target.value)}
-                      placeholder="15"
+                      placeholder="0"
                     />
                   </FormRow>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Balcon (m²)">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormRow label="Balcon (m²)" optional helper="Pondéré 50%">
+                      <Input
+                        type="number"
+                        value={carac.surfaceBalcon}
+                        onChange={(e) => updateField('surfaceBalcon', e.target.value)}
+                        placeholder="12"
+                      />
+                    </FormRow>
+                    <FormRow label="Terrasse (m²)" optional helper="Pondéré 33%">
+                      <Input
+                        type="number"
+                        value={carac.surfaceTerrasse}
+                        onChange={(e) => updateField('surfaceTerrasse', e.target.value)}
+                        placeholder="0"
+                      />
+                    </FormRow>
+                  </div>
+
+                  <FormRow label="Jardin privatif (m²)" optional helper="Pondéré 10%">
                     <Input
                       type="number"
-                      value={carac.surfaceBalcon}
-                      onChange={(e) => updateField('surfaceBalcon', e.target.value)}
-                      placeholder="12"
+                      value={carac.surfaceJardin}
+                      onChange={(e) => updateField('surfaceJardin', e.target.value)}
+                      placeholder="-1"
                     />
                   </FormRow>
-                  <FormRow label="Terrasse (m²)">
+
+                  {/* Surface pondérée totale */}
+                  <div className="flex items-center justify-between p-4 bg-primary/10 rounded-xl border border-primary/20">
+                    <span className="text-sm font-medium text-foreground">Surface pondérée totale</span>
+                    <span className="text-xl font-bold text-primary">{surfacePonderee.toFixed(1)} m²</span>
+                  </div>
+                </>
+              )}
+
+              {isMaison && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormRow label="Surface habitable (m²)">
+                      <Input
+                        type="number"
+                        value={carac.surfaceHabitableMaison}
+                        onChange={(e) => updateField('surfaceHabitableMaison', e.target.value)}
+                        placeholder="Ex: 180"
+                      />
+                    </FormRow>
+                    <FormRow label="Surface utile (m²)">
+                      <Input
+                        type="number"
+                        value={carac.surfaceUtile}
+                        onChange={(e) => updateField('surfaceUtile', e.target.value)}
+                        placeholder="Ex: 220"
+                      />
+                    </FormRow>
+                  </div>
+
+                  <FormRow label="Surface terrain (m²)">
                     <Input
                       type="number"
-                      value={carac.surfaceTerrasse}
-                      onChange={(e) => updateField('surfaceTerrasse', e.target.value)}
-                      placeholder="25"
+                      value={carac.surfaceTerrain}
+                      onChange={(e) => updateField('surfaceTerrain', e.target.value)}
+                      placeholder="Ex: 800"
                     />
                   </FormRow>
-                </div>
+                </>
+              )}
+            </div>
+          </FormSection>
+        )}
 
-                <FormRow label="Jardin privatif (m²)">
+        {/* Copropriété PPE (appartement) */}
+        {isAppartement && (
+          <FormSection title="Copropriété (PPE)">
+            <div className="grid grid-cols-2 gap-3">
+              <FormRow label="N° lot PPE" optional>
+                <Input
+                  value={carac.numeroLotPPE}
+                  onChange={(e) => updateField('numeroLotPPE', e.target.value)}
+                  placeholder="7.03"
+                />
+              </FormRow>
+              <FormRow label="Fond de rénovation" optional>
+                <div className="relative">
                   <Input
                     type="number"
-                    value={carac.surfaceJardin}
-                    onChange={(e) => updateField('surfaceJardin', e.target.value)}
-                    placeholder="100"
+                    value={carac.fondRenovation}
+                    onChange={(e) => updateField('fondRenovation', e.target.value)}
+                    placeholder="Ex: 50000"
+                    className="pr-12"
                   />
-                </FormRow>
-              </>
-            )}
-
-            {isMaison && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Surface habitable (m²)">
-                    <Input
-                      type="number"
-                      value={carac.surfaceHabitableMaison}
-                      onChange={(e) => updateField('surfaceHabitableMaison', e.target.value)}
-                      placeholder="180"
-                    />
-                  </FormRow>
-                  <FormRow label="Surface utile (m²)">
-                    <Input
-                      type="number"
-                      value={carac.surfaceUtile}
-                      onChange={(e) => updateField('surfaceUtile', e.target.value)}
-                      placeholder="220"
-                    />
-                  </FormRow>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">CHF</span>
                 </div>
+              </FormRow>
+            </div>
+          </FormSection>
+        )}
 
-                <FormRow label="Surface terrain (m²)">
-                  <Input
-                    type="number"
-                    value={carac.surfaceTerrain}
-                    onChange={(e) => updateField('surfaceTerrain', e.target.value)}
-                    placeholder="800"
-                  />
-                </FormRow>
-              </>
-            )}
-
-            {!isAppartement && !isMaison && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Sélectionnez un type de bien pour afficher les champs de surface correspondants.
-              </p>
-            )}
-          </div>
-        </FormSection>
+        {/* Parcelle (maison) */}
+        {isMaison && (
+          <FormSection title="Parcelle">
+            <div className="grid grid-cols-2 gap-3">
+              <FormRow label="N° parcelle">
+                <Input
+                  value={carac.numeroParcelle}
+                  onChange={(e) => updateField('numeroParcelle', e.target.value)}
+                  placeholder="Ex: 1234"
+                />
+              </FormRow>
+              <FormRow label="Zone">
+                <Select 
+                  value={carac.zone} 
+                  onValueChange={(v) => updateField('zone', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {zoneOptions.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+            </div>
+          </FormSection>
+        )}
 
         {/* Configuration */}
-        <FormSection title="Configuration">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="Nombre de pièces">
-                <Input
-                  type="number"
-                  step="0.5"
-                  value={carac.nombrePieces}
-                  onChange={(e) => updateField('nombrePieces', e.target.value)}
-                  placeholder="4.5"
-                />
-              </FormRow>
-              <FormRow label="Chambres">
-                <Input
-                  type="number"
-                  value={carac.nombreChambres}
-                  onChange={(e) => updateField('nombreChambres', e.target.value)}
-                  placeholder="3"
-                />
-              </FormRow>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="Salles de bain">
-                <Input
-                  type="number"
-                  value={carac.nombreSDB}
-                  onChange={(e) => updateField('nombreSDB', e.target.value)}
-                  placeholder="2"
-                />
-              </FormRow>
-              <FormRow label="WC séparés">
-                <Input
-                  type="number"
-                  value={carac.nombreWC}
-                  onChange={(e) => updateField('nombreWC', e.target.value)}
-                  placeholder="1"
-                />
-              </FormRow>
-            </div>
-
-            {isAppartement && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Étage">
-                    <Select 
-                      value={carac.etage} 
-                      onValueChange={(v) => updateField('etage', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {etageOptions.map(({ value, label }) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormRow>
-                  <FormRow label="Étages immeuble">
-                    <Input
-                      type="number"
-                      value={carac.nombreEtagesImmeuble}
-                      onChange={(e) => updateField('nombreEtagesImmeuble', e.target.value)}
-                      placeholder="5"
-                    />
-                  </FormRow>
-                </div>
-
-                <FormRow label="Ascenseur">
+        {(isAppartement || isMaison) && (
+          <FormSection title="Configuration">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Pièces">
                   <Select 
-                    value={carac.ascenseur} 
-                    onValueChange={(v) => updateField('ascenseur', v)}
+                    value={carac.nombrePieces} 
+                    onValueChange={(v) => updateField('nombrePieces', v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder="--" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ascenseurOptions.map(({ value, label }) => (
+                      {piecesOptions.map(({ value, label }) => (
                         <SelectItem key={value} value={value}>{label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </FormRow>
+                <FormRow label="Chambres">
+                  <Select 
+                    value={carac.nombreChambres} 
+                    onValueChange={(v) => updateField('nombreChambres', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chambresOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+              </div>
 
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <Label htmlFor="dernierEtage" className="text-sm">Dernier étage</Label>
-                  <Switch
-                    id="dernierEtage"
-                    checked={carac.dernierEtage}
-                    onCheckedChange={(checked) => updateField('dernierEtage', checked)}
-                  />
-                </div>
-              </>
-            )}
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Salles de bain">
+                  <Select 
+                    value={carac.nombreSDB} 
+                    onValueChange={(v) => updateField('nombreSDB', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sdbOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                <FormRow label="WC séparés">
+                  <Select 
+                    value={carac.nombreWC} 
+                    onValueChange={(v) => updateField('nombreWC', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wcOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+              </div>
 
-            {isMaison && (
-              <FormRow label="Nombre de niveaux">
-                <Input
-                  type="number"
-                  value={carac.nombreNiveaux}
-                  onChange={(e) => updateField('nombreNiveaux', e.target.value)}
-                  placeholder="2"
-                />
-              </FormRow>
-            )}
-          </div>
-        </FormSection>
+              {isAppartement && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormRow label="Étage">
+                      <Select 
+                        value={carac.etage} 
+                        onValueChange={(v) => updateField('etage', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="--" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {etageOptions.map(({ value, label }) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormRow>
+                    <FormRow label="Étages immeuble">
+                      <Select 
+                        value={carac.nombreEtagesImmeuble} 
+                        onValueChange={(v) => updateField('nombreEtagesImmeuble', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="--" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {etagesImmeubleOptions.map(({ value, label }) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormRow>
+                  </div>
 
-        {/* Construction */}
-        <FormSection title="Construction et rénovation">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="Année construction">
-                <Input
-                  type="number"
-                  value={carac.anneeConstruction}
-                  onChange={(e) => updateField('anneeConstruction', e.target.value)}
-                  placeholder="1985"
-                />
-              </FormRow>
-              <FormRow label="Dernière rénovation">
-                <Input
-                  type="number"
-                  value={carac.anneeRenovation}
-                  onChange={(e) => updateField('anneeRenovation', e.target.value)}
-                  placeholder="2020"
-                />
-              </FormRow>
+                  {/* Ascenseur */}
+                  <FormRow label="Ascenseur">
+                    <div className="grid grid-cols-2 gap-2">
+                      {ascenseurOptions.map(({ value, label }) => (
+                        <button
+                          key={value}
+                          onClick={() => updateField('ascenseur', value)}
+                          className={`py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                            carac.ascenseur === value
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : 'border-border bg-card hover:border-primary/50'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </FormRow>
+
+                  {/* Dernier étage avec badge PREMIUM */}
+                  <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                    carac.dernierEtage ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="dernierEtage"
+                        checked={carac.dernierEtage}
+                        onCheckedChange={(checked) => updateField('dernierEtage', checked as boolean)}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Key className="h-4 w-4 text-amber-500" />
+                        <Label htmlFor="dernierEtage" className="text-sm font-medium cursor-pointer">
+                          Dernier étage (attique)
+                        </Label>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded">PREMIUM</span>
+                  </div>
+                </>
+              )}
+
+              {isMaison && (
+                <FormRow label="Nombre de niveaux">
+                  <Select 
+                    value={carac.nombreNiveaux} 
+                    onValueChange={(v) => updateField('nombreNiveaux', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niveauxOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+              )}
             </div>
+          </FormSection>
+        )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="CECB">
+        {/* Exposition & Vue */}
+        {(isAppartement || isMaison) && (
+          <FormSection title="Exposition & vue">
+            <div className="space-y-4">
+              <FormRow label="Exposition">
+                <div className="grid grid-cols-4 gap-2">
+                  {expositionSimple.map((dir) => {
+                    const isSelected = carac.exposition?.includes(dir.toLowerCase());
+                    return (
+                      <button
+                        key={dir}
+                        onClick={() => toggleExposition(dir)}
+                        className={`py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-card hover:border-primary/50'
+                        }`}
+                      >
+                        {dir}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FormRow>
+
+              <FormRow label="Vue principale">
                 <Select 
-                  value={carac.cecb} 
-                  onValueChange={(v) => updateField('cecb', v)}
+                  value={carac.vue} 
+                  onValueChange={(v) => updateField('vue', v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Classe" />
+                    <SelectValue placeholder="Sélectionner..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'NC'].map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    {vueOptions.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </FormRow>
+            </div>
+          </FormSection>
+        )}
+
+        {/* Caractéristiques techniques */}
+        {(isAppartement || isMaison) && (
+          <FormSection title="Caractéristiques techniques">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Année construction">
+                  <Input
+                    type="number"
+                    value={carac.anneeConstruction}
+                    onChange={(e) => updateField('anneeConstruction', e.target.value)}
+                    placeholder="2016"
+                  />
+                </FormRow>
+                <FormRow label="Rénovation" optional>
+                  <Input
+                    type="number"
+                    value={carac.anneeRenovation}
+                    onChange={(e) => updateField('anneeRenovation', e.target.value)}
+                    placeholder="Année"
+                  />
+                </FormRow>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="CECB">
+                  <Select 
+                    value={carac.cecb} 
+                    onValueChange={(v) => updateField('cecb', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cecbOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                <FormRow label="Diffusion chaleur">
+                  <div /> {/* Placeholder for grid alignment */}
+                </FormRow>
+              </div>
+
+              {/* Diffusion chaleur - icônes */}
+              <div className="grid grid-cols-3 gap-2">
+                {diffusionChaleurOptions.map(({ value, label, icon }) => {
+                  const current = (isMaison ? carac.diffusionMaison : carac.diffusion) || [];
+                  const isSelected = current.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => toggleDiffusion(value)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-card hover:border-primary/50'
+                      }`}
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <FormRow label="Vitrage">
                 <Select 
                   value={carac.vitrage} 
                   onValueChange={(v) => updateField('vitrage', v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Type" />
+                    <SelectValue placeholder="--" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="simple">Simple</SelectItem>
-                    <SelectItem value="double">Double</SelectItem>
-                    <SelectItem value="triple">Triple</SelectItem>
+                    {vitrageOptions.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </FormRow>
-            </div>
-          </div>
-        </FormSection>
 
-        {/* Annexes Parking */}
-        <FormSection title="Stationnement">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="Places int. (box)">
-                <Input
-                  type="number"
-                  value={carac.parkingInterieur}
-                  onChange={(e) => updateField('parkingInterieur', e.target.value)}
-                  placeholder="1"
-                />
-              </FormRow>
-              <FormRow label="Places couvertes">
-                <Input
-                  type="number"
-                  value={carac.parkingCouverte}
-                  onChange={(e) => updateField('parkingCouverte', e.target.value)}
-                  placeholder="0"
-                />
+              <FormRow label="Charges mensuelles (CHF)" optional>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={carac.chargesMensuelles}
+                    onChange={(e) => updateField('chargesMensuelles', e.target.value)}
+                    placeholder="620"
+                    className="pr-12"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">CHF</span>
+                </div>
               </FormRow>
             </div>
+          </FormSection>
+        )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="Places ext.">
-                <Input
-                  type="number"
-                  value={carac.parkingExterieur}
-                  onChange={(e) => updateField('parkingExterieur', e.target.value)}
-                  placeholder="1"
-                />
-              </FormRow>
-              <FormRow label="Box fermé">
-                <Input
-                  type="number"
-                  value={carac.box}
-                  onChange={(e) => updateField('box', e.target.value)}
-                  placeholder="0"
-                />
-              </FormRow>
-            </div>
-          </div>
-        </FormSection>
-
-        {/* Annexes */}
-        <FormSection title="Annexes et équipements">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <Label htmlFor="cave" className="text-sm">Cave</Label>
-              <Switch
-                id="cave"
-                checked={carac.cave}
-                onCheckedChange={(checked) => updateField('cave', checked)}
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <Label htmlFor="piscine" className="text-sm">Piscine</Label>
-              <Switch
-                id="piscine"
-                checked={carac.piscine}
-                onCheckedChange={(checked) => updateField('piscine', checked)}
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <Label htmlFor="caveVin" className="text-sm">Cave à vin</Label>
-              <Switch
-                id="caveVin"
-                checked={carac.caveVin}
-                onCheckedChange={(checked) => updateField('caveVin', checked)}
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <Label htmlFor="fitness" className="text-sm">Fitness</Label>
-              <Switch
-                id="fitness"
-                checked={carac.fitness}
-                onCheckedChange={(checked) => updateField('fitness', checked)}
-              />
-            </div>
-          </div>
-
-          <FormRow label="Buanderie">
-            <Select 
-              value={carac.buanderie} 
-              onValueChange={(v) => updateField('buanderie', v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Type de buanderie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="privee">Privée</SelectItem>
-                <SelectItem value="commune">Commune</SelectItem>
-                <SelectItem value="aucune">Aucune</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormRow>
-        </FormSection>
-
-        {/* Vue et orientation */}
-        <FormSection title="Vue et exposition">
-          <div className="space-y-4">
-            <FormRow label="Type de vue">
-              <Select 
-                value={carac.vue} 
-                onValueChange={(v) => updateField('vue', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vueOptions.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormRow>
-
-            <FormRow label="Exposition principale">
-              <div className="flex flex-wrap gap-2">
-                {expositionOptions.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      const current = carac.exposition || [];
-                      const updated = current.includes(value)
-                        ? current.filter(v => v !== value)
-                        : [...current, value];
-                      updateField('exposition', updated);
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      carac.exposition?.includes(value)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+        {/* Annexes & Équipements */}
+        {(isAppartement || isMaison) && (
+          <FormSection title="Annexes & équipements">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label={isAppartement ? "Place intérieure" : "Place couverte"}>
+                  <Select 
+                    value={carac.parkingInterieur} 
+                    onValueChange={(v) => updateField('parkingInterieur', v)}
                   >
-                    {label}
-                  </button>
-                ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {parkingOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                <FormRow label="Place extérieure">
+                  <Select 
+                    value={carac.parkingExterieur} 
+                    onValueChange={(v) => updateField('parkingExterieur', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {parkingOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
               </div>
-            </FormRow>
+
+              <FormRow label="Box / Garage fermé">
+                <Select 
+                  value={carac.box} 
+                  onValueChange={(v) => updateField('box', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="--" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boxOptions.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+
+              {isAppartement && (
+                <>
+                  {/* Cave privative */}
+                  <FormRow label="Cave privative">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => updateField('cave', true)}
+                        className={`py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                          carac.cave === true
+                            ? 'border-primary bg-primary/5 text-primary'
+                            : 'border-border bg-card hover:border-primary/50'
+                        }`}
+                      >
+                        Oui
+                      </button>
+                      <button
+                        onClick={() => updateField('cave', false)}
+                        className={`py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                          carac.cave === false
+                            ? 'border-border bg-muted'
+                            : 'border-border bg-card hover:border-primary/50'
+                        }`}
+                      >
+                        Non
+                      </button>
+                    </div>
+                  </FormRow>
+
+                  {/* Buanderie */}
+                  <FormRow label="Buanderie" optional>
+                    <Select 
+                      value={carac.buanderie} 
+                      onValueChange={(v) => updateField('buanderie', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {buanderieAppartOptions.map(({ value, label }) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormRow>
+
+                  {/* Équipements luxe */}
+                  <FormRow label="Équipements résidence / luxe" optional>
+                    <div className="flex flex-wrap gap-2">
+                      {equipementsLuxeAppart.map(({ value, label }) => {
+                        const isChecked = value === 'piscine' ? carac.piscine 
+                          : value === 'caveVin' ? carac.caveVin 
+                          : carac.fitness;
+                        return (
+                          <label 
+                            key={value}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card cursor-pointer hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (value === 'piscine') updateField('piscine', checked as boolean);
+                                else if (value === 'caveVin') updateField('caveVin', checked as boolean);
+                                else updateField('fitness', checked as boolean);
+                              }}
+                            />
+                            <span className="text-sm">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </FormRow>
+
+                  {/* Autres */}
+                  <FormRow label="Autres" optional>
+                    <Input
+                      value={carac.autresAnnexes}
+                      onChange={(e) => updateField('autresAnnexes', e.target.value)}
+                      placeholder="Spa, sauna, local vélos, etc."
+                    />
+                  </FormRow>
+                </>
+              )}
+
+              {isMaison && (
+                <>
+                  {/* Espaces & dépendances maison */}
+                  <FormRow label="Espaces & dépendances" optional>
+                    <div className="flex flex-wrap gap-2">
+                      {espacesMaisonOptions.map(({ value, label, icon }) => {
+                        const isSelected = carac.espacesMaison?.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => toggleEspaceMaison(value)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-card hover:border-primary/50'
+                            }`}
+                          >
+                            <span>{icon}</span>
+                            <span>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FormRow>
+                </>
+              )}
+            </div>
+          </FormSection>
+        )}
+
+        {/* Message si pas de type sélectionné */}
+        {!isAppartement && !isMaison && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Sélectionnez un type de bien pour afficher les caractéristiques.</p>
           </div>
-        </FormSection>
-
-        {/* Charges */}
-        <FormSection title="Charges">
-          <FormRow label="Charges mensuelles (CHF)">
-            <Input
-              type="number"
-              value={carac.chargesMensuelles}
-              onChange={(e) => updateField('chargesMensuelles', e.target.value)}
-              placeholder="450"
-            />
-          </FormRow>
-
-          {isAppartement && (
-            <FormRow label="Fonds de rénovation (CHF)">
-              <Input
-                type="number"
-                value={carac.fondRenovation}
-                onChange={(e) => updateField('fondRenovation', e.target.value)}
-                placeholder="25000"
-              />
-            </FormRow>
-          )}
-        </FormSection>
+        )}
       </div>
 
       {/* Footer actions */}
       <div className="fixed bottom-16 left-0 right-0 bg-background border-t border-border p-4">
-        <div className="flex gap-3">
+        <div className="flex gap-3 max-w-lg mx-auto">
           <Button 
             variant="outline" 
             className="flex-1"
-            onClick={handleSave}
-            disabled={saving}
+            onClick={() => navigate(`/estimation/${id}/1`)}
           >
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
+            Précédent
           </Button>
           <Button 
             className="flex-1 bg-primary hover:bg-primary/90"
             onClick={handleNext}
             disabled={saving}
           >
-            Suivant
+            {saving ? 'Enregistrement...' : 'Suivant'}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
