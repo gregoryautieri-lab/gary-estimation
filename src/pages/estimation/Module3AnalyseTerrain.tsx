@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { EstimationData, defaultAnalyseTerrain, AnalyseTerrain } from '@/types/estimation';
+import { PointChipsGrid, POINTS_FORTS_OPTIONS, POINTS_FAIBLES_OPTIONS } from '@/components/gary/PointChipsGrid';
+import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { toast } from 'sonner';
 import { ChevronRight, Sun, Volume2, Maximize2, Star } from 'lucide-react';
 
@@ -116,6 +119,13 @@ export default function Module3AnalyseTerrain() {
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [analyse, setAnalyse] = useState<AnalyseTerrain>(defaultAnalyseTerrain);
   const [saving, setSaving] = useState(false);
+  const [customPointsForts, setCustomPointsForts] = useState<string[]>([]);
+  const [customPointsFaibles, setCustomPointsFaibles] = useState<string[]>([]);
+
+  // Hook de verrouillage
+  const { isLocked, lockMessage, duplicateAndNavigate, duplicating } = useEstimationLockEnhanced(
+    estimation?.statut
+  );
 
   useEffect(() => {
     if (id) {
