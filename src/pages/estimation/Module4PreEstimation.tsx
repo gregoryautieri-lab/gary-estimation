@@ -656,6 +656,11 @@ export default function Module4PreEstimation() {
                 <div className="flex items-center gap-2 mb-3">
                   <TreeDeciduous className="h-4 w-4 text-green-600" />
                   <h4 className="font-medium">Terrain</h4>
+                  {parseFloat(carac?.surfaceTerrain || '0') === 0 && (
+                    <span className="text-xs text-amber-500 bg-amber-50 px-2 py-0.5 rounded">
+                      Non renseigné
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">
