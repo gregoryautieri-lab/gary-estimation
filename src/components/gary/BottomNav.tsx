@@ -89,11 +89,9 @@ export const BottomNav = () => {
         <NavItem
           icon={<User className="h-5 w-5" />}
           label="Profil"
-          path="/profil"
-          active={isActive('/profil')}
-          onClick={() => {
-            toast.info('Profil en cours de développement');
-          }}
+          path="/settings"
+          active={isActive('/settings')}
+          onClick={() => navigate('/settings')}
         />
       </div>
     </nav>
