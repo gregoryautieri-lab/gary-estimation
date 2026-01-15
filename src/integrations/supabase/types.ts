@@ -61,6 +61,50 @@ export type Database = {
           },
         ]
       }
+      estimation_status_history: {
+        Row: {
+          comment: string | null
+          duration_in_previous_status: number | null
+          estimation_id: string
+          id: string
+          previous_status: string | null
+          status: string
+          timestamp: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          comment?: string | null
+          duration_in_previous_status?: number | null
+          estimation_id: string
+          id?: string
+          previous_status?: string | null
+          status: string
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          comment?: string | null
+          duration_in_previous_status?: number | null
+          estimation_id?: string
+          id?: string
+          previous_status?: string | null
+          status?: string
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimation_status_history_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimation_versions: {
         Row: {
           created_at: string
@@ -256,7 +300,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "courtier" | "back_office"
-      estimation_status: "brouillon" | "en_cours" | "termine" | "archive"
+      estimation_status:
+        | "brouillon"
+        | "en_cours"
+        | "termine"
+        | "archive"
+        | "a_presenter"
+        | "presentee"
+        | "reflexion"
+        | "negociation"
+        | "accord_oral"
+        | "en_signature"
+        | "mandat_signe"
+        | "perdu"
       type_bien:
         | "appartement"
         | "maison"
@@ -391,7 +447,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "courtier", "back_office"],
-      estimation_status: ["brouillon", "en_cours", "termine", "archive"],
+      estimation_status: [
+        "brouillon",
+        "en_cours",
+        "termine",
+        "archive",
+        "a_presenter",
+        "presentee",
+        "reflexion",
+        "negociation",
+        "accord_oral",
+        "en_signature",
+        "mandat_signe",
+        "perdu",
+      ],
       type_bien: ["appartement", "maison", "terrain", "immeuble", "commercial"],
     },
   },
