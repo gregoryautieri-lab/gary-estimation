@@ -28,21 +28,22 @@ interface Phase0ChecklistEnhancedProps {
   disabled?: boolean;
 }
 
-// Actions par défaut Phase 0 avec 15+ items
+// Actions par défaut Phase 0 - OBLIGATOIRES (non cochables, progression automatique)
 export const getDefaultPhase0Actions = (isMaison: boolean, isLuxe: boolean): Phase0Action[] => {
   const actions: Phase0Action[] = [
-    // Préparation
+    // Documents OBLIGATOIRES
+    { id: 'fixation_prix', label: 'Fixation du prix de mise en vente', checked: false, isDefault: true, icon: '💰', category: 'documents' },
     { id: 'mandat', label: 'Signature du mandat', checked: false, isDefault: true, icon: '📝', category: 'documents' },
     { id: 'dossier_vendeur', label: 'Récupérer dossier vendeur (titre, plans, etc.)', checked: false, isDefault: true, icon: '📁', category: 'documents' },
-    { id: 'verif_cadastre', label: 'Vérification cadastrale', checked: true, isDefault: true, icon: '🗺️', category: 'documents' },
+    { id: 'verif_cadastre', label: 'Vérification cadastrale', checked: false, isDefault: true, icon: '🗺️', category: 'documents' },
     { id: 'reglement_ppe', label: 'Obtenir règlement PPE / servitudes', checked: false, isDefault: true, icon: '📋', category: 'documents' },
     { id: 'pv_ag', label: 'Demander PV assemblées générales', checked: false, isDefault: true, icon: '📄', category: 'documents' },
     
-    // Média
+    // Média OBLIGATOIRES
     { id: 'photos', label: 'Séance photos professionnelles', checked: false, isDefault: true, icon: '📸', category: 'media' },
+    { id: 'plans_2d', label: 'Plans 2D / 3D', checked: false, isDefault: true, icon: '📐', category: 'media' },
     { id: 'visite360', label: 'Visite virtuelle 360°', checked: false, isDefault: true, icon: '🔄', category: 'media' },
     { id: 'video', label: 'Vidéo de présentation', checked: false, isDefault: true, icon: '🎬', category: 'media' },
-    { id: 'plans_2d', label: 'Plans 2D / 3D', checked: false, isDefault: true, icon: '📐', category: 'media' },
   ];
   
   if (isMaison) {
@@ -55,11 +56,11 @@ export const getDefaultPhase0Actions = (isMaison: boolean, isLuxe: boolean): Pha
     actions.push({ id: 'teaser', label: 'Teaser vidéo réseaux sociaux', checked: false, isDefault: true, icon: '📱', category: 'media' });
   }
   
-  // Rédaction
+  // Rédaction OBLIGATOIRE
   actions.push({ id: 'redaction', label: 'Rédaction annonce', checked: false, isDefault: true, icon: '✍️', category: 'preparation' });
   actions.push({ id: 'traduction', label: 'Traduction annonce (EN/DE)', checked: false, isDefault: true, icon: '🌐', category: 'preparation' });
   
-  // Contact
+  // Contact OBLIGATOIRE
   actions.push({ id: 'brief_equipe', label: 'Brief équipe commerciale', checked: false, isDefault: true, icon: '👥', category: 'contact' });
   actions.push({ id: 'contact_acquereurs', label: 'Identifier acquéreurs potentiels', checked: false, isDefault: true, icon: '📞', category: 'contact' });
   

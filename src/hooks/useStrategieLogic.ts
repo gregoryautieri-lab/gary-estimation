@@ -672,23 +672,24 @@ export interface ActionPhase0 {
 
 export const getActionsPhase0 = (isMaison: boolean, hasLuxe: boolean): ActionPhase0[] => {
   const actions: ActionPhase0[] = [
-    { id: 'photos', label: 'Photos professionnelles', checked: true, isDefault: true },
-    { id: 'redaction', label: 'Rédaction annonce', checked: true, isDefault: true },
-    { id: 'dossier', label: 'Préparation dossier technique', checked: true, isDefault: true }
+    // Actions OBLIGATOIRES dans l'ordre
+    { id: 'fixation_prix', label: 'Fixation du prix de mise en vente', checked: false, isDefault: true },
+    { id: 'mandat', label: 'Signature du mandat', checked: false, isDefault: true },
+    { id: 'photos', label: 'Photos professionnelles', checked: false, isDefault: true },
+    { id: 'plans', label: 'Plans 2D/3D', checked: false, isDefault: true },
+    { id: 'dossier', label: 'Préparation dossier technique', checked: false, isDefault: true },
+    { id: 'redaction', label: 'Rédaction annonce', checked: false, isDefault: true },
+    { id: 'visite360', label: 'Visite virtuelle 360°', checked: false, isDefault: true }
   ];
   
   if (isMaison) {
-    actions.push({ id: 'drone', label: 'Drone / Vue aérienne', checked: true, isDefault: true });
+    actions.push({ id: 'drone', label: 'Drone / Vue aérienne', checked: false, isDefault: true });
   }
-  
-  actions.push({ id: 'visite360', label: 'Visite virtuelle 360°', checked: false, isDefault: true });
   
   if (hasLuxe) {
     actions.push({ id: 'homestaging', label: 'Home staging virtuel', checked: false, isDefault: true });
     actions.push({ id: 'brochure', label: 'Brochure luxe', checked: false, isDefault: true });
   }
-  
-  actions.push({ id: 'plans', label: 'Refaire les plans (optionnel)', checked: false, isDefault: true });
   
   return actions;
 };
@@ -848,8 +849,11 @@ export const generatePitch = (
   phases: PhaseInfo[],
   luxMode?: { isLux: boolean; score: number }
 ): PitchGenere => {
-  const vendeurNom = identification?.vendeur?.nom || "Madame, Monsieur";
-  const vendeurPrenom = vendeurNom.split(' ')[0] || vendeurNom;
+  // Utiliser le prénom en priorité, sinon le nom, sinon fallback
+  const vendeurPrenom = identification?.vendeur?.prenom || identification?.vendeur?.nom?.split(' ')[0] || "";
+  const vendeurNom = identification?.vendeur?.nom || "";
+  // Formule d'appel : prénom si dispo, sinon "Monsieur/Madame [Nom]"
+  const appelVendeur = vendeurPrenom || (vendeurNom ? `${vendeurNom}` : "Monsieur, Madame");
   const motifVente = identification?.contexte?.motifVente;
   const priorite = identification?.contexte?.prioriteVendeur;
   const horizon = identification?.contexte?.horizon;
@@ -869,36 +873,36 @@ export const generatePitch = (
   let intro = "";
   switch(motifVente) {
     case 'succession':
-      intro = `${vendeurPrenom}, je comprends que cette période est particulière. Au-delà de la transaction, mon rôle est de vous accompagner sereinement dans cette transition, en prenant le temps qu'il faut.`;
+      intro = `${appelVendeur}, je comprends que cette période est particulière. Au-delà de la transaction, mon rôle est de vous accompagner sereinement dans cette transition, en prenant le temps qu'il faut.`;
       break;
     case 'separation':
     case 'divorce':
-      intro = `${vendeurPrenom}, merci pour votre confiance dans ce contexte délicat. Je m'engage à garantir une vente efficace et discrète, où chacun trouve son compte.`;
+      intro = `${appelVendeur}, merci pour votre confiance dans ce contexte délicat. Je m'engage à garantir une vente efficace et discrète, où chacun trouve son compte.`;
       break;
     case 'mutation':
     case 'demenagement':
-      intro = `${vendeurPrenom}, votre nouveau projet de vie mérite une vente bien orchestrée. Je m'engage à coordonner le timing pour que tout s'enchaîne naturellement.`;
+      intro = `${appelVendeur}, votre nouveau projet de vie mérite une vente bien orchestrée. Je m'engage à coordonner le timing pour que tout s'enchaîne naturellement.`;
       break;
     case 'retraite':
-      intro = `${vendeurPrenom}, ce nouveau chapitre de votre vie mérite toute notre attention. Nous allons prendre le temps de bien faire les choses ensemble.`;
+      intro = `${appelVendeur}, ce nouveau chapitre de votre vie mérite toute notre attention. Nous allons prendre le temps de bien faire les choses ensemble.`;
       break;
     case 'investissement':
-      intro = `${vendeurPrenom}, en tant qu'investisseur, vous savez que le timing et le prix sont cruciaux. Notre approche data-driven va vous permettre d'optimiser cette transaction.`;
+      intro = `${appelVendeur}, en tant qu'investisseur, vous savez que le timing et le prix sont cruciaux. Notre approche data-driven va vous permettre d'optimiser cette transaction.`;
       break;
     case 'agrandissement':
-      intro = `${vendeurPrenom}, votre famille s'agrandit et c'est une belle nouvelle. Nous allons organiser la vente pour qu'elle accompagne sereinement votre projet.`;
+      intro = `${appelVendeur}, votre famille s'agrandit et c'est une belle nouvelle. Nous allons organiser la vente pour qu'elle accompagne sereinement votre projet.`;
       break;
     case 'reduction':
-      intro = `${vendeurPrenom}, vous souhaitez un espace plus adapté à vos besoins actuels. C'est une décision sage que nous allons concrétiser ensemble.`;
+      intro = `${appelVendeur}, vous souhaitez un espace plus adapté à vos besoins actuels. C'est une décision sage que nous allons concrétiser ensemble.`;
       break;
     case 'financier':
-      intro = `${vendeurPrenom}, je comprends l'importance de cette vente. Mon objectif est de vous obtenir le meilleur résultat dans les délais souhaités.`;
+      intro = `${appelVendeur}, je comprends l'importance de cette vente. Mon objectif est de vous obtenir le meilleur résultat dans les délais souhaités.`;
       break;
     case 'travail':
-      intro = `${vendeurPrenom}, un changement professionnel ouvre de nouvelles perspectives. Nous allons synchroniser cette vente avec votre évolution.`;
+      intro = `${appelVendeur}, un changement professionnel ouvre de nouvelles perspectives. Nous allons synchroniser cette vente avec votre évolution.`;
       break;
     default:
-      intro = `${vendeurPrenom}, merci pour votre confiance. Je suis ravi de vous accompagner dans ce projet et de mettre mon expertise à votre service.`;
+      intro = `${appelVendeur}, merci pour votre confiance. Je suis ravi de vous accompagner dans ce projet et de mettre mon expertise à votre service.`;
   }
   
   // 2. DESCRIPTION DU BIEN AVEC POINTS FORTS (TOP 3)

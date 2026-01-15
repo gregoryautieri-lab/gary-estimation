@@ -140,55 +140,49 @@ export function TimelineGraph({
       </div>
 
       {/* Timeline horizontale avec phases */}
-      <div className="relative">
+      <div className="relative py-4">
         {/* Ligne de connexion */}
-        <div className="absolute top-4 left-4 right-4 h-0.5 bg-border" />
+        <div className="absolute top-8 left-8 right-8 h-1 bg-gradient-to-r from-slate-300 via-primary/50 to-emerald-300 rounded-full" />
         
         {/* Phases */}
-        <div className="relative flex justify-between">
+        <div className="relative grid" style={{ gridTemplateColumns: phases.map(p => `${p.duree}fr`).join(' ') }}>
           {phases.map((phase, idx) => {
             const status = getPhaseStatus(phase);
-            const colorClass = getPhaseColor(idx, status);
             
             return (
-              <div key={idx} className="flex flex-col items-center relative" style={{ 
-                flex: phase.duree,
-                minWidth: '60px'
-              }}>
-                {/* Point */}
+              <div key={idx} className="flex flex-col items-center relative px-2">
+                {/* Point de la timeline */}
                 <div className={cn(
-                  "relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center bg-background",
-                  status === 'completed' ? 'border-emerald-500' : 
-                  status === 'active' ? 'border-primary' : 'border-muted-foreground/30'
+                  "relative z-10 w-10 h-10 rounded-full border-3 flex items-center justify-center bg-background shadow-md",
+                  status === 'completed' ? 'border-emerald-500 bg-emerald-50' : 
+                  status === 'active' ? 'border-primary bg-primary/10' : 'border-muted-foreground/30 bg-muted/50'
                 )}>
                   {status === 'completed' ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   ) : status === 'active' ? (
-                    <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+                    <div className="h-4 w-4 rounded-full bg-primary animate-pulse" />
                   ) : (
-                    <Circle className="h-3 w-3 text-muted-foreground/50" />
+                    <Circle className="h-4 w-4 text-muted-foreground/50" />
                   )}
                 </div>
                 
-                {/* Label */}
-                <div className="mt-2 text-center">
-                  <p className="text-lg mb-1">{phase.icon}</p>
+                {/* Contenu phase */}
+                <div className="mt-3 text-center w-full">
+                  <p className="text-2xl mb-1">{phase.icon}</p>
                   <p className={cn(
-                    "text-xs font-medium",
+                    "text-xs font-bold leading-tight",
                     status === 'completed' ? 'text-emerald-600' :
                     status === 'active' ? 'text-primary' : 'text-muted-foreground'
                   )}>
                     {phase.nom}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {phase.duree}s
+                  <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                    {phase.duree} sem.
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(phase.dateDebut, 'd MMM', { locale: fr })}
                   </p>
                 </div>
-                
-                {/* Date sous le label */}
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {format(phase.dateDebut, 'd MMM', { locale: fr })}
-                </p>
               </div>
             );
           })}
