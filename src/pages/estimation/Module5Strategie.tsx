@@ -12,6 +12,7 @@ import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown } from 'lucide-react';
+import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
 import { useLuxMode } from '@/hooks/useEstimationCalcul';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -516,15 +517,20 @@ export default function Module5Strategie() {
         </FormSection>
 
         {/* Navigation */}
-        <div className="flex gap-3 pt-4">
-          <Button variant="outline" onClick={() => navigate(`/estimation/${id}/4`)} className="flex-1">
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-          <Button onClick={handleNext} disabled={saving} className="flex-1 bg-primary hover:bg-primary/90">
-            {saving ? 'Enregistrement...' : 'Terminer'}
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
+        <div className="flex flex-col gap-3 pt-4">
+          {estimation && (
+            <ExportPDFButton estimation={estimation} className="w-full" />
+          )}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate(`/estimation/${id}/4`)} className="flex-1">
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+            <Button onClick={handleNext} disabled={saving} className="flex-1 bg-primary hover:bg-primary/90">
+              {saving ? 'Enregistrement...' : 'Terminer'}
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </div>
       </div>
 
