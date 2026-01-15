@@ -208,6 +208,12 @@ export interface Caracteristiques {
   indice?: string; // IUS/IOS
   servitudes?: string;
   
+  // Précision cubage SIA (optionnel)
+  surfaceSousSol?: string; // Auto-calculé: utile - habitable, modifiable
+  hauteurSousPlafond?: string; // Défaut 2.7m
+  hauteurSousSol?: string; // Défaut 2.4m
+  comblesType?: 'non_amenageables' | 'amenageables' | 'deja_amenages' | '';
+  
   // Configuration commune
   nombrePieces: string;
   nombreChambres: string;
@@ -805,6 +811,11 @@ export const defaultCaracteristiques: Caracteristiques = {
   zone: '',
   indice: '',
   servitudes: '',
+  // Précision cubage SIA
+  surfaceSousSol: '',
+  hauteurSousPlafond: '',
+  hauteurSousSol: '',
+  comblesType: '',
   nombrePieces: '',
   nombreChambres: '',
   nombreSDB: '',

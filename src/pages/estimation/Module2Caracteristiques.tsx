@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useCadastreLookup } from '@/hooks/useCadastreLookup';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronRight, Home, Building2, Key, MapPin, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronDown, Home, Building2, Key, MapPin, Loader2, RefreshCw, Ruler } from 'lucide-react';
 import { 
   PictoChipsGrid, 
   RENOVATION_OPTIONS, 
@@ -201,6 +202,7 @@ export default function Module2Caracteristiques() {
   const [carac, setCarac] = useState<Caracteristiques>(defaultCaracteristiques);
   const [saving, setSaving] = useState(false);
   const [cadastreFetched, setCadastreFetched] = useState(false);
+  const [cubageOpen, setCubageOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -596,7 +598,104 @@ export default function Module2Caracteristiques() {
           </FormSection>
         )}
 
-        {/* Configuration */}
+        {/* Précision cubage SIA (maison) */}
+        {isMaison && (
+          <Collapsible open={cubageOpen} onOpenChange={setCubageOpen}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-between px-4 py-3 h-auto bg-muted/50 hover:bg-muted"
+              >
+                <div className="flex items-center gap-2">
+                  <Ruler className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Précision cubage SIA</span>
+                  <span className="text-xs text-muted-foreground">(optionnel)</span>
+                </div>
+                {cubageOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 space-y-4 border border-t-0 rounded-b-lg bg-card">
+                {/* Hauteur sous-plafond */}
+                <FormRow label="Hauteur sous-plafond (m)" optional helper="Défaut: 2.7m">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={carac.hauteurSousPlafond || ''}
+                    onChange={(e) => updateField('hauteurSousPlafond', e.target.value)}
+                    placeholder="2.7"
+                  />
+                </FormRow>
+
+                {/* Surface sous-sol */}
+                <FormRow 
+                  label="Surface sous-sol (m²)" 
+                  optional 
+                  helper={`Auto-calculé: ${Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0))} m²`}
+                >
+                  <Input
+                    type="number"
+                    value={carac.surfaceSousSol || ''}
+                    onChange={(e) => updateField('surfaceSousSol', e.target.value)}
+                    placeholder={Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0)).toString()}
+                  />
+                </FormRow>
+
+                {/* Hauteur sous-sol */}
+                <FormRow label="Hauteur sous-sol (m)" optional helper="Défaut: 2.4m">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={carac.hauteurSousSol || ''}
+                    onChange={(e) => updateField('hauteurSousSol', e.target.value)}
+                    placeholder="2.4"
+                  />
+                </FormRow>
+
+                {/* Type combles */}
+                <FormRow label="Combles">
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { value: 'non_amenageables', label: 'Non aménageables' },
+                      { value: 'amenageables', label: 'Aménageables (+cubage)' },
+                      { value: 'deja_amenages', label: 'Déjà aménagés (inclus dans habitable)' },
+                    ].map(({ value, label }) => (
+                      <label 
+                        key={value}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          carac.comblesType === value 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="comblesType"
+                          value={value}
+                          checked={carac.comblesType === value}
+                          onChange={(e) => updateField('comblesType', e.target.value as Caracteristiques['comblesType'])}
+                          className="sr-only"
+                        />
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          carac.comblesType === value ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {carac.comblesType === value && (
+                            <div className="w-2 h-2 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <span className="text-sm">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormRow>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
         {(isAppartement || isMaison) && (
           <FormSection title="Configuration">
             <div className="space-y-4">

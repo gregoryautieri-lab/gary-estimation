@@ -10,10 +10,11 @@ import type {
 } from '@/types/estimation';
 
 // ============================================
-// Constantes SIA (cubage normalisé)
+// Constantes SIA (cubage normalisé) - Valeurs par défaut
 // ============================================
-const HAUTEUR_ETAGE = 2.5; // mètres
-const COEF_MURS = 1.05; // 5% pour l'épaisseur des murs
+const HAUTEUR_ETAGE_DEFAUT = 2.7; // mètres (hors-sol)
+const HAUTEUR_SOUS_SOL_DEFAUT = 2.4; // mètres (sous-sol)
+const HAUTEUR_COMBLES = 1.5; // mètres (combles aménageables)
 
 // ============================================
 // Fonctions utilitaires
@@ -129,23 +130,44 @@ export function useEstimationCalcul(
       (surfaceJardin * 0.2);
     
     // ============================================
-    // MAISON - Cubage SIA
+    // MAISON - Cubage SIA amélioré
     // ============================================
     const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
     const surfaceUtile = parseNum(carac.surfaceUtile);
     const surfaceTerrain = parseNum(carac.surfaceTerrain);
     const nombreNiveaux = parseNum(carac.nombreNiveaux) || 1;
     
-    // Cubage automatique SIA: (surface hab / niveaux) * hauteur * coef murs * niveaux
-    const surfaceParNiveau = surfaceHabMaison / nombreNiveaux;
-    const cubageAuto = surfaceParNiveau * HAUTEUR_ETAGE * COEF_MURS * nombreNiveaux;
+    // Hauteurs personnalisables (ou défauts SIA)
+    const hauteurEtage = parseNum(carac.hauteurSousPlafond) || HAUTEUR_ETAGE_DEFAUT;
+    const hauteurSousSol = parseNum(carac.hauteurSousSol) || HAUTEUR_SOUS_SOL_DEFAUT;
     
-    // Cubage utilisé (manuel ou auto)
+    // Surface sous-sol (auto-calculée ou saisie)
+    const surfaceSousSolAuto = Math.max(0, surfaceUtile - surfaceHabMaison);
+    const surfaceSousSol = parseNum(carac.surfaceSousSol) || surfaceSousSolAuto;
+    
+    // Emprise au sol = surface habitable / nombre de niveaux
+    const empriseAuSol = nombreNiveaux > 0 ? surfaceHabMaison / nombreNiveaux : surfaceHabMaison;
+    
+    // Cubage SIA :
+    // 1. Hors-sol : surface habitable × hauteur sous-plafond
+    const cubageHorsSol = surfaceHabMaison * hauteurEtage;
+    
+    // 2. Sous-sol : surface sous-sol × hauteur sous-sol
+    const cubageSousSol = surfaceSousSol * hauteurSousSol;
+    
+    // 3. Combles : emprise × 1.5m si aménageables
+    const comblesType = carac.comblesType || '';
+    const cubageCombles = comblesType === 'amenageables' ? empriseAuSol * HAUTEUR_COMBLES : 0;
+    
+    // Total cubage automatique
+    const cubageAuto = cubageHorsSol + cubageSousSol + cubageCombles;
+    
+    // Cubage utilisé (manuel si saisi, sinon auto)
     const cubageManuel = parseNum(preEst.cubageManuel);
     const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
     
-    // Surface aménagement = utile - habitable
-    const surfaceAmenagement = Math.max(0, surfaceUtile - surfaceHabMaison);
+    // Surface aménagement = sous-sol (pour valorisation)
+    const surfaceAmenagement = surfaceSousSol;
     
     // ============================================
     // PRIX & VETUSTE
