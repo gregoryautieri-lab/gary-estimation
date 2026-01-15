@@ -384,6 +384,7 @@ export interface Comparable {
   typeBien?: TypeBien;
   nombrePieces?: string;
   lien?: string;
+  coordinates?: { lat: number; lng: number }; // Coordonnées GPS pour la carte
 }
 
 export interface PreEstimation {
