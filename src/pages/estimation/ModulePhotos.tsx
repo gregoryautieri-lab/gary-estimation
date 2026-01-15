@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection } from '@/components/gary/FormSection';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
 import { PhotoCapture } from '@/components/photos/PhotoCapture';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { useAuth } from '@/hooks/useAuth';
 import type { EstimationData, Photo, Photos, PhotoCategorie } from '@/types/estimation';
 import { defaultPhotos } from '@/types/estimation';
@@ -198,6 +200,13 @@ export default function ModulePhotos() {
   const uploadedCount = photos.items.filter(p => p.uploaded).length;
   const pendingCount = photos.items.filter(p => p.uploading).length;
 
+  // Progress tracking
+  const { moduleStatuses } = useModuleProgress(
+    estimation,
+    id || '',
+    3 // Photos is treated as part of module flow
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <ModuleHeader 
@@ -205,6 +214,15 @@ export default function ModulePhotos() {
         title="Photos" 
         onBack={() => navigate('/estimations')}
       />
+
+      {/* Barre de progression */}
+      {id && (
+        <ModuleProgressBar
+          modules={moduleStatuses}
+          currentModule="📸"
+          estimationId={id}
+        />
+      )}
 
       <div className="p-4 space-y-6">
         {/* Résumé */}
