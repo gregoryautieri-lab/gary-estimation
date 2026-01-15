@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
+import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { Button } from '@/components/ui/button';
@@ -8,11 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { EstimationData, defaultAnalyseTerrain, AnalyseTerrain } from '@/types/estimation';
 import { PointChipsGrid, POINTS_FORTS_OPTIONS, POINTS_FAIBLES_OPTIONS } from '@/components/gary/PointChipsGrid';
 import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { toast } from 'sonner';
-import { ChevronRight, Sun, Volume2, Maximize2, Star } from 'lucide-react';
+import { ChevronRight, Sun, Volume2, Maximize2, Star }from 'lucide-react';
 
 const etatOptions = [
   { value: '1', label: '1', description: 'À refaire' },
@@ -84,6 +87,9 @@ export default function Module3AnalyseTerrain() {
   const [saving, setSaving] = useState(false);
   const [customPointsForts, setCustomPointsForts] = useState<string[]>([]);
   const [customPointsFaibles, setCustomPointsFaibles] = useState<string[]>([]);
+
+  // Hook de progression
+  const { moduleStatuses, missingFields } = useModuleProgress(estimation, id || '', 3);
 
   // Hook de verrouillage
   const { isLocked, lockMessage, duplicateAndNavigate, duplicating } = useEstimationLockEnhanced(
@@ -164,6 +170,9 @@ export default function Module3AnalyseTerrain() {
         subtitle={estimation?.identification?.vendeur?.nom || 'Nouveau bien'}
         backPath={`/estimation/${id}/2`}
       />
+
+      {/* Barre de progression */}
+      <ModuleProgressBar modules={moduleStatuses} currentModule={3} estimationId={id || ''} />
 
       <div className="p-4 space-y-6">
         {/* Bandeau de verrouillage */}
@@ -315,6 +324,9 @@ export default function Module3AnalyseTerrain() {
             </FormRow>
           </div>
         </FormSection>
+
+        {/* Alerte champs manquants */}
+        <MissingFieldsAlert fields={missingFields} moduleName="Analyse terrain" />
       </div>
 
       {/* Footer actions */}
