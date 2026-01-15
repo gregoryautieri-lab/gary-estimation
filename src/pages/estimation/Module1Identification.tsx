@@ -18,6 +18,7 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { ChevronRight, Save, Loader2 } from 'lucide-react';
 import type { EstimationData, Identification } from '@/types/estimation';
 import { defaultIdentification, defaultEstimation } from '@/types/estimation';
+import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 
 // Options pour les selects
 const MOTIFS_VENTE = [
@@ -200,6 +201,26 @@ const Module1Identification = () => {
 
         {/* Adresse */}
         <FormSection icon="📍" title="Adresse du bien">
+          <FormRow label="Recherche d'adresse">
+            <AddressAutocomplete
+              value={identification.adresse.rue}
+              placeholder="Tapez une adresse suisse..."
+              onAddressSelect={(details) => {
+                setIdentification(prev => ({
+                  ...prev,
+                  adresse: {
+                    ...prev.adresse,
+                    rue: details.rue,
+                    codePostal: details.codePostal,
+                    localite: details.localite,
+                    canton: details.canton,
+                    coordinates: details.coordinates,
+                    placeId: details.placeId
+                  }
+                }));
+              }}
+            />
+          </FormRow>
           <FormRow label="Rue et numéro" required>
             <Input
               placeholder="Rue du Marché 1"
@@ -225,6 +246,12 @@ const Module1Identification = () => {
               </FormRow>
             </div>
           </div>
+          {identification.adresse.coordinates && (
+            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+              <span className="text-green-600">✓</span>
+              Coordonnées GPS : {identification.adresse.coordinates.lat.toFixed(5)}, {identification.adresse.coordinates.lng.toFixed(5)}
+            </div>
+          )}
         </FormSection>
 
         {/* Contexte */}
