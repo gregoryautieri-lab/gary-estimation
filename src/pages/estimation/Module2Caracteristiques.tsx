@@ -222,9 +222,14 @@ export default function Module2Caracteristiques() {
   };
 
   // Récupération automatique des données cadastrales
-  const handleFetchCadastre = useCallback(async () => {
+  const handleFetchCadastre = async () => {
+    // Récupérer les coordonnées depuis l'identification
     const coords = estimation?.identification?.adresse?.coordinates;
     const postalCode = estimation?.identification?.adresse?.codePostal;
+    
+    console.log('Cadastre lookup - estimation:', estimation?.id);
+    console.log('Cadastre lookup - coords:', coords);
+    console.log('Cadastre lookup - postalCode:', postalCode);
     
     if (!coords?.lat || !coords?.lng) {
       toast.error('Coordonnées non disponibles. Vérifiez l\'adresse dans le Module 1.');
@@ -256,7 +261,7 @@ export default function Module2Caracteristiques() {
     } else {
       toast.error(result?.error || 'Aucune donnée cadastrale trouvée');
     }
-  }, [estimation, fetchCadastre, updateField]);
+  };
 
   const handleSave = async () => {
     if (!id || !estimation) return;

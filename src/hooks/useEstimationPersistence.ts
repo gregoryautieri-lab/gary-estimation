@@ -56,6 +56,37 @@ function rowToEstimation(row: {
   created_at: string;
   updated_at: string;
 }): EstimationData {
+  // Deep merge pour identification avec adresse imbriquée
+  const identificationFromDb = row.identification as object || {};
+  const mergedIdentification = {
+    ...defIdent,
+    ...identificationFromDb,
+    adresse: {
+      ...defIdent.adresse,
+      ...((identificationFromDb as any).adresse || {})
+    },
+    vendeur: {
+      ...defIdent.vendeur,
+      ...((identificationFromDb as any).vendeur || {})
+    },
+    contexte: {
+      ...defIdent.contexte,
+      ...((identificationFromDb as any).contexte || {})
+    },
+    historique: {
+      ...defIdent.historique,
+      ...((identificationFromDb as any).historique || {})
+    },
+    financier: {
+      ...defIdent.financier,
+      ...((identificationFromDb as any).financier || {})
+    },
+    projetPostVente: {
+      ...defIdent.projetPostVente,
+      ...((identificationFromDb as any).projetPostVente || {})
+    }
+  } as Identification;
+
   return {
     id: row.id,
     courtierId: row.courtier_id,
@@ -70,7 +101,7 @@ function rowToEstimation(row: {
     vendeurNom: row.vendeur_nom || undefined,
     vendeurEmail: row.vendeur_email || undefined,
     vendeurTelephone: row.vendeur_telephone || undefined,
-    identification: { ...defIdent, ...(row.identification as object || {}) } as Identification,
+    identification: mergedIdentification,
     caracteristiques: { ...defCarac, ...(row.caracteristiques as object || {}) } as Caracteristiques,
     analyseTerrain: { ...defAnalyse, ...(row.analyse_terrain as object || {}) } as AnalyseTerrain,
     preEstimation: { ...defPre, ...(row.pre_estimation as object || {}) } as PreEstimation,
