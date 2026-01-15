@@ -13,8 +13,9 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationCalcul, formatPriceCHF } from '@/hooks/useEstimationCalcul';
 import { EstimationData, defaultPreEstimation, PreEstimation, TypeMiseEnVente, Comparable, LigneSupp, Annexe } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ComparablesMap } from '@/components/comparables/ComparablesMap';
 
 // ============================================
 // Composant Ligne Comparable
@@ -1068,6 +1069,19 @@ export default function Module4PreEstimation() {
           icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
         >
           <div className="space-y-6">
+            
+            {/* Carte des comparables */}
+            <ComparablesMap
+              bienPrincipal={{
+                coordinates: estimation?.identification?.adresse?.coordinates || null,
+                adresse: estimation?.identification?.adresse?.rue 
+                  ? `${estimation.identification.adresse.rue}, ${estimation.identification.adresse.localite}`
+                  : undefined,
+                prixEstime: calcul.prixMiseEnVente,
+              }}
+              comparablesVendus={preEst.comparablesVendus}
+              comparablesEnVente={preEst.comparablesEnVente}
+            />
             
             {/* Transactions récentes (Vendus) */}
             <div className="space-y-3">
