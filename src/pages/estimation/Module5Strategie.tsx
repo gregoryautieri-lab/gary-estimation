@@ -11,7 +11,8 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown } from 'lucide-react';
+import { downloadEstimationPDF } from '@/utils/pdfExport';
 import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
 import { useLuxMode } from '@/hooks/useEstimationCalcul';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,9 +59,15 @@ export default function Module5Strategie() {
     if (data) {
       setEstimation(data);
       const strat = { ...defaultStrategiePitch, ...data.strategiePitch };
+      
+      // Date de lancement auto = prochain lundi si non définie
       if (!strat.dateDebut) {
-        strat.dateDebut = format(nextMonday(new Date()), 'yyyy-MM-dd');
+        const now = new Date();
+        // Si l'estimation vient d'être créée, on prend le lundi suivant
+        const createdAt = data.createdAt ? new Date(data.createdAt) : now;
+        strat.dateDebut = format(nextMonday(createdAt), 'yyyy-MM-dd');
       }
+      
       setStrategie(strat);
       setCheckedPhase0Actions(strat.phase0Actions || []);
     }
@@ -215,6 +222,19 @@ export default function Module5Strategie() {
 
   const handleNext = async () => {
     await handleSave();
+    
+    // Générer et télécharger le PDF automatiquement
+    if (estimation) {
+      try {
+        toast.loading('Génération du PDF...', { id: 'pdf-gen' });
+        await downloadEstimationPDF({ estimation });
+        toast.success('PDF téléchargé !', { id: 'pdf-gen' });
+      } catch (err) {
+        console.error('Erreur génération PDF:', err);
+        toast.error('Erreur lors de la génération du PDF', { id: 'pdf-gen' });
+      }
+    }
+    
     toast.success('Estimation terminée !');
     navigate(`/estimations`);
   };
@@ -233,8 +253,14 @@ export default function Module5Strategie() {
   }
 
   const prixAffiche = estimation?.prixFinal || 0;
-  const adresse = estimation?.identification?.adresse?.rue || '';
-  const localite = estimation?.identification?.adresse?.localite || '';
+  
+  // Adresse complète - essayer plusieurs sources
+  const adresseData = estimation?.identification?.adresse;
+  const adresse = adresseData?.rue || estimation?.adresse || '';
+  const localite = adresseData?.localite 
+    ? `${adresseData.codePostal || ''} ${adresseData.localite}`.trim()
+    : estimation?.localite || '';
+  
   const typeBien = estimation?.caracteristiques?.typeBien || '';
   // Surface selon type de bien (PPE pour appart, surfaceHabitableMaison pour maison)
   const surface = typeBien === 'maison' 

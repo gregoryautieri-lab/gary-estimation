@@ -535,21 +535,7 @@ export default function Module2Caracteristiques() {
                       />
                     </FormRow>
                   </div>
-                  <FormRow label="Nombre de niveaux (hors-sol)">
-                    <Select 
-                      value={carac.nombreNiveaux} 
-                      onValueChange={(v) => updateField('nombreNiveaux', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="--" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {niveauxOptions.map(({ value, label }) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormRow>
+                  {/* Nombre de niveaux déplacé dans Configuration */}
                   
                   {/* Accordéon Précision cubage SIA */}
                   <Collapsible open={cubageOpen} onOpenChange={setCubageOpen}>
