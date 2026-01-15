@@ -16,7 +16,8 @@ import {
   Filter,
   ArrowUpDown,
   Check,
-  X
+  X,
+  TrendingUp
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,40 +35,65 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { EstimationData } from '@/types/estimation';
+import type { EstimationData, EstimationStatus } from '@/types/estimation';
+import { STATUS_CONFIG } from '@/types/estimation';
 import { formatPriceCHF } from '@/hooks/useEstimationCalcul';
 import { toast } from 'sonner';
 import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
+import { calculatePriorityScore, PriorityScore } from '@/lib/priorityScore';
+import { PriorityBadge, PriorityIndicator } from '@/components/gary/PriorityBadge';
 
 // Types
-type SortField = 'date' | 'nom' | 'prix' | 'statut';
+type SortField = 'priorite' | 'date' | 'nom' | 'prix' | 'statut';
 type SortOrder = 'asc' | 'desc';
-type StatusFilter = 'tous' | 'brouillon' | 'en_cours' | 'termine' | 'archive';
+type StatusFilter = 'tous' | EstimationStatus;
 
-const statusLabels: Record<string, { label: string; color: string; bgClass: string }> = {
-  brouillon: { label: 'Brouillon', color: 'text-muted-foreground', bgClass: 'bg-muted' },
-  en_cours: { label: 'En cours', color: 'text-amber-700', bgClass: 'bg-amber-100' },
-  termine: { label: 'Terminé', color: 'text-emerald-700', bgClass: 'bg-emerald-100' },
-  archive: { label: 'Archivé', color: 'text-slate-500', bgClass: 'bg-slate-100' }
+// Utilise STATUS_CONFIG pour les labels
+const getStatusLabel = (status: string) => {
+  const config = STATUS_CONFIG[status as EstimationStatus];
+  return config || { label: status, color: 'gray', icon: 'Circle' };
 };
 
-const sortOptions: { value: SortField; label: string }[] = [
+const sortOptions: { value: SortField; label: string; icon?: string }[] = [
+  { value: 'priorite', label: 'Priorité', icon: '🎯' },
   { value: 'date', label: 'Date' },
   { value: 'nom', label: 'Nom' },
   { value: 'prix', label: 'Prix' },
   { value: 'statut', label: 'Statut' }
 ];
+// Status color mapping for quick editing
+const statusColorMap: Record<string, { bgClass: string; color: string }> = {
+  brouillon: { bgClass: 'bg-muted', color: 'text-muted-foreground' },
+  en_cours: { bgClass: 'bg-amber-100', color: 'text-amber-700' },
+  a_presenter: { bgClass: 'bg-blue-100', color: 'text-blue-700' },
+  presentee: { bgClass: 'bg-purple-100', color: 'text-purple-700' },
+  reflexion: { bgClass: 'bg-yellow-100', color: 'text-yellow-700' },
+  negociation: { bgClass: 'bg-orange-100', color: 'text-orange-700' },
+  accord_oral: { bgClass: 'bg-teal-100', color: 'text-teal-700' },
+  en_signature: { bgClass: 'bg-cyan-100', color: 'text-cyan-700' },
+  mandat_signe: { bgClass: 'bg-emerald-100', color: 'text-emerald-700' },
+  termine: { bgClass: 'bg-emerald-100', color: 'text-emerald-700' },
+  perdu: { bgClass: 'bg-red-100', color: 'text-red-700' },
+  archive: { bgClass: 'bg-slate-100', color: 'text-slate-500' }
+};
+
+// Quick status options for inline editing (most common)
+const quickStatusOptions: EstimationStatus[] = [
+  'brouillon', 'en_cours', 'a_presenter', 'presentee', 'reflexion', 'negociation'
+];
 
 interface EstimationCardProps {
   estimation: EstimationData;
+  priority: PriorityScore;
   onClick: () => void;
   onStatusChange: (newStatus: string) => void;
   isUpdating: boolean;
 }
 
-const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: EstimationCardProps) => {
+const EstimationCard = ({ estimation, priority, onClick, onStatusChange, isUpdating }: EstimationCardProps) => {
   const [editingStatus, setEditingStatus] = useState(false);
-  const status = statusLabels[estimation.statut] || statusLabels.brouillon;
+  const statusConfig = getStatusLabel(estimation.statut);
+  const colorConfig = statusColorMap[estimation.statut] || statusColorMap.brouillon;
   const vendeur = estimation.vendeurNom || estimation.identification?.vendeur?.nom || 'Sans nom';
   const adresse = estimation.adresse || estimation.identification?.adresse?.rue || '';
   const localite = estimation.localite || estimation.identification?.adresse?.localite || '';
@@ -93,21 +119,28 @@ const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: Est
       className="w-full bg-card border border-border rounded-xl p-4 text-left transition-all hover:border-primary/50 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between gap-3">
+        {/* Priority indicator */}
+        <PriorityIndicator priority={priority} className="mt-1.5" />
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             {editingStatus ? (
-              <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                {Object.entries(statusLabels).map(([key, val]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleStatusSelect(key)}
-                    className={`text-xs font-medium px-2 py-0.5 rounded transition-all ${val.bgClass} ${val.color} ${
-                      estimation.statut === key ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    {val.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+                {quickStatusOptions.map((key) => {
+                  const cfg = getStatusLabel(key);
+                  const clr = statusColorMap[key] || statusColorMap.brouillon;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleStatusSelect(key)}
+                      className={`text-xs font-medium px-2 py-0.5 rounded transition-all ${clr.bgClass} ${clr.color} ${
+                        estimation.statut === key ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      {cfg.label}
+                    </button>
+                  );
+                })}
                 <button 
                   onClick={() => setEditingStatus(false)}
                   className="p-1 text-muted-foreground hover:text-foreground"
@@ -119,9 +152,9 @@ const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: Est
               <button
                 onClick={handleStatusClick}
                 disabled={isUpdating}
-                className={`text-xs font-medium px-2 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${status.bgClass} ${status.color}`}
+                className={`text-xs font-medium px-2 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${colorConfig.bgClass} ${colorConfig.color}`}
               >
-                {isUpdating ? '...' : status.label}
+                {isUpdating ? '...' : statusConfig.label}
               </button>
             )}
             {estimation.typeBien && (
@@ -129,6 +162,8 @@ const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: Est
                 {estimation.typeBien}
               </span>
             )}
+            {/* Priority badge */}
+            <PriorityBadge priority={priority} size="sm" />
           </div>
           <h3 className="font-semibold text-foreground truncate">{vendeur}</h3>
           {(adresse || localite) && (
@@ -152,7 +187,7 @@ const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: Est
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {estimation.statut === 'termine' && (
+          {(estimation.statut === 'termine' || estimation.statut === 'mandat_signe') && (
             <div onClick={e => e.stopPropagation()}>
               <ExportPDFButton estimation={estimation} />
             </div>
@@ -171,7 +206,7 @@ const EstimationsList = () => {
   const [estimations, setEstimations] = useState<EstimationData[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
-  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortField, setSortField] = useState<SortField>('priorite');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -240,6 +275,11 @@ const EstimationsList = () => {
       let comparison = 0;
       
       switch (sortField) {
+        case 'priorite':
+          const priorityA = calculatePriorityScore(a).total;
+          const priorityB = calculatePriorityScore(b).total;
+          comparison = priorityA - priorityB;
+          break;
         case 'date':
           comparison = new Date(a.updatedAt || 0).getTime() - new Date(b.updatedAt || 0).getTime();
           break;
@@ -252,7 +292,11 @@ const EstimationsList = () => {
           comparison = (a.prixFinal || 0) - (b.prixFinal || 0);
           break;
         case 'statut':
-          const statusOrder = { brouillon: 0, en_cours: 1, termine: 2, archive: 3 };
+          const statusOrder: Record<string, number> = { 
+            brouillon: 0, en_cours: 1, a_presenter: 2, presentee: 3, 
+            reflexion: 4, negociation: 5, accord_oral: 6, en_signature: 7,
+            mandat_signe: 8, termine: 9, perdu: 10, archive: 11 
+          };
           comparison = (statusOrder[a.statut] || 0) - (statusOrder[b.statut] || 0);
           break;
       }
@@ -338,7 +382,7 @@ const EstimationsList = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Filtre statut */}
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                 <SelectTrigger className="w-[140px] h-9">
@@ -349,8 +393,15 @@ const EstimationsList = () => {
                   <SelectItem value="tous">Tous</SelectItem>
                   <SelectItem value="brouillon">Brouillons</SelectItem>
                   <SelectItem value="en_cours">En cours</SelectItem>
-                  <SelectItem value="termine">Terminés</SelectItem>
-                  <SelectItem value="archive">Archivés</SelectItem>
+                  <SelectItem value="a_presenter">À présenter</SelectItem>
+                  <SelectItem value="presentee">Présentées</SelectItem>
+                  <SelectItem value="reflexion">En réflexion</SelectItem>
+                  <SelectItem value="negociation">Négociation</SelectItem>
+                  <SelectItem value="accord_oral">Accord oral</SelectItem>
+                  <SelectItem value="en_signature">En signature</SelectItem>
+                  <SelectItem value="mandat_signe">Mandats signés</SelectItem>
+                  <SelectItem value="perdu">Perdues</SelectItem>
+                  <SelectItem value="archive">Archivées</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -400,7 +451,7 @@ const EstimationsList = () => {
           {(statusFilter !== 'tous' || search) && (
             <p className="text-sm text-muted-foreground">
               {processedEstimations.length} résultat{processedEstimations.length > 1 ? 's' : ''}
-              {statusFilter !== 'tous' && ` • Filtre: ${statusLabels[statusFilter]?.label}`}
+              {statusFilter !== 'tous' && ` • Filtre: ${getStatusLabel(statusFilter).label}`}
             </p>
           )}
 
@@ -433,15 +484,19 @@ const EstimationsList = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {processedEstimations.map(estimation => (
-                <EstimationCard
-                  key={estimation.id}
-                  estimation={estimation}
-                  onClick={() => navigate(`/estimation/${estimation.id}/1`)}
-                  onStatusChange={(status) => handleStatusChange(estimation.id, status)}
-                  isUpdating={updatingId === estimation.id}
-                />
-              ))}
+              {processedEstimations.map(estimation => {
+                const priority = calculatePriorityScore(estimation);
+                return (
+                  <EstimationCard
+                    key={estimation.id}
+                    estimation={estimation}
+                    priority={priority}
+                    onClick={() => navigate(`/estimation/${estimation.id}/overview`)}
+                    onStatusChange={(status) => handleStatusChange(estimation.id, status)}
+                    isUpdating={updatingId === estimation.id}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
