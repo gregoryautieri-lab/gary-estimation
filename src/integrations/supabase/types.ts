@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      estimation_modifications: {
+        Row: {
+          action: string
+          estimation_id: string
+          field: string
+          id: string
+          module: string
+          new_value: Json | null
+          old_value: Json | null
+          timestamp: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action?: string
+          estimation_id: string
+          field: string
+          id?: string
+          module: string
+          new_value?: Json | null
+          old_value?: Json | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          estimation_id?: string
+          field?: string
+          id?: string
+          module?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimation_modifications_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimation_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_id: string | null
+          estimation_id: string
+          id: string
+          label: string | null
+          snapshot: Json
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_id?: string | null
+          estimation_id: string
+          id?: string
+          label?: string | null
+          snapshot: Json
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_id?: string | null
+          estimation_id?: string
+          id?: string
+          label?: string | null
+          snapshot?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimation_versions_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimations: {
         Row: {
           adresse: string | null
