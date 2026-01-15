@@ -11,13 +11,7 @@ import type {
   PreEstimation,
   StrategiePitch,
   Photos,
-  Timeline,
-  defaultIdentification,
-  defaultCaracteristiques,
-  defaultAnalyseTerrain,
-  defaultPreEstimation,
-  defaultStrategiePitch,
-  defaultTimeline
+  Timeline
 } from '@/types/estimation';
 import { 
   defaultIdentification as defIdent,
@@ -25,7 +19,8 @@ import {
   defaultAnalyseTerrain as defAnalyse,
   defaultPreEstimation as defPre,
   defaultStrategiePitch as defStrat,
-  defaultTimeline as defTime
+  defaultTimeline as defTime,
+  defaultPhotos as defPhotos
 } from '@/types/estimation';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
@@ -92,7 +87,33 @@ function rowToEstimation(row: {
 // ============================================
 // Conversion App -> DB
 // ============================================
-function estimationToInsert(data: Partial<EstimationData>, userId: string) {
+type InsertData = {
+  courtier_id: string;
+  statut: EstimationStatus;
+  type_bien: TypeBien | null;
+  adresse: string | null;
+  code_postal: string | null;
+  localite: string | null;
+  prix_final: number | null;
+  prix_min: number | null;
+  prix_max: number | null;
+  vendeur_nom: string | null;
+  vendeur_email: string | null;
+  vendeur_telephone: string | null;
+  identification: Json;
+  caracteristiques: Json;
+  analyse_terrain: Json;
+  pre_estimation: Json;
+  strategie: Json;
+  historique: Json;
+  timeline: Json;
+  comparables: Json;
+  photos: Json;
+  etapes_completees: string[];
+  notes_libres: string | null;
+};
+
+function estimationToInsert(data: Partial<EstimationData>, userId: string): InsertData {
   return {
     courtier_id: userId,
     statut: data.statut || 'brouillon',
@@ -114,7 +135,7 @@ function estimationToInsert(data: Partial<EstimationData>, userId: string) {
     historique: {} as Json,
     timeline: (data.timeline || defTime) as unknown as Json,
     comparables: { vendus: [], enVente: [] } as unknown as Json,
-    photos: (data.photos || { items: [] }) as unknown as Json,
+    photos: (data.photos || defPhotos) as unknown as Json,
     etapes_completees: data.etapesCompletees || [],
     notes_libres: data.notesLibres || null
   };
@@ -232,7 +253,7 @@ export function useEstimationPersistence() {
       
       const { data: created, error: createError } = await supabase
         .from('estimations')
-        .insert(insertData)
+        .insert([insertData] as any)
         .select()
         .single();
 
