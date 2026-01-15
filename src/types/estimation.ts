@@ -672,6 +672,31 @@ export interface ModificationAudit {
   details?: string;
 }
 
+// Entrée de modification individuelle (pour tracking détaillé)
+export interface ModificationEntry {
+  id: string;                    // UUID
+  timestamp: string;             // ISO datetime
+  userId: string;                // ID utilisateur
+  userName: string;              // "Grégory Courtier"
+  module: string;                // 'identification' | 'caracteristiques' | etc.
+  field: string;                 // Champ modifié (ex: 'prixRecommande')
+  oldValue: unknown;             // Ancienne valeur
+  newValue: unknown;             // Nouvelle valeur
+  action: 'create' | 'update' | 'delete';
+}
+
+// Version/Snapshot d'une estimation
+export interface EstimationVersion {
+  id?: string;
+  estimationId: string;
+  versionNumber: number;         // 1, 2, 3...
+  createdAt: string;
+  createdBy: string;
+  createdById?: string;
+  label?: string;                // "Version présentée client"
+  snapshot: Partial<EstimationData>; // État complet à ce moment
+}
+
 export interface EstimationMetadata {
   versionApp: string;
   tempsSaisie?: number; // En minutes
@@ -680,6 +705,9 @@ export interface EstimationMetadata {
   verrouille?: boolean;
   dateVerrouillage?: string;
   motifVerrouillage?: string;
+  // Versioning
+  currentVersion?: number;
+  lastVersionDate?: string;
 }
 
 // ============================================

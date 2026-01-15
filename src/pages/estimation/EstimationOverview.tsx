@@ -37,7 +37,8 @@ import {
   User,
   ArrowRight,
   Play,
-  Target
+  Target,
+  History
 } from 'lucide-react';
 
 export default function EstimationOverview() {
@@ -423,6 +424,15 @@ export default function EstimationOverview() {
               >
                 <Copy className="h-4 w-4" />
                 {duplicating ? 'Duplication...' : 'Dupliquer'}
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => navigate(`/estimation/${id}/history`)}
+                className="h-12 flex items-center gap-2 col-span-2"
+              >
+                <History className="h-4 w-4" />
+                Historique & Versions
               </Button>
             </div>
           </CardContent>
