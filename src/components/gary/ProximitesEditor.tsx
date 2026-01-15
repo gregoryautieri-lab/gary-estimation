@@ -79,7 +79,17 @@ export function ProximitesEditor({ proximites, coordinates, onChange, disabled }
     }
   }, []);
 
-  // Fetch transports auto
+  // Auto-fetch transports quand coordonnées disponibles
+  useEffect(() => {
+    if (coordinates?.lat && coordinates?.lng && !busStop && !trainStation && !loadingTransit) {
+      // Délai de 500ms pour éviter appels multiples
+      const timer = setTimeout(() => {
+        fetchNearbyTransit();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [coordinates]);
   const fetchNearbyTransit = async () => {
     if (!coordinates) {
       toast.error('Coordonnées GPS requises');
@@ -200,7 +210,7 @@ export function ProximitesEditor({ proximites, coordinates, onChange, disabled }
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            <span className="ml-2">{busStop || trainStation ? 'Rafraîchir' : 'Rechercher'}</span>
+            <span className="ml-2">Rafraîchir</span>
           </Button>
         </div>
         
@@ -254,9 +264,9 @@ export function ProximitesEditor({ proximites, coordinates, onChange, disabled }
           </div>
         )}
 
-        {!busStop && !trainStation && coordinates && !loadingTransit && (
+        {!busStop && !trainStation && !coordinates && !loadingTransit && (
           <p className="text-xs text-muted-foreground italic">
-            Cliquez sur "Rechercher" pour trouver les transports à proximité.
+            Les transports seront recherchés automatiquement dès sélection d'adresse.
           </p>
         )}
       </div>
