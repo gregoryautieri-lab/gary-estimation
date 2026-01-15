@@ -496,6 +496,115 @@ export default function Module2Caracteristiques() {
                       />
                     </FormRow>
                   </div>
+                  <FormRow label="Nombre de niveaux (hors-sol)">
+                    <Select 
+                      value={carac.nombreNiveaux} 
+                      onValueChange={(v) => updateField('nombreNiveaux', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="--" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {niveauxOptions.map(({ value, label }) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormRow>
+                  
+                  {/* Accordéon Précision cubage SIA */}
+                  <Collapsible open={cubageOpen} onOpenChange={setCubageOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between px-4 py-3 h-auto border-dashed border-2 hover:border-primary hover:bg-primary/5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Ruler className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Précision cubage SIA</span>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">optionnel</span>
+                        </div>
+                        {cubageOpen ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-4 space-y-4 border border-t-0 rounded-b-lg bg-card">
+                        <FormRow label="Hauteur sous-plafond (m)" optional helper="Défaut: 2.7m">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={carac.hauteurSousPlafond || ''}
+                            onChange={(e) => updateField('hauteurSousPlafond', e.target.value)}
+                            placeholder="2.7"
+                          />
+                        </FormRow>
+
+                        <FormRow 
+                          label="Surface sous-sol (m²)" 
+                          optional 
+                          helper={`Auto: ${Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0))} m²`}
+                        >
+                          <Input
+                            type="number"
+                            value={carac.surfaceSousSol || ''}
+                            onChange={(e) => updateField('surfaceSousSol', e.target.value)}
+                            placeholder={Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0)).toString()}
+                          />
+                        </FormRow>
+
+                        <FormRow label="Hauteur sous-sol (m)" optional helper="Défaut: 2.4m">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={carac.hauteurSousSol || ''}
+                            onChange={(e) => updateField('hauteurSousSol', e.target.value)}
+                            placeholder="2.4"
+                          />
+                        </FormRow>
+
+                        <FormRow label="Combles">
+                          <div className="flex flex-col gap-2">
+                            {[
+                              { value: 'non_amenageables', label: 'Non aménageables' },
+                              { value: 'amenageables', label: 'Aménageables (+cubage)' },
+                              { value: 'deja_amenages', label: 'Déjà aménagés (inclus dans habitable)' },
+                            ].map(({ value, label }) => (
+                              <label 
+                                key={value}
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  carac.comblesType === value 
+                                    ? 'border-primary bg-primary/5' 
+                                    : 'border-border hover:border-primary/50'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="comblesType"
+                                  value={value}
+                                  checked={carac.comblesType === value}
+                                  onChange={(e) => updateField('comblesType', e.target.value as Caracteristiques['comblesType'])}
+                                  className="sr-only"
+                                />
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                  carac.comblesType === value ? 'border-primary' : 'border-muted-foreground'
+                                }`}>
+                                  {carac.comblesType === value && (
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                  )}
+                                </div>
+                                <span className="text-sm">{label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </FormRow>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                  
                   <p className="text-xs text-muted-foreground">
                     Surface terrain dans la section Parcelle ci-dessous
                   </p>
@@ -598,104 +707,7 @@ export default function Module2Caracteristiques() {
           </FormSection>
         )}
 
-        {/* Précision cubage SIA (maison) */}
-        {isMaison && (
-          <Collapsible open={cubageOpen} onOpenChange={setCubageOpen}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full justify-between px-4 py-3 h-auto border-dashed border-2 hover:border-primary hover:bg-primary/5"
-              >
-                <div className="flex items-center gap-2">
-                  <Ruler className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Précision cubage SIA</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">(optionnel)</span>
-                </div>
-                {cubageOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 space-y-4 border border-t-0 rounded-b-lg bg-card">
-                {/* Hauteur sous-plafond */}
-                <FormRow label="Hauteur sous-plafond (m)" optional helper="Défaut: 2.7m">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={carac.hauteurSousPlafond || ''}
-                    onChange={(e) => updateField('hauteurSousPlafond', e.target.value)}
-                    placeholder="2.7"
-                  />
-                </FormRow>
-
-                {/* Surface sous-sol */}
-                <FormRow 
-                  label="Surface sous-sol (m²)" 
-                  optional 
-                  helper={`Auto-calculé: ${Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0))} m²`}
-                >
-                  <Input
-                    type="number"
-                    value={carac.surfaceSousSol || ''}
-                    onChange={(e) => updateField('surfaceSousSol', e.target.value)}
-                    placeholder={Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0)).toString()}
-                  />
-                </FormRow>
-
-                {/* Hauteur sous-sol */}
-                <FormRow label="Hauteur sous-sol (m)" optional helper="Défaut: 2.4m">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={carac.hauteurSousSol || ''}
-                    onChange={(e) => updateField('hauteurSousSol', e.target.value)}
-                    placeholder="2.4"
-                  />
-                </FormRow>
-
-                {/* Type combles */}
-                <FormRow label="Combles">
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { value: 'non_amenageables', label: 'Non aménageables' },
-                      { value: 'amenageables', label: 'Aménageables (+cubage)' },
-                      { value: 'deja_amenages', label: 'Déjà aménagés (inclus dans habitable)' },
-                    ].map(({ value, label }) => (
-                      <label 
-                        key={value}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          carac.comblesType === value 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="comblesType"
-                          value={value}
-                          checked={carac.comblesType === value}
-                          onChange={(e) => updateField('comblesType', e.target.value as Caracteristiques['comblesType'])}
-                          className="sr-only"
-                        />
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          carac.comblesType === value ? 'border-primary' : 'border-muted-foreground'
-                        }`}>
-                          {carac.comblesType === value && (
-                            <div className="w-2 h-2 rounded-full bg-primary" />
-                          )}
-                        </div>
-                        <span className="text-sm">{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </FormRow>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+        {/* Configuration */}
         {(isAppartement || isMaison) && (
           <FormSection title="Configuration">
             <div className="space-y-4">
