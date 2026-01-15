@@ -66,6 +66,7 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const geocoder = useRef<google.maps.Geocoder | null>(null);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
+  const [mapReady, setMapReady] = useState(false);
 
   // Géocoder les adresses des comparables
   const geocodeAddress = useCallback(async (address: string): Promise<{ lat: number; lng: number } | null> => {
@@ -98,7 +99,23 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     geocoder.current = new google.maps.Geocoder();
+    setMapReady(true);
   }, []);
+
+  // Ajuster les bounds quand les markers ou la carte changent
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || markers.length === 0) return;
+    
+    const bounds = new google.maps.LatLngBounds();
+    markers.forEach(m => bounds.extend(m.position));
+    
+    if (markers.length > 1) {
+      mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    } else {
+      mapRef.current.setCenter(markers[0].position);
+      mapRef.current.setZoom(15);
+    }
+  }, [markers, mapReady]);
 
   // Préparer les marqueurs en utilisant les coordonnées stockées (priorité) ou géocoder si nécessaire
   useEffect(() => {
@@ -190,18 +207,6 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
       
       console.log("Total markers:", newMarkers.length, newMarkers.map(m => ({ type: m.type, hasCoords: !!m.position })));
       setMarkers(newMarkers);
-      
-      // Ajuster les bounds pour voir tous les marqueurs
-      if (mapRef.current && newMarkers.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        newMarkers.forEach(m => bounds.extend(m.position));
-        if (newMarkers.length > 1) {
-          mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
-        } else {
-          mapRef.current.setCenter(newMarkers[0].position);
-          mapRef.current.setZoom(15);
-        }
-      }
     };
     
     // Attendre que le geocoder soit initialisé
