@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -11,9 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { useCadastreLookup } from '@/hooks/useCadastreLookup';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronRight, Home, Building2, Key } from 'lucide-react';
+import { ChevronRight, Home, Building2, Key, MapPin, Loader2, RefreshCw } from 'lucide-react';
 import { 
   PictoChipsGrid, 
   RENOVATION_OPTIONS, 
@@ -194,10 +195,12 @@ export default function Module2Caracteristiques() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { fetchEstimation, updateEstimation, loading } = useEstimationPersistence();
+  const { fetchCadastre, loading: cadastreLoading } = useCadastreLookup();
   
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [carac, setCarac] = useState<Caracteristiques>(defaultCaracteristiques);
   const [saving, setSaving] = useState(false);
+  const [cadastreFetched, setCadastreFetched] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -217,6 +220,43 @@ export default function Module2Caracteristiques() {
   const updateField = <K extends keyof Caracteristiques>(field: K, value: Caracteristiques[K]) => {
     setCarac(prev => ({ ...prev, [field]: value }));
   };
+
+  // Récupération automatique des données cadastrales
+  const handleFetchCadastre = useCallback(async () => {
+    const coords = estimation?.identification?.adresse?.coordinates;
+    const postalCode = estimation?.identification?.adresse?.codePostal;
+    
+    if (!coords?.lat || !coords?.lng) {
+      toast.error('Coordonnées non disponibles. Vérifiez l\'adresse dans le Module 1.');
+      return;
+    }
+
+    const result = await fetchCadastre(coords.lat, coords.lng, postalCode);
+    
+    if (result && !result.error) {
+      // Mettre à jour les champs si des données ont été trouvées
+      if (result.numeroParcelle) {
+        updateField('numeroParcelle', result.numeroParcelle);
+      }
+      if (result.surfaceParcelle && result.surfaceParcelle > 0) {
+        updateField('surfaceTerrain', result.surfaceParcelle.toString());
+      }
+      if (result.zone) {
+        updateField('zone', result.zone);
+      }
+      
+      setCadastreFetched(true);
+      
+      const sourceLabel = result.source === 'sitg' ? 'SITG (Genève)' 
+        : result.source === 'asitvd' ? 'ASIT-VD (Vaud)' 
+        : result.source === 'swisstopo' ? 'Swisstopo'
+        : 'Base cadastrale';
+      
+      toast.success(`Données récupérées depuis ${sourceLabel}`);
+    } else {
+      toast.error(result?.error || 'Aucune donnée cadastrale trouvée');
+    }
+  }, [estimation, fetchCadastre, updateField]);
 
   const handleSave = async () => {
     if (!id || !estimation) return;
@@ -428,15 +468,9 @@ export default function Module2Caracteristiques() {
                       />
                     </FormRow>
                   </div>
-
-                  <FormRow label="Surface terrain (m²)">
-                    <Input
-                      type="number"
-                      value={carac.surfaceTerrain}
-                      onChange={(e) => updateField('surfaceTerrain', e.target.value)}
-                      placeholder="Ex: 800"
-                    />
-                  </FormRow>
+                  <p className="text-xs text-muted-foreground">
+                    Surface terrain dans la section Parcelle ci-dessous
+                  </p>
                 </>
               )}
             </div>
@@ -473,14 +507,50 @@ export default function Module2Caracteristiques() {
         {/* Parcelle (maison) */}
         {isMaison && (
           <FormSection title="Parcelle">
-            <div className="grid grid-cols-2 gap-3">
-              <FormRow label="N° parcelle">
-                <Input
-                  value={carac.numeroParcelle}
-                  onChange={(e) => updateField('numeroParcelle', e.target.value)}
-                  placeholder="Ex: 1234"
-                />
-              </FormRow>
+            <div className="space-y-4">
+              {/* Bouton récupération automatique */}
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFetchCadastre}
+                  disabled={cadastreLoading}
+                  className="flex items-center gap-2"
+                >
+                  {cadastreLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : cadastreFetched ? (
+                    <RefreshCw className="h-4 w-4" />
+                  ) : (
+                    <MapPin className="h-4 w-4" />
+                  )}
+                  {cadastreLoading ? 'Recherche...' : cadastreFetched ? 'Actualiser' : 'Récupérer auto'}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  SITG (GE) • ASIT-VD • Swisstopo
+                </span>
+              </div>
+
+              {/* Champs parcelle */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="N° parcelle">
+                  <Input
+                    value={carac.numeroParcelle}
+                    onChange={(e) => updateField('numeroParcelle', e.target.value)}
+                    placeholder="Ex: 1234"
+                  />
+                </FormRow>
+                <FormRow label="Surface terrain (m²)">
+                  <Input
+                    type="number"
+                    value={carac.surfaceTerrain}
+                    onChange={(e) => updateField('surfaceTerrain', e.target.value)}
+                    placeholder="Ex: 800"
+                  />
+                </FormRow>
+              </div>
+
               <FormRow label="Zone">
                 <Select 
                   value={carac.zone} 
