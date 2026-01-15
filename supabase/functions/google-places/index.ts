@@ -12,11 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("GOOGLE_MAPS_API_KEY is not configured");
+    // Utilise la clé serveur dédiée pour Places API (sans restriction de referrer)
+    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    if (!GOOGLE_PLACES_API_KEY) {
+      console.error("GOOGLE_PLACES_API_KEY is not configured");
       return new Response(
-        JSON.stringify({ error: "Google Maps API key not configured" }),
+        JSON.stringify({ error: "Google Places API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -27,7 +28,7 @@ serve(async (req) => {
       // Google Places Autocomplete API
       const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
       url.searchParams.set("input", input);
-      url.searchParams.set("key", GOOGLE_MAPS_API_KEY);
+      url.searchParams.set("key", GOOGLE_PLACES_API_KEY);
       url.searchParams.set("types", "address");
       url.searchParams.set("language", "fr");
       // Biais vers la Suisse (Genève)
@@ -56,7 +57,7 @@ serve(async (req) => {
       // Google Places Details API
       const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
       url.searchParams.set("place_id", placeId);
-      url.searchParams.set("key", GOOGLE_MAPS_API_KEY);
+      url.searchParams.set("key", GOOGLE_PLACES_API_KEY);
       url.searchParams.set("fields", "address_components,formatted_address,geometry");
       url.searchParams.set("language", "fr");
 
