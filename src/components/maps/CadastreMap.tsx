@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Button } from "@/components/ui/button";
@@ -12,21 +12,14 @@ interface CadastreMapProps {
   className?: string;
 }
 
-// Composant pour contrôler le zoom depuis l'extérieur
-const ZoomController: React.FC<{ zoom: number }> = ({ zoom }) => {
+// Composant pour synchroniser la vue de la carte
+const MapUpdater: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
   const map = useMap();
+  
   useEffect(() => {
-    map.setZoom(zoom);
-  }, [zoom, map]);
-  return null;
-};
-
-// Composant pour centrer sur les coordonnées
-const CenterController: React.FC<{ center: [number, number] }> = ({ center }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
+    map.setView(center, zoom, { animate: true });
+  }, [center, zoom, map]);
+  
   return null;
 };
 
@@ -52,7 +45,14 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
   className = "",
 }) => {
   const [zoom, setZoom] = useState(initialZoom);
-  const mapRef = useRef<L.Map | null>(null);
+  const [mapKey, setMapKey] = useState(0);
+
+  // Regénérer la carte quand les coordonnées changent significativement
+  useEffect(() => {
+    if (coordinates) {
+      setMapKey(prev => prev + 1);
+    }
+  }, [coordinates?.lat, coordinates?.lng]);
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + 1, 20);
@@ -79,11 +79,7 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
 
   const center: [number, number] = [coordinates.lat, coordinates.lng];
 
-  // URL du layer cadastral Swisstopo WMTS
-  // Utilise le layer "ch.swisstopo.cadastre" via WMTS
-  const swisstopoUrl = "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe/default/current/3857/{z}/{x}/{y}.png";
-  
-  // Layer cadastre avec parcelles
+  // Layer cadastre Swisstopo avec parcelles (meilleur layer pour le cadastre)
   const cadastreUrl = "https://wmts.geo.admin.ch/1.0.0/ch.kantone.cadastralwebmap-farbe/default/current/3857/{z}/{x}/{y}.png";
 
   return (
@@ -118,27 +114,19 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
       {/* Carte cadastrale */}
       <div className="relative rounded-lg overflow-hidden border h-[250px]">
         <MapContainer
+          key={mapKey}
           center={center}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
           attributionControl={false}
-          ref={mapRef}
         >
-          <ZoomController zoom={zoom} />
-          <CenterController center={center} />
+          <MapUpdater center={center} zoom={zoom} />
           
-          {/* Layer de base Swisstopo */}
-          <TileLayer
-            url={swisstopoUrl}
-            maxZoom={20}
-          />
-          
-          {/* Layer cadastre par-dessus */}
+          {/* Layer cadastre Swisstopo */}
           <TileLayer
             url={cadastreUrl}
             maxZoom={20}
-            opacity={0.8}
           />
           
           <Marker 
@@ -148,7 +136,7 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
         </MapContainer>
         
         {/* Attribution Swisstopo */}
-        <div className="absolute bottom-1 right-1 bg-white/80 px-1 py-0.5 rounded text-[10px] text-gray-600">
+        <div className="absolute bottom-1 right-1 bg-white/80 px-1 py-0.5 rounded text-[10px] text-gray-600 z-[1000]">
           © Swisstopo
         </div>
       </div>
