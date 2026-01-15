@@ -57,9 +57,18 @@ export function useEstimationLock(
  * Labels français pour les statuts
  */
 function getStatutLabel(statut: EstimationStatus): string {
-  const labels: Record<EstimationStatus, string> = {
+  // Import from STATUS_CONFIG for consistency
+  const labels: Partial<Record<EstimationStatus, string>> = {
     'brouillon': 'Brouillon',
     'en_cours': 'En cours',
+    'a_presenter': 'À présenter',
+    'presentee': 'Présentée',
+    'reflexion': 'En réflexion',
+    'negociation': 'En négociation',
+    'accord_oral': 'Accord oral',
+    'en_signature': 'En signature',
+    'mandat_signe': 'Mandat signé',
+    'perdu': 'Perdu',
     'termine': 'Terminé',
     'archive': 'Archivé',
     'vendu': 'Vendu'

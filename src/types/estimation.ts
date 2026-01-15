@@ -3,11 +3,219 @@
 // ============================================
 
 // Enums
-export type EstimationStatus = 'brouillon' | 'en_cours' | 'termine' | 'archive' | 'vendu';
+export type EstimationStatus = 
+  | 'brouillon'           // Draft en cours de saisie
+  | 'en_cours'            // En cours de finalisation
+  | 'a_presenter'         // Prête à présenter
+  | 'presentee'           // Présentée au client
+  | 'reflexion'           // Client réfléchit
+  | 'negociation'         // Négociation prix/conditions
+  | 'accord_oral'         // Accord de principe
+  | 'en_signature'        // Documents en cours de signature
+  | 'mandat_signe'        // Mandat signé, devient actif
+  | 'perdu'               // Opportunité perdue
+  | 'termine'             // Legacy - mapped to presentee
+  | 'archive'             // Archivé
+  | 'vendu';              // Legacy - mapped to mandat_signe
+
 export type TypeBien = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial';
 export type TypeMiseEnVente = 'offmarket' | 'comingsoon' | 'public';
 export type NiveauContrainte = 'faible' | 'moyenne' | 'forte' | 'critique';
 export type NiveauCoordination = 'legere' | 'active' | 'achat_souhaite' | 'achat_envisageable' | 'vente_seule';
+
+// ============================================
+// Status Configuration
+// ============================================
+
+export interface StatusConfig {
+  label: string;
+  shortLabel: string;
+  color: string;       // Tailwind color class
+  bgColor: string;     // Background color class
+  icon: string;        // Lucide icon name
+  order: number;       // Pipeline order
+  isActive: boolean;   // Show in pipeline
+  category: 'draft' | 'active' | 'won' | 'lost';
+}
+
+export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
+  brouillon: {
+    label: 'Brouillon',
+    shortLabel: 'Brouillon',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100',
+    icon: 'FileEdit',
+    order: 0,
+    isActive: false,
+    category: 'draft'
+  },
+  en_cours: {
+    label: 'En cours',
+    shortLabel: 'En cours',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    icon: 'Loader',
+    order: 1,
+    isActive: true,
+    category: 'draft'
+  },
+  a_presenter: {
+    label: 'À présenter',
+    shortLabel: 'À présenter',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-100',
+    icon: 'Send',
+    order: 2,
+    isActive: true,
+    category: 'active'
+  },
+  presentee: {
+    label: 'Présentée',
+    shortLabel: 'Présentée',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+    icon: 'Eye',
+    order: 3,
+    isActive: true,
+    category: 'active'
+  },
+  reflexion: {
+    label: 'En réflexion',
+    shortLabel: 'Réflexion',
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-100',
+    icon: 'Clock',
+    order: 4,
+    isActive: true,
+    category: 'active'
+  },
+  negociation: {
+    label: 'En négociation',
+    shortLabel: 'Négo',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+    icon: 'MessageSquare',
+    order: 5,
+    isActive: true,
+    category: 'active'
+  },
+  accord_oral: {
+    label: 'Accord oral',
+    shortLabel: 'Accord',
+    color: 'text-lime-600',
+    bgColor: 'bg-lime-100',
+    icon: 'ThumbsUp',
+    order: 6,
+    isActive: true,
+    category: 'active'
+  },
+  en_signature: {
+    label: 'En signature',
+    shortLabel: 'Signature',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-100',
+    icon: 'PenTool',
+    order: 7,
+    isActive: true,
+    category: 'active'
+  },
+  mandat_signe: {
+    label: 'Mandat signé',
+    shortLabel: 'Signé ✓',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    icon: 'CheckCircle',
+    order: 8,
+    isActive: true,
+    category: 'won'
+  },
+  perdu: {
+    label: 'Perdu',
+    shortLabel: 'Perdu',
+    color: 'text-red-600',
+    bgColor: 'bg-red-100',
+    icon: 'XCircle',
+    order: 9,
+    isActive: true,
+    category: 'lost'
+  },
+  termine: {
+    label: 'Terminé (legacy)',
+    shortLabel: 'Terminé',
+    color: 'text-gray-500',
+    bgColor: 'bg-gray-100',
+    icon: 'Check',
+    order: 10,
+    isActive: false,
+    category: 'won'
+  },
+  archive: {
+    label: 'Archivé',
+    shortLabel: 'Archivé',
+    color: 'text-slate-500',
+    bgColor: 'bg-slate-100',
+    icon: 'Archive',
+    order: 11,
+    isActive: false,
+    category: 'lost'
+  },
+  vendu: {
+    label: 'Vendu (legacy)',
+    shortLabel: 'Vendu',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    icon: 'Trophy',
+    order: 12,
+    isActive: false,
+    category: 'won'
+  }
+};
+
+export interface StatusTransition {
+  from: EstimationStatus;
+  to: EstimationStatus[];
+  requiresComment?: boolean;
+}
+
+export const STATUS_TRANSITIONS: StatusTransition[] = [
+  { from: 'brouillon', to: ['en_cours', 'archive'] },
+  { from: 'en_cours', to: ['a_presenter', 'brouillon', 'archive'] },
+  { from: 'a_presenter', to: ['presentee', 'en_cours', 'archive'] },
+  { from: 'presentee', to: ['reflexion', 'negociation', 'accord_oral', 'perdu'] },
+  { from: 'reflexion', to: ['negociation', 'accord_oral', 'perdu', 'presentee'] },
+  { from: 'negociation', to: ['accord_oral', 'reflexion', 'perdu'], requiresComment: true },
+  { from: 'accord_oral', to: ['en_signature', 'negociation', 'perdu'] },
+  { from: 'en_signature', to: ['mandat_signe', 'negociation', 'perdu'] },
+  { from: 'mandat_signe', to: ['archive'] },
+  { from: 'perdu', to: ['archive', 'reflexion'], requiresComment: true },
+  { from: 'termine', to: ['presentee', 'archive'] },
+  { from: 'archive', to: [] },
+  { from: 'vendu', to: ['mandat_signe', 'archive'] }
+];
+
+// Helper pour obtenir les transitions autorisées
+export function getAllowedTransitions(currentStatus: EstimationStatus): EstimationStatus[] {
+  const transition = STATUS_TRANSITIONS.find(t => t.from === currentStatus);
+  return transition?.to || [];
+}
+
+// Helper pour vérifier si un commentaire est requis
+export function isCommentRequired(from: EstimationStatus, to: EstimationStatus): boolean {
+  const transition = STATUS_TRANSITIONS.find(t => t.from === from);
+  return transition?.requiresComment === true && (to === 'perdu' || from === 'perdu');
+}
+
+// Historique des statuts
+export interface StatusHistoryEntry {
+  id: string;
+  status: EstimationStatus;
+  previousStatus?: EstimationStatus;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  comment?: string;
+  durationInPreviousStatus?: number; // En jours
+}
 
 // ============================================
 // Courtiers GARY
