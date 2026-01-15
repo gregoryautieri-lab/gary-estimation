@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Wifi, WifiOff, Cloud, CloudOff, RefreshCw, AlertCircle, Check, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Wifi, WifiOff, Cloud, RefreshCw, AlertCircle, Check, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useOfflineSync, SyncStatus } from '@/hooks/useOfflineSync';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 

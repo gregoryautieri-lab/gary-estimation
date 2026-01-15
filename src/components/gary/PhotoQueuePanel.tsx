@@ -1,4 +1,4 @@
-import { AlertTriangle, Image, Loader2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Image, Loader2, XCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -34,7 +34,7 @@ export function PhotoQueuePanel({
   isOnline,
   isSlowConnection,
   onRetry,
-  onRemove,
+  onRemove: _onRemove, // Réservé pour utilisation future
   className
 }: PhotoQueuePanelProps) {
   const pendingItems = queue.filter(q => q.status !== 'done');
