@@ -697,35 +697,146 @@ export const getActionsPhase0 = (isMaison: boolean, hasLuxe: boolean): ActionPha
 // Génération du Pitch Complet (Logique GARY)
 // ============================================
 
+// Table de reformulation intelligente des points faibles
+const REFORMULATIONS_POINTS_FAIBLES: Record<string, string> = {
+  // Travaux / Rénovation
+  "travaux": "le potentiel de personnalisation est un atout pour les acheteurs qui souhaitent créer leur propre espace",
+  "rénover": "le potentiel de personnalisation est un atout pour les acheteurs qui souhaitent créer leur propre espace",
+  "vétuste": "le potentiel de personnalisation est un atout pour les acheteurs qui souhaitent créer leur propre espace",
+  "ancien": "le charme de l'ancien se marie parfaitement avec un projet de rénovation personnalisée",
+  
+  // Vue / Vis-à-vis
+  "vis-à-vis": "nous mettrons en valeur les autres orientations et l'intimité du logement",
+  "vue": "nous mettrons en valeur l'environnement immédiat et le potentiel d'aménagement",
+  "sans vue": "nous valoriserons le calme et l'intimité qu'offre cette configuration",
+  
+  // Charges
+  "charges": "les charges reflètent des prestations de qualité et un entretien régulier de l'immeuble",
+  "ppf": "le fonds de rénovation bien géré témoigne d'une copropriété sérieuse",
+  
+  // Bruit / Nuisances
+  "bruit": "nous ciblerons les profils adaptés au dynamisme du quartier",
+  "nuisance": "nous ciblerons les profils adaptés au dynamisme du quartier",
+  "sonore": "nous ciblerons les profils adaptés au dynamisme du quartier",
+  "train": "la proximité des transports est un atout pour de nombreux acheteurs actifs",
+  "route": "l'accessibilité en voiture est un vrai plus pour les familles motorisées",
+  
+  // Parking
+  "parking": "nous mettrons en avant les transports à proximité et les solutions de stationnement alternatives",
+  "place": "nous mettrons en avant les transports à proximité et les possibilités de location de places",
+  "garage": "nous mettrons en avant les solutions de stationnement à proximité",
+  
+  // Ascenseur
+  "ascenseur": "l'absence d'ascenseur attire les acheteurs sportifs et réduit les charges",
+  
+  // Luminosité
+  "sombre": "nous optimiserons la mise en valeur photographique et proposerons des solutions de home staging",
+  "luminosité": "nous optimiserons la mise en valeur photographique avec un éclairage professionnel",
+  "orienté nord": "la fraîcheur en été est un avantage apprécié des acquéreurs sensibles à la chaleur",
+  
+  // Cuisine / SDB
+  "cuisine": "le potentiel de rénovation permet aux acheteurs de personnaliser selon leurs goûts",
+  "sdb": "le potentiel de rénovation permet aux acheteurs de personnaliser selon leurs goûts",
+  "salle de bain": "le potentiel de rénovation permet aux acheteurs de créer leur espace bien-être",
+  
+  // Autres
+  "petit": "la surface optimisée permet des charges réduites et un entretien facilité",
+  "étroit": "nous mettrons en valeur l'optimisation de l'espace",
+  "rez-de-chaussée": "l'accès de plain-pied est un atout pour les familles et personnes à mobilité réduite",
+  "sous-sol": "cet espace complémentaire offre de nombreuses possibilités d'aménagement"
+};
+
 const reformulerPointFaible = (point: string): string => {
   const lower = point.toLowerCase();
   
-  if (lower.includes("travaux") || lower.includes("rénover") || lower.includes("vétuste")) {
-    return "le potentiel de personnalisation est un atout pour les acheteurs qui souhaitent créer leur propre espace";
-  }
-  if (lower.includes("vis-à-vis") || lower.includes("vue")) {
-    return "nous mettrons en valeur les autres orientations et l'intimité du logement";
-  }
-  if (lower.includes("charges") || lower.includes("ppf")) {
-    return "les charges reflètent des prestations de qualité et un entretien régulier de l'immeuble";
-  }
-  if (lower.includes("bruit") || lower.includes("nuisance") || lower.includes("sonore")) {
-    return "nous ciblerons les profils adaptés au dynamisme du quartier";
-  }
-  if (lower.includes("parking") || lower.includes("place")) {
-    return "nous mettrons en avant les transports à proximité et les solutions de stationnement alternatives";
-  }
-  if (lower.includes("ascenseur")) {
-    return "l'absence d'ascenseur attire les acheteurs sportifs et réduit les charges";
-  }
-  if (lower.includes("sombre") || lower.includes("luminosité")) {
-    return "nous optimiserons la mise en valeur photographique et proposerons des solutions de home staging";
-  }
-  if (lower.includes("cuisine") || lower.includes("sdb") || lower.includes("salle de bain")) {
-    return "le potentiel de rénovation permet aux acheteurs de personnaliser selon leurs goûts";
+  // Chercher une correspondance dans la table
+  for (const [key, value] of Object.entries(REFORMULATIONS_POINTS_FAIBLES)) {
+    if (lower.includes(key)) {
+      return value;
+    }
   }
   
   return "nous saurons le présenter avec transparence tout en mettant l'accent sur les atouts du bien";
+};
+
+// ============================================
+// FORMULATIONS PROTECTRICES (effet visible / cause invisible)
+// JAMAIS exposer les contraintes d'achat au vendeur
+// ============================================
+
+interface FormulationProtectrice {
+  phraseTimeline: string;    // Pour parler de la stratégie temporelle
+  phraseCoordination: string; // Pour parler de la coordination sans exposer
+  phraseUrgence: string;      // Si urgence sans mentionner l'achat
+}
+
+const getFormulationsProtectrices = (niveauContrainte: number): FormulationProtectrice => {
+  switch (niveauContrainte) {
+    case 5: // Acte programmé - CRITIQUE
+      return {
+        phraseTimeline: "Notre stratégie intègre votre calendrier personnel avec une timeline optimisée.",
+        phraseCoordination: "Nous synchronisons parfaitement les deux volets de votre projet immobilier.",
+        phraseUrgence: "Nous avons une fenêtre d'action claire qui nous permet de concentrer nos efforts."
+      };
+    case 4: // Compromis signé - FORTE
+      return {
+        phraseTimeline: "Votre planning nous guide pour calibrer précisément notre approche.",
+        phraseCoordination: "La coordination de vos projets est notre priorité absolue.",
+        phraseUrgence: "Nous adaptons le rythme à vos contraintes de calendrier."
+      };
+    case 3: // Offre déposée - ÉLEVÉE
+      return {
+        phraseTimeline: "Nous restons agiles pour nous adapter à l'évolution de votre situation.",
+        phraseCoordination: "Notre flexibilité nous permet d'accélérer si votre situation l'exige.",
+        phraseUrgence: "Nous sommes prêts à intensifier les actions si nécessaire."
+      };
+    case 2: // Bien identifié - MOYENNE
+      return {
+        phraseTimeline: "Notre approche s'adapte naturellement à l'évolution de vos projets.",
+        phraseCoordination: "Nous surveillons les opportunités pour vous faire gagner du temps.",
+        phraseUrgence: ""
+      };
+    case 1: // Recherche - FAIBLE
+      return {
+        phraseTimeline: "Nous avons le temps de bien faire les choses ensemble.",
+        phraseCoordination: "Si vous le souhaitez, nous pouvons également vous accompagner dans vos recherches.",
+        phraseUrgence: ""
+      };
+    default: // Aucune contrainte
+      return {
+        phraseTimeline: "Nous avons tout le temps nécessaire pour optimiser cette vente.",
+        phraseCoordination: "",
+        phraseUrgence: ""
+      };
+  }
+};
+
+// ============================================
+// Vocabulaire Ultra-Luxe (>5M CHF)
+// ============================================
+
+const transformerVocabulaireLuxe = (texte: string, isLuxe: boolean): string => {
+  if (!isLuxe) return texte;
+  
+  const replacements: Record<string, string> = {
+    'appartement': 'propriété',
+    'maison': 'propriété d\'exception',
+    'bien': 'propriété',
+    'salon': 'réception',
+    'chambre': 'suite',
+    'salle de bain': 'salle d\'eau',
+    'cuisine': 'espace culinaire',
+    'équipements': 'prestations',
+    'finitions': 'finitions haut de gamme',
+    'rénové': 'entièrement rénové avec des matériaux nobles',
+    'neuf': 'neuf avec des prestations premium'
+  };
+  
+  let result = texte;
+  for (const [from, to] of Object.entries(replacements)) {
+    result = result.replace(new RegExp(from, 'gi'), to);
+  }
+  return result;
 };
 
 export const generatePitch = (
@@ -734,20 +845,25 @@ export const generatePitch = (
   analyseTerrain: AnalyseTerrain | null,
   preEstimation: PreEstimation | null,
   dateDebutFormate: string,
-  phases: PhaseInfo[]
+  phases: PhaseInfo[],
+  luxMode?: { isLux: boolean; score: number }
 ): PitchGenere => {
   const vendeurNom = identification?.vendeur?.nom || "Madame, Monsieur";
   const vendeurPrenom = vendeurNom.split(' ')[0] || vendeurNom;
   const motifVente = identification?.contexte?.motifVente;
   const priorite = identification?.contexte?.prioriteVendeur;
   const horizon = identification?.contexte?.horizon;
-  const typeBien = caracteristiques?.typeBien === 'appartement' ? "appartement" : "maison";
+  const isLuxe = luxMode?.isLux || false;
+  const typeBienBase = caracteristiques?.typeBien === 'appartement' ? "appartement" : "maison";
+  const typeBien = isLuxe ? (typeBienBase === 'appartement' ? 'propriété' : 'propriété d\'exception') : typeBienBase;
   const pointsForts = analyseTerrain?.pointsForts || [];
   const pointsFaibles = analyseTerrain?.pointsFaibles || [];
   const prixEntre = preEstimation?.prixEntre || '';
   const prixEt = preEstimation?.prixEt || '';
   const projetPostVente = identification?.projetPostVente;
   const capitalVis = getCapitalVisibilite(identification);
+  const niveauContrainte = getNiveauContrainte(projetPostVente || null);
+  const formulations = getFormulationsProtectrices(niveauContrainte);
   
   // 1. ACCROCHE PERSONNALISÉE SELON MOTIF
   let intro = "";
@@ -761,7 +877,7 @@ export const generatePitch = (
       break;
     case 'mutation':
     case 'demenagement':
-      intro = `${vendeurPrenom}, votre nouveau projet de vie mérite une vente bien orchestrée. Je m'engage à coordonner le timing pour que tout s'enchaîne naturellement avec votre déménagement.`;
+      intro = `${vendeurPrenom}, votre nouveau projet de vie mérite une vente bien orchestrée. Je m'engage à coordonner le timing pour que tout s'enchaîne naturellement.`;
       break;
     case 'retraite':
       intro = `${vendeurPrenom}, ce nouveau chapitre de votre vie mérite toute notre attention. Nous allons prendre le temps de bien faire les choses ensemble.`;
@@ -770,19 +886,29 @@ export const generatePitch = (
       intro = `${vendeurPrenom}, en tant qu'investisseur, vous savez que le timing et le prix sont cruciaux. Notre approche data-driven va vous permettre d'optimiser cette transaction.`;
       break;
     case 'agrandissement':
-      intro = `${vendeurPrenom}, votre famille s'agrandit et c'est une belle nouvelle. Nous allons organiser la vente pour qu'elle finance sereinement votre nouveau projet.`;
+      intro = `${vendeurPrenom}, votre famille s'agrandit et c'est une belle nouvelle. Nous allons organiser la vente pour qu'elle accompagne sereinement votre projet.`;
+      break;
+    case 'reduction':
+      intro = `${vendeurPrenom}, vous souhaitez un espace plus adapté à vos besoins actuels. C'est une décision sage que nous allons concrétiser ensemble.`;
+      break;
+    case 'financier':
+      intro = `${vendeurPrenom}, je comprends l'importance de cette vente. Mon objectif est de vous obtenir le meilleur résultat dans les délais souhaités.`;
+      break;
+    case 'travail':
+      intro = `${vendeurPrenom}, un changement professionnel ouvre de nouvelles perspectives. Nous allons synchroniser cette vente avec votre évolution.`;
       break;
     default:
       intro = `${vendeurPrenom}, merci pour votre confiance. Je suis ravi de vous accompagner dans ce projet et de mettre mon expertise à votre service.`;
   }
   
-  // 2. DESCRIPTION DU BIEN AVEC POINTS FORTS
+  // 2. DESCRIPTION DU BIEN AVEC POINTS FORTS (TOP 3)
   let descriptionBien = `Votre ${typeBien} présente de réels atouts.`;
   if (pointsForts.length >= 3) {
     descriptionBien = `Votre ${typeBien} présente de réels atouts : ${pointsForts.slice(0, 3).join(', ')}.`;
   } else if (pointsForts.length > 0) {
     descriptionBien = `Votre ${typeBien} présente de réels atouts : ${pointsForts.join(', ')}.`;
   }
+  descriptionBien = transformerVocabulaireLuxe(descriptionBien, isLuxe);
   
   // 3. POINTS D'ATTENTION (REFORMULATION INTELLIGENTE)
   let pointsAttention = "";
@@ -803,7 +929,7 @@ export const generatePitch = (
     recalibrage = `Le bien ayant été surexposé précédemment, nous prévoyons une pause de ${capitalVis.pauseRecalibrage} semaine(s) avant relancement. Cette période nous permet de repositionner l'offre et de recréer l'intérêt. Un ajustement de prix pourrait également être pertinent.`;
   }
   
-  // 5. STRATÉGIE SELON PRIORITÉ
+  // 5. STRATÉGIE SELON PRIORITÉ + FORMULATION PROTECTRICE
   let strategie = "";
   switch(priorite) {
     case 'prixMax':
@@ -816,6 +942,11 @@ export const generatePitch = (
       strategie = "Notre approche équilibrée vise le meilleur prix dans un délai raisonnable — c'est généralement ce qui convient le mieux.";
   }
   
+  // Ajouter la formulation protectrice si contrainte
+  if (niveauContrainte >= 2 && formulations.phraseTimeline) {
+    strategie += ` ${formulations.phraseTimeline}`;
+  }
+  
   // 6. TIMING
   let timing = "";
   if (dateDebutFormate && phases.length > 0) {
@@ -823,7 +954,7 @@ export const generatePitch = (
     const moisFin = dateFinEstimee ? format(dateFinEstimee, 'MMMM yyyy', { locale: fr }) : '';
     timing = `Nous pouvons démarrer la commercialisation dès le ${dateDebutFormate}.`;
     if (moisFin) {
-      timing += ` Avec notre méthodologie en 4 phases, nous visons une signature d'ici ${moisFin}.`;
+      timing += ` Avec notre méthodologie en ${phases.length} phases, nous visons une signature d'ici ${moisFin}.`;
     }
   }
   
@@ -840,49 +971,61 @@ export const generatePitch = (
     }
   }
   
-  // 7. PROJET POST-VENTE (CROSS-SELLING COORDINATION)
+  // 7. PROJET POST-VENTE (FORMULATION PROTECTRICE - JAMAIS exposer les contraintes)
   let projetPostVenteText = "";
   let crossSelling = "";
   
   if (projetPostVente?.nature === 'achat') {
-    const avancement = projetPostVente.avancement;
     const coordination = projetPostVente.niveauCoordination;
     
+    // Cross-selling discret
     if (coordination === 'achat_souhaite' || coordination === 'achat_envisageable') {
-      crossSelling = "Si vous le souhaitez, notre équipe peut également vous accompagner dans votre recherche de bien. Cela nous permet de coordonner parfaitement les deux opérations.";
+      crossSelling = "Notre équipe peut également vous accompagner dans vos recherches si vous le souhaitez. Cela nous permet de coordonner parfaitement les opérations.";
     }
     
-    switch(avancement) {
-      case 'bien_identifie':
-      case 'offre_deposee':
-        projetPostVenteText = "Vous avez un projet d'achat en parallèle — nous allons synchroniser les deux opérations pour éviter tout stress.";
-        break;
-      case 'compromis_signe':
-        projetPostVenteText = "Avec un compromis signé côté achat, nous avons une deadline claire. Je vais adapter notre stratégie pour sécuriser la vente dans les temps.";
-        break;
-      case 'acte_programme':
-        projetPostVenteText = "L'acte étant programmé, nous devons impérativement vendre avant cette date. Je mets tout en œuvre pour y parvenir.";
-        break;
+    // FORMULATIONS PROTECTRICES selon niveau (jamais mentionner explicitement l'achat/l'urgence)
+    if (niveauContrainte >= 4) {
+      // Contrainte FORTE/CRITIQUE - Formulation très neutre
+      projetPostVenteText = formulations.phraseCoordination;
+      if (projetPostVente.accepteDecalage === 'non' && formulations.phraseUrgence) {
+        projetPostVenteText += ` ${formulations.phraseUrgence}`;
+      }
+    } else if (niveauContrainte >= 2) {
+      // Contrainte MOYENNE/ÉLEVÉE
+      projetPostVenteText = "Nous coordonnons nos actions avec votre planning personnel pour un timing optimal.";
+    } else if (niveauContrainte === 1) {
+      // Recherche en cours - mention légère
+      projetPostVenteText = "Si un projet se concrétise de votre côté, nous nous adapterons naturellement.";
     }
-    
-    if (projetPostVente.accepteDecalage === 'non') {
-      projetPostVenteText += " Je note que vous ne souhaitez pas décaler le projet d'achat — nous en tenons compte.";
-    }
+    // Contrainte 0 = pas de mention du tout
   } else if (projetPostVente?.nature === 'location') {
     projetPostVenteText = "Pour votre projet de location après la vente, notre équipe peut vous accompagner dans la recherche si vous le souhaitez.";
-    crossSelling = "GARY Immobilier propose également un service de gestion locative si cela peut vous intéresser.";
+    crossSelling = "GARY Immobilier propose également un service de gestion locative.";
   }
   
   // 8. PRIX
   let prixInfo = "";
   if (prixEntre && prixEt) {
-    prixInfo = `Je vous propose une estimation entre CHF ${parseInt(prixEntre).toLocaleString('fr-CH')} et CHF ${parseInt(prixEt).toLocaleString('fr-CH')}.`;
+    const prixEntreFormate = parseInt(prixEntre).toLocaleString('fr-CH');
+    const prixEtFormate = parseInt(prixEt).toLocaleString('fr-CH');
+    if (isLuxe) {
+      prixInfo = `Au vu du standing de cette propriété, je vous propose une estimation entre CHF ${prixEntreFormate} et CHF ${prixEtFormate}.`;
+    } else {
+      prixInfo = `Je vous propose une estimation entre CHF ${prixEntreFormate} et CHF ${prixEtFormate}.`;
+    }
   }
   
   // 9. CLOSING
-  const closing = `Les prochaines étapes sont simples : je vous envoie le récapitulatif complet par email dans les 48h. Dès votre validation, nous lançons les premières actions — photos professionnelles et préparation de l'annonce.
+  let closing = "";
+  if (isLuxe) {
+    closing = `Les prochaines étapes sont les suivantes : je vous adresse le dossier complet sous 48h. Après votre validation, nous lançons la préparation premium — shooting photo par notre photographe spécialisé, vidéo narrative et supports de communication sur-mesure.
+
+Avez-vous des questions ?`;
+  } else {
+    closing = `Les prochaines étapes sont simples : je vous envoie le récapitulatif complet par email dans les 48h. Dès votre validation, nous lançons les premières actions — photos professionnelles et préparation de l'annonce.
 
 Y a-t-il des questions que vous aimeriez me poser ?`;
+  }
   
   // ASSEMBLAGE FINAL
   const sections = [intro];
@@ -1007,9 +1150,14 @@ export const useStrategieLogic = (
     return '';
   }, [phases]);
   
+  // Calcul du mode luxe
+  const totalVenale = preEstimation?.prixEntre ? parseInt(preEstimation.prixEntre) : 0;
+  const isLuxeMode = totalVenale > 5000000;
+  const luxMode = { isLux: isLuxeMode, score: isLuxeMode ? 50 : 0 };
+  
   const pitch = useMemo(() => 
-    generatePitch(identification, caracteristiques, analyseTerrain, preEstimation, dateDebutFormate, phases),
-    [identification, caracteristiques, analyseTerrain, preEstimation, dateDebutFormate, phases]
+    generatePitch(identification, caracteristiques, analyseTerrain, preEstimation, dateDebutFormate, phases, luxMode),
+    [identification, caracteristiques, analyseTerrain, preEstimation, dateDebutFormate, phases, luxMode]
   );
   
   return {

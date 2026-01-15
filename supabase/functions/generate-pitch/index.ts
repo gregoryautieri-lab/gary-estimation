@@ -28,8 +28,10 @@ interface PitchRequest {
     niveauCoordination?: string;
     accepteDecalage?: string;
   };
+  niveauContrainte?: number; // 0-5
   dateDebutFormate: string;
   typeMiseEnVente: string;
+  isLuxe?: boolean; // Mode ultra-luxe (>5M CHF)
   // Fallback pitch (rule-based) en cas d'erreur IA
   fallbackPitch?: string;
 }
@@ -45,14 +47,27 @@ Tu dois générer un pitch de closing personnalisé pour un rendez-vous d'estima
 
 Le pitch doit couvrir:
 1. Une accroche personnalisée selon le motif de vente (succession = empathie, divorce = discrétion, mutation = coordination, etc.)
-2. Valorisation du bien avec les points forts mentionnés
-3. Reformulation positive des points faibles (transformer en opportunités)
-4. Si capital-visibilité entamé/faible: expliquer la stratégie de recalibrage
+2. Valorisation du bien avec les points forts mentionnés (TOP 3)
+3. Reformulation POSITIVE des points faibles (transformer en opportunités, ex: "travaux" → "potentiel de personnalisation")
+4. Si capital-visibilité entamé/faible: expliquer la stratégie de recalibrage (sans jargon)
 5. La stratégie selon la priorité du vendeur (prix max vs rapidité)
 6. Le timing de mise en marché
-7. Si projet post-vente (achat en parallèle): proposition de coordination
-8. L'estimation de prix
-9. Les prochaines étapes et call-to-action
+7. L'estimation de prix
+8. Les prochaines étapes et call-to-action
+
+RÈGLE CRITIQUE - "EFFET VISIBLE / CAUSE INVISIBLE":
+Si un projet post-vente (achat) est en cours avec un niveau de contrainte élevé (3+):
+- JAMAIS mentionner explicitement "votre projet d'achat" ou "la pression côté achat"
+- Utiliser des formulations PROTECTRICES et NEUTRES comme:
+  - "Notre stratégie intègre votre calendrier personnel"
+  - "Nous coordonnons nos actions avec votre planning"
+  - "Notre flexibilité nous permet de nous adapter à votre situation"
+- Le vendeur ne doit JAMAIS percevoir qu'on adapte la stratégie pour SON projet d'achat
+
+MODE ULTRA-LUXE (si isLuxe = true):
+- Utiliser un vocabulaire premium: "propriété" au lieu de "bien", "suite" au lieu de "chambre"
+- Ton plus raffiné et exclusif
+- Insister sur les prestations haut de gamme
 
 IMPORTANT: Ne jamais mentionner les termes techniques comme "capital-visibilité" au client. Reformule de manière naturelle.`;
 
