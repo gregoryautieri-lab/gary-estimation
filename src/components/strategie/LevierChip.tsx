@@ -30,15 +30,14 @@ export function LevierChip({ label, icon, selected, onToggle }: LevierChipProps)
   );
 }
 
-// Leviers prédéfinis
+// Leviers prédéfinis - NETTOYÉS des doublons Phase 0
+// (Photos, plans, 360, vidéo, drone, home staging sont déjà dans Phase 0)
 export const LEVIERS_MARKETING = [
-  { id: 'home_staging', label: 'Home staging virtuel', icon: '🏠' },
-  { id: 'photos_pro', label: 'Photos professionnelles', icon: '📸' },
-  { id: 'drone', label: 'Drone / Vue aérienne', icon: '🚁' },
-  { id: 'visite_360', label: 'Visite virtuelle 360°', icon: '🔄' },
-  { id: 'video', label: 'Vidéo immersive', icon: '🎬' },
-  { id: 'plans', label: 'Plans 2D/3D', icon: '📐' },
-  { id: 'brochure', label: 'Brochure luxe', icon: '📖' },
-  { id: 'mailing', label: 'Mailing ciblé', icon: '✉️' },
-  { id: 'panneau', label: 'Panneau discret', icon: '🪧' }
+  { id: 'brochure', label: 'Brochure luxe imprimée', icon: '📖' },
+  { id: 'mailing', label: 'Mailing ciblé acquéreurs', icon: '✉️' },
+  { id: 'panneau', label: 'Panneau discret', icon: '🪧' },
+  { id: 'social_ads', label: 'Publicité réseaux sociaux', icon: '📱' },
+  { id: 'open_house', label: 'Open House', icon: '🏡' },
+  { id: 'presse', label: 'Annonce presse locale', icon: '📰' },
+  { id: 'vitrine', label: 'Vitrine agence premium', icon: '🏪' }
 ];
