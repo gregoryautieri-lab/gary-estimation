@@ -15,7 +15,7 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useCadastreLookup } from '@/hooks/useCadastreLookup';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronDown, Home, Building2, Key, MapPin, Loader2, RefreshCw, Ruler } from 'lucide-react';
+import { ChevronRight, ChevronDown, Home, Building2, Key, MapPin, Loader2, RefreshCw, Ruler, RotateCcw } from 'lucide-react';
 import { 
   PictoChipsGrid, 
   RENOVATION_OPTIONS, 
@@ -567,28 +567,45 @@ export default function Module2Caracteristiques() {
                         </div>
 
                         {(() => {
-                          const maxSousSol = Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0));
+                          const autoSousSol = Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0));
+                          const currentValue = carac.surfaceSousSol || autoSousSol.toString();
+                          const isAutoValue = !carac.surfaceSousSol || carac.surfaceSousSol === autoSousSol.toString();
+                          
                           return (
                             <FormRow 
                               label="Surface sous-sol (m²)" 
                               optional 
-                              helper={`Max: ${maxSousSol} m²`}
+                              helper={isAutoValue ? "Valeur auto" : `Auto: ${autoSousSol} m²`}
                             >
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                max={maxSousSol}
-                                value={carac.surfaceSousSol || ''}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (val <= maxSousSol) {
-                                    updateField('surfaceSousSol', e.target.value);
-                                  } else {
-                                    updateField('surfaceSousSol', maxSousSol.toString());
-                                  }
-                                }}
-                                placeholder={maxSousSol.toString()}
-                              />
+                              <div className="flex gap-2">
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  max={autoSousSol}
+                                  value={currentValue}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (val <= autoSousSol) {
+                                      updateField('surfaceSousSol', e.target.value);
+                                    } else {
+                                      updateField('surfaceSousSol', autoSousSol.toString());
+                                    }
+                                  }}
+                                  className={isAutoValue ? "bg-muted/50" : ""}
+                                />
+                                {!isAutoValue && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() => updateField('surfaceSousSol', '')}
+                                    title="Réinitialiser à la valeur auto"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </FormRow>
                           );
                         })()}
