@@ -110,7 +110,8 @@ export function useEstimationCalcul(
     const isMaison = carac.typeBien === 'maison';
     
     // ============================================
-    // APPARTEMENT - Surface pondérée
+    // APPARTEMENT - Surface pondérée GARY
+    // Coefficients : Habitable 100%, Balcon 50%, Terrasse 30%, Jardin 20%
     // ============================================
     const surfacePPE = parseNum(carac.surfacePPE);
     const surfaceNonHab = parseNum(carac.surfaceNonHabitable);
@@ -118,10 +119,10 @@ export function useEstimationCalcul(
     const surfaceTerrasse = parseNum(carac.surfaceTerrasse);
     const surfaceJardin = parseNum(carac.surfaceJardin);
     
-    // Surface habitable = PPE - non habitable
+    // Surface habitable = PPE - non habitable (caves, etc.)
     const surfaceHabitable = surfacePPE - surfaceNonHab;
     
-    // Surface pondérée (balcon 50%, terrasse 30%, jardin 20%)
+    // Surface pondérée GARY (balcon 50%, terrasse 30%, jardin 20%)
     const surfacePonderee = surfaceHabitable + 
       (surfaceBalcon * 0.5) + 
       (surfaceTerrasse * 0.3) + 

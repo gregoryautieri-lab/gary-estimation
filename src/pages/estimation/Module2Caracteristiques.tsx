@@ -300,15 +300,16 @@ export default function Module2Caracteristiques() {
   const isAppartement = carac.typeBien === 'appartement';
   const isMaison = carac.typeBien === 'maison';
 
-  // Calcul surface pondérée totale (appartement)
+  // Calcul surface pondérée (DOIT correspondre à useEstimationCalcul.ts)
   const surfacePonderee = useMemo(() => {
     if (!isAppartement) return 0;
     const ppe = parseFloat(carac.surfacePPE) || 0;
-    const sousSol = (parseFloat(carac.surfaceNonHabitable) || 0) * 0.5; // pondéré 50%
-    const balcon = (parseFloat(carac.surfaceBalcon) || 0) * 0.5; // pondéré 50%
-    const terrasse = (parseFloat(carac.surfaceTerrasse) || 0) * 0.33; // pondéré 33%
-    const jardin = (parseFloat(carac.surfaceJardin) || 0) * 0.1; // pondéré 10%
-    return ppe + sousSol + balcon + terrasse + jardin;
+    const nonHab = parseFloat(carac.surfaceNonHabitable) || 0;
+    const surfaceHab = ppe - nonHab;  // Surface habitable
+    const balcon = (parseFloat(carac.surfaceBalcon) || 0) * 0.5;
+    const terrasse = (parseFloat(carac.surfaceTerrasse) || 0) * 0.3;
+    const jardin = (parseFloat(carac.surfaceJardin) || 0) * 0.2;
+    return surfaceHab + balcon + terrasse + jardin;
   }, [isAppartement, carac.surfacePPE, carac.surfaceNonHabitable, carac.surfaceBalcon, carac.surfaceTerrasse, carac.surfaceJardin]);
 
   // Toggle exposition
