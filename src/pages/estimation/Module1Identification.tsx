@@ -29,6 +29,7 @@ import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { LocationPreview } from '@/components/maps/LocationPreview';
 import { CadastreMap } from '@/components/maps/CadastreMap';
 import { ProximitesEditor } from '@/components/gary/ProximitesEditor';
+import { CriteresAchatEditor } from '@/components/gary/CriteresAchatEditor';
 import { toast } from 'sonner';
 
 // Options pour les selects
@@ -938,19 +939,24 @@ const Module1Identification = () => {
                     </Select>
                   </FormRow>
 
+                  {/* Champs legacy (deprecated mais gardés pour compatibilité) */}
                   <div className="grid grid-cols-2 gap-3">
                     <FormRow label="Budget projet suivant" optional>
                       <Input
-                        placeholder="CHF"
+                        placeholder="CHF (deprecated)"
                         value={identification.projetPostVente.budgetProjetSuivant || ''}
                         onChange={(e) => updateField('projetPostVente', 'budgetProjetSuivant', e.target.value)}
+                        className="opacity-50"
+                        disabled
                       />
                     </FormRow>
                     <FormRow label="Région recherchée" optional>
                       <Input
-                        placeholder="Ex: Rive droite"
+                        placeholder="(deprecated)"
                         value={identification.projetPostVente.regionRecherche || ''}
                         onChange={(e) => updateField('projetPostVente', 'regionRecherche', e.target.value)}
+                        className="opacity-50"
+                        disabled
                       />
                     </FormRow>
                   </div>
@@ -970,6 +976,16 @@ const Module1Identification = () => {
                       </SelectContent>
                     </Select>
                   </FormRow>
+                  
+                  {/* NOUVEAU : Critères d'achat structurés */}
+                  <div className="pt-4 border-t border-border">
+                    <CriteresAchatEditor
+                      value={identification.projetPostVente.criteresAchat}
+                      onChange={(criteresAchat) => {
+                        updateField('projetPostVente', 'criteresAchat', criteresAchat);
+                      }}
+                    />
+                  </div>
                 </>
               )}
 
