@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -21,13 +21,15 @@ import { Switch } from '@/components/ui/switch';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationLock } from '@/hooks/useEstimationLock';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { ChevronRight, Save, Loader2 } from 'lucide-react';
-import type { EstimationData, Identification, MapState } from '@/types/estimation';
+import { useCadastreLookup } from '@/hooks/useCadastreLookup';
+import { ChevronRight, Save, Loader2, MapPin } from 'lucide-react';
+import type { EstimationData, Identification, MapState, CadastreData } from '@/types/estimation';
 import { defaultIdentification, defaultEstimation } from '@/types/estimation';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { LocationPreview } from '@/components/maps/LocationPreview';
 import { CadastreMap } from '@/components/maps/CadastreMap';
 import { ProximitesEditor } from '@/components/gary/ProximitesEditor';
+import { toast } from 'sonner';
 
 // Options pour les selects
 const MOTIFS_VENTE = [
@@ -170,11 +172,15 @@ const Module1Identification = () => {
   const navigate = useNavigate();
   const { fetchEstimation, updateEstimation, duplicateEstimation, loading } = useEstimationPersistence();
   const { saveLocal } = useOfflineSync();
+  const { fetchCadastre, loading: cadastreLoading } = useCadastreLookup();
   
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [identification, setIdentification] = useState<Identification>(defaultIdentification);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  
+  // Ref pour éviter de déclencher le cadastre plusieurs fois
+  const cadastreFetchedRef = useRef<string | null>(null);
   
   // Verrouillage selon statut
   const { isLocked, lockMessage } = useEstimationLock(estimation?.statut);
@@ -223,6 +229,82 @@ const Module1Identification = () => {
       });
     }
   };
+
+  // ========================================
+  // CADASTRE AUTOMATIQUE (maisons uniquement)
+  // ========================================
+  const handleAutoCadastre = async (lat: number, lng: number, postalCode?: string) => {
+    if (!id) return;
+    
+    try {
+      const result = await fetchCadastre(lat, lng, postalCode);
+      
+      if (result && !result.error) {
+        // Stocker les données cadastre dans l'adresse
+        const cadastreData: CadastreData = {
+          numeroParcelle: result.numeroParcelle,
+          surfaceParcelle: result.surfaceParcelle,
+          zone: result.zone,
+          zoneDetail: result.zoneDetail,
+          commune: result.commune,
+          canton: result.canton,
+          source: result.source
+        };
+        
+        setIdentification(prev => ({
+          ...prev,
+          adresse: {
+            ...prev.adresse,
+            cadastreData
+          }
+        }));
+        
+        // Toast de succès avec infos
+        const infos: string[] = [];
+        if (result.numeroParcelle) infos.push(`N° ${result.numeroParcelle}`);
+        if (result.surfaceParcelle) infos.push(`${result.surfaceParcelle.toLocaleString('fr-CH')} m²`);
+        if (result.zone) infos.push(`Zone ${result.zone}`);
+        
+        if (infos.length > 0) {
+          toast.success(`Cadastre récupéré : ${infos.join(' • ')}`);
+        }
+      } else if (result?.error) {
+        // Toast info (pas erreur car normal hors GE)
+        toast.info(result.error);
+      }
+    } catch (error) {
+      console.error('Erreur cadastre auto:', error);
+      // Pas de toast d'erreur pour ne pas perturber
+    }
+  };
+
+  // Déclencher cadastre auto si maison + coordonnées
+  useEffect(() => {
+    const coords = identification.adresse.coordinates;
+    const typeBien = estimation?.caracteristiques?.typeBien;
+    const postalCode = identification.adresse.codePostal;
+    const alreadyHasCadastre = identification.adresse.cadastreData?.numeroParcelle;
+    
+    // Clé unique pour éviter de déclencher plusieurs fois pour les mêmes coords
+    const coordsKey = coords ? `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : null;
+    
+    if (
+      coords?.lat && 
+      coords?.lng && 
+      typeBien === 'maison' && 
+      !alreadyHasCadastre &&
+      coordsKey &&
+      cadastreFetchedRef.current !== coordsKey &&
+      !cadastreLoading
+    ) {
+      cadastreFetchedRef.current = coordsKey;
+      handleAutoCadastre(coords.lat, coords.lng, postalCode);
+    }
+  }, [
+    identification.adresse.coordinates,
+    estimation?.caracteristiques?.typeBien,
+    identification.adresse.cadastreData
+  ]);
 
   const updateField = <K extends keyof Identification>(
     section: K,
@@ -428,6 +510,28 @@ const Module1Identification = () => {
             <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
               <span className="text-green-600">✓</span>
               Coordonnées GPS : {identification.adresse.coordinates.lat.toFixed(5)}, {identification.adresse.coordinates.lng.toFixed(5)}
+            </div>
+          )}
+
+          {/* Indicateur chargement cadastre */}
+          {cadastreLoading && (
+            <div className="flex items-center gap-2 p-3 mt-2 bg-primary/5 rounded-lg border border-primary/20">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm text-primary">Récupération cadastre...</span>
+            </div>
+          )}
+
+          {/* Affichage données cadastre récupérées */}
+          {identification.adresse.cadastreData?.numeroParcelle && !cadastreLoading && (
+            <div className="flex items-center gap-2 p-3 mt-2 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+              <MapPin className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-green-700 dark:text-green-400">
+                Cadastre : N° {identification.adresse.cadastreData.numeroParcelle}
+                {identification.adresse.cadastreData.surfaceParcelle > 0 && 
+                  ` • ${identification.adresse.cadastreData.surfaceParcelle.toLocaleString('fr-CH')} m²`}
+                {identification.adresse.cadastreData.zone && 
+                  ` • Zone ${identification.adresse.cadastreData.zone}`}
+              </span>
             </div>
           )}
 
