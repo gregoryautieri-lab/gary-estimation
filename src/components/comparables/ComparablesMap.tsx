@@ -1,10 +1,9 @@
-import React, { useCallback, useRef, useMemo } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { useGoogleMapsKey } from "@/hooks/useGoogleMapsKey";
 import { Loader2, MapPin, CheckCircle2, Circle, Home } from "lucide-react";
 import { Comparable } from "@/types/estimation";
 import { formatPriceCHF } from "@/hooks/useEstimationCalcul";
-import { useState } from "react";
 
 interface ComparablesMapProps {
   bienPrincipal: {
@@ -95,78 +94,113 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
     return null;
   }, []);
 
-  // Initialiser le geocoder et géocoder les comparables
-  const onLoad = useCallback(async (map: google.maps.Map) => {
+  // Initialiser la carte
+  const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     geocoder.current = new google.maps.Geocoder();
-    
-    const newMarkers: MarkerData[] = [];
-    
-    // Ajouter le bien principal
-    if (bienPrincipal.coordinates) {
-      newMarkers.push({
-        id: 'principal',
-        type: 'principal',
-        position: bienPrincipal.coordinates,
-        adresse: bienPrincipal.adresse || 'Bien en estimation',
-        prix: bienPrincipal.prixEstime || 0,
+  }, []);
+
+  // Géocoder les comparables quand ils changent ou quand le geocoder est prêt
+  useEffect(() => {
+    const geocodeAllMarkers = async () => {
+      if (!geocoder.current) return;
+      
+      console.log("Geocoding comparables...", { 
+        vendus: comparablesVendus.length, 
+        enVente: comparablesEnVente.length,
+        principal: bienPrincipal.coordinates 
       });
-    }
-    
-    // Géocoder les comparables vendus
-    for (let i = 0; i < comparablesVendus.length; i++) {
-      const comp = comparablesVendus[i];
-      if (comp.adresse) {
-        const position = await geocodeAddress(comp.adresse);
-        if (position) {
-          const prix = parseFloat(comp.prix) || 0;
-          const surface = parseFloat(comp.surface) || 0;
-          newMarkers.push({
-            id: `vendu-${i}`,
-            type: 'vendu',
-            position,
-            adresse: comp.adresse,
-            prix,
-            surface: surface || undefined,
-            prixM2: surface > 0 ? Math.round(prix / surface) : undefined,
-            dateInfo: comp.dateVente,
-            commentaire: comp.commentaire,
-          });
+      
+      const newMarkers: MarkerData[] = [];
+      
+      // Ajouter le bien principal
+      if (bienPrincipal.coordinates) {
+        newMarkers.push({
+          id: 'principal',
+          type: 'principal',
+          position: bienPrincipal.coordinates,
+          adresse: bienPrincipal.adresse || 'Bien en estimation',
+          prix: bienPrincipal.prixEstime || 0,
+        });
+      }
+      
+      // Géocoder les comparables vendus
+      for (let i = 0; i < comparablesVendus.length; i++) {
+        const comp = comparablesVendus[i];
+        if (comp.adresse) {
+          console.log("Geocoding vendu:", comp.adresse);
+          const position = await geocodeAddress(comp.adresse);
+          console.log("Result:", position);
+          if (position) {
+            const prix = parseFloat(comp.prix) || 0;
+            const surface = parseFloat(comp.surface) || 0;
+            newMarkers.push({
+              id: `vendu-${i}`,
+              type: 'vendu',
+              position,
+              adresse: comp.adresse,
+              prix,
+              surface: surface || undefined,
+              prixM2: surface > 0 ? Math.round(prix / surface) : undefined,
+              dateInfo: comp.dateVente,
+              commentaire: comp.commentaire,
+            });
+          }
         }
       }
-    }
-    
-    // Géocoder les comparables en vente
-    for (let i = 0; i < comparablesEnVente.length; i++) {
-      const comp = comparablesEnVente[i];
-      if (comp.adresse) {
-        const position = await geocodeAddress(comp.adresse);
-        if (position) {
-          const prix = parseFloat(comp.prix) || 0;
-          const surface = parseFloat(comp.surface) || 0;
-          newMarkers.push({
-            id: `enVente-${i}`,
-            type: 'enVente',
-            position,
-            adresse: comp.adresse,
-            prix,
-            surface: surface || undefined,
-            prixM2: surface > 0 ? Math.round(prix / surface) : undefined,
-            dateInfo: comp.dureeEnVente,
-            commentaire: comp.commentaire,
-          });
+      
+      // Géocoder les comparables en vente
+      for (let i = 0; i < comparablesEnVente.length; i++) {
+        const comp = comparablesEnVente[i];
+        if (comp.adresse) {
+          console.log("Geocoding enVente:", comp.adresse);
+          const position = await geocodeAddress(comp.adresse);
+          console.log("Result:", position);
+          if (position) {
+            const prix = parseFloat(comp.prix) || 0;
+            const surface = parseFloat(comp.surface) || 0;
+            newMarkers.push({
+              id: `enVente-${i}`,
+              type: 'enVente',
+              position,
+              adresse: comp.adresse,
+              prix,
+              surface: surface || undefined,
+              prixM2: surface > 0 ? Math.round(prix / surface) : undefined,
+              dateInfo: comp.dureeEnVente,
+              commentaire: comp.commentaire,
+            });
+          }
         }
       }
-    }
+      
+      console.log("Total markers:", newMarkers.length);
+      setMarkers(newMarkers);
+      
+      // Ajuster les bounds pour voir tous les marqueurs
+      if (mapRef.current && newMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        newMarkers.forEach(m => bounds.extend(m.position));
+        if (newMarkers.length > 1) {
+          mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+        } else {
+          mapRef.current.setCenter(newMarkers[0].position);
+          mapRef.current.setZoom(15);
+        }
+      }
+    };
     
-    setMarkers(newMarkers);
+    // Attendre que le geocoder soit initialisé
+    const checkAndGeocode = () => {
+      if (geocoder.current) {
+        geocodeAllMarkers();
+      } else {
+        // Réessayer après un court délai si le geocoder n'est pas encore prêt
+        setTimeout(checkAndGeocode, 500);
+      }
+    };
     
-    // Ajuster les bounds pour voir tous les marqueurs
-    if (newMarkers.length > 1) {
-      const bounds = new google.maps.LatLngBounds();
-      newMarkers.forEach(m => bounds.extend(m.position));
-      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
-    }
+    checkAndGeocode();
   }, [bienPrincipal, comparablesVendus, comparablesEnVente, geocodeAddress]);
 
   const defaultCenter = bienPrincipal.coordinates || { lat: 46.2044, lng: 6.1432 };
