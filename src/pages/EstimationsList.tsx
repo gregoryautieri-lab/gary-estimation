@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import type { EstimationData } from '@/types/estimation';
 import { formatPriceCHF } from '@/hooks/useEstimationCalcul';
 import { toast } from 'sonner';
+import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
 
 // Types
 type SortField = 'date' | 'nom' | 'prix' | 'statut';
@@ -150,7 +151,14 @@ const EstimationCard = ({ estimation, onClick, onStatusChange, isUpdating }: Est
             )}
           </div>
         </div>
-        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+        <div className="flex items-center gap-2 shrink-0">
+          {estimation.statut === 'termine' && (
+            <div onClick={e => e.stopPropagation()}>
+              <ExportPDFButton estimation={estimation} />
+            </div>
+          )}
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </div>
       </div>
     </button>
   );
