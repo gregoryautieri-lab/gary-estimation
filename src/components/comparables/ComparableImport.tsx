@@ -8,7 +8,6 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogDescription,
-  DialogFooter 
 } from '@/components/ui/dialog';
 import { 
   Drawer,
@@ -16,7 +15,6 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerFooter,
 } from '@/components/ui/drawer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -25,18 +23,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Comparable, TypeBien } from '@/types/estimation';
 import { 
-  ClipboardPaste, 
+  Link2, 
   Building2, 
   Search, 
   Loader2, 
-  ExternalLink,
-  MapPin,
-  Home,
-  Banknote,
-  Ruler,
   Calendar,
   CheckCircle2,
-  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -46,18 +38,8 @@ interface ComparableImportProps {
   type: 'vendu' | 'enVente';
   onImport: (comparable: Comparable) => void;
   estimationId?: string;
-  currentZone?: string; // Code postal ou commune pour filtrer
-  currentType?: TypeBien; // Type de bien pour filtrer
-}
-
-interface ParsedAnnonce {
-  adresse: string;
-  prix: string;
-  surface: string;
-  nombrePieces: string;
-  typeBien: string;
-  source: string;
-  lien: string;
+  currentZone?: string;
+  currentType?: TypeBien;
 }
 
 interface GaryComparable {
@@ -77,18 +59,13 @@ export function ComparableImport({
   type, 
   onImport, 
   estimationId,
-  currentZone,
-  currentType 
 }: ComparableImportProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'url' | 'gary'>('url');
   
-  // État pour import URL
+  // État pour import URL simplifié
   const [url, setUrl] = useState('');
-  const [parsing, setParsing] = useState(false);
-  const [parsedData, setParsedData] = useState<ParsedAnnonce | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
   
   // État pour recherche GARY
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,54 +75,45 @@ export function ComparableImport({
   const [searching, setSearching] = useState(false);
   const [garyResults, setGaryResults] = useState<GaryComparable[]>([]);
 
-  const handleParseUrl = async () => {
+  // Détecter la source depuis l'URL
+  const getSourceFromUrl = (urlStr: string): string => {
+    if (urlStr.includes('immoscout24')) return 'ImmoScout';
+    if (urlStr.includes('homegate')) return 'Homegate';
+    if (urlStr.includes('immobilier.ch')) return 'Immobilier.ch';
+    if (urlStr.includes('acheter-louer')) return 'Acheter-Louer';
+    if (urlStr.includes('newhome')) return 'Newhome';
+    return 'Web';
+  };
+
+  const handleImportUrl = () => {
     if (!url.trim()) {
       toast.error('Veuillez coller une URL');
       return;
     }
 
-    setParsing(true);
-    setParseError(null);
-    setParsedData(null);
-
+    // Valider que c'est une URL
     try {
-      const { data, error } = await supabase.functions.invoke('parse-annonce', {
-        body: { url: url.trim() }
-      });
-
-      if (error) throw error;
-
-      if (data?.success && data.data) {
-        setParsedData(data.data);
-        toast.success('Annonce analysée avec succès');
-      } else {
-        setParseError(data?.error || 'Impossible de parser cette annonce');
-      }
-    } catch (err) {
-      console.error('Erreur parsing:', err);
-      setParseError('Erreur lors de l\'analyse de l\'annonce');
-    } finally {
-      setParsing(false);
+      new URL(url.trim());
+    } catch {
+      toast.error('URL invalide');
+      return;
     }
-  };
 
-  const handleImportParsed = () => {
-    if (!parsedData) return;
+    const source = getSourceFromUrl(url.trim());
 
     const comparable: Comparable = {
-      adresse: parsedData.adresse,
-      prix: parsedData.prix,
-      surface: parsedData.surface,
-      nombrePieces: parsedData.nombrePieces,
-      typeBien: parsedData.typeBien as TypeBien,
-      lien: parsedData.lien,
-      source: parsedData.source,
-      commentaire: `Importé depuis ${parsedData.source}`,
+      adresse: '',
+      prix: '',
+      surface: '',
+      nombrePieces: '',
+      lien: url.trim(),
+      source: source,
+      commentaire: `Importé depuis ${source}`,
       isGary: false,
     };
 
     onImport(comparable);
-    toast.success('Comparable importé');
+    toast.success(`Lien ${source} ajouté — complétez les informations`);
     handleClose();
   };
 
@@ -154,14 +122,12 @@ export function ComparableImport({
     setGaryResults([]);
 
     try {
-      // Recherche dans les mandats vendus GARY
       let query = supabase
         .from('estimations')
         .select('id, adresse, localite, code_postal, prix_final, caracteristiques, type_bien, updated_at, courtier_id')
         .eq('statut', 'mandat_signe')
         .not('prix_final', 'is', null);
 
-      // Filtres
       if (searchQuery) {
         query = query.or(`adresse.ilike.%${searchQuery}%,localite.ilike.%${searchQuery}%`);
       }
@@ -175,7 +141,6 @@ export function ComparableImport({
         query = query.lte('prix_final', parseInt(searchPriceMax));
       }
 
-      // Exclure l'estimation courante
       if (estimationId) {
         query = query.neq('id', estimationId);
       }
@@ -236,8 +201,6 @@ export function ComparableImport({
   const handleClose = () => {
     setOpen(false);
     setUrl('');
-    setParsedData(null);
-    setParseError(null);
     setSearchQuery('');
     setGaryResults([]);
   };
@@ -246,8 +209,8 @@ export function ComparableImport({
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'url' | 'gary')} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="url" className="flex items-center gap-2">
-          <ClipboardPaste className="h-4 w-4" />
-          Coller URL
+          <Link2 className="h-4 w-4" />
+          Coller lien
         </TabsTrigger>
         <TabsTrigger value="gary" className="flex items-center gap-2">
           <Building2 className="h-4 w-4" />
@@ -255,72 +218,29 @@ export function ComparableImport({
         </TabsTrigger>
       </TabsList>
 
-      {/* Import depuis URL */}
+      {/* Import depuis URL - SIMPLIFIÉ */}
       <TabsContent value="url" className="space-y-4 mt-4">
         <div className="space-y-2">
-          <Label>URL de l'annonce</Label>
-          <div className="flex gap-2">
-            <Input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.immoscout24.ch/..."
-              className="flex-1"
-            />
-            <Button onClick={handleParseUrl} disabled={parsing}>
-              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Analyser'}
-            </Button>
-          </div>
+          <Label>Lien de l'annonce</Label>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.immoscout24.ch/..."
+            className="w-full"
+          />
           <p className="text-xs text-muted-foreground">
-            Fonctionne avec ImmoScout24, Homegate, Acheter-Louer, Newhome...
+            Collez le lien pour le sauvegarder. Vous remplirez les détails manuellement.
           </p>
         </div>
 
-        {parseError && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <span className="text-sm text-destructive">{parseError}</span>
-          </div>
-        )}
+        <Button onClick={handleImportUrl} className="w-full" disabled={!url.trim()}>
+          <CheckCircle2 className="h-4 w-4 mr-2" />
+          Ajouter ce comparable
+        </Button>
 
-        {parsedData && (
-          <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Données extraites</span>
-              <Badge variant="outline">{parsedData.source}</Badge>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="truncate">{parsedData.adresse || 'Non trouvée'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-muted-foreground" />
-                <span>{parsedData.prix ? formatPriceCHF(parseInt(parsedData.prix)) : 'Non trouvé'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Ruler className="h-4 w-4 text-muted-foreground" />
-                <span>{parsedData.surface ? `${parsedData.surface} m²` : 'Non trouvée'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Home className="h-4 w-4 text-muted-foreground" />
-                <span>{parsedData.nombrePieces ? `${parsedData.nombrePieces} pièces` : 'Non trouvé'}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleImportParsed} className="flex-1">
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Importer ce comparable
-              </Button>
-              <Button variant="outline" size="icon" asChild>
-                <a href={parsedData.lien} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="text-center text-xs text-muted-foreground pt-2 border-t">
+          Le lien sera sauvegardé et accessible via l'icône 🔗
+        </div>
       </TabsContent>
 
       {/* Recherche dans mandats GARY */}
@@ -435,8 +355,8 @@ export function ComparableImport({
       onClick={() => setOpen(true)}
       className="gap-2"
     >
-      <ClipboardPaste className="h-4 w-4" />
-      Import intelligent
+      <Link2 className="h-4 w-4" />
+      Ajouter lien
     </Button>
   );
 
@@ -448,10 +368,10 @@ export function ComparableImport({
           <DrawerContent>
             <DrawerHeader>
               <DrawerTitle>
-                Importer un comparable {type === 'vendu' ? 'vendu' : 'en vente'}
+                Ajouter un comparable {type === 'vendu' ? 'vendu' : 'en vente'}
               </DrawerTitle>
               <DrawerDescription>
-                Collez une URL d'annonce ou recherchez dans les mandats GARY
+                Collez un lien ou recherchez dans les mandats GARY
               </DrawerDescription>
             </DrawerHeader>
             <div className="px-4 pb-4">
@@ -470,10 +390,10 @@ export function ComparableImport({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              Importer un comparable {type === 'vendu' ? 'vendu' : 'en vente'}
+              Ajouter un comparable {type === 'vendu' ? 'vendu' : 'en vente'}
             </DialogTitle>
             <DialogDescription>
-              Collez une URL d'annonce ou recherchez dans les mandats GARY
+              Collez un lien ou recherchez dans les mandats GARY
             </DialogDescription>
           </DialogHeader>
           {content}
