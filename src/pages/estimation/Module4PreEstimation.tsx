@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ComparablesMap } from '@/components/comparables/ComparablesMap';
+import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 
 // ============================================
 // Composant Ligne Comparable
@@ -50,9 +51,18 @@ function ComparableCard({ index, type, data, onUpdate, onDelete }: ComparableCar
       <div className="space-y-3">
         <div>
           <Label className="text-xs text-muted-foreground">Adresse / Quartier *</Label>
-          <Input
+          <AddressAutocomplete
             value={data.adresse}
-            onChange={(e) => onUpdate({ ...data, adresse: e.target.value })}
+            onAddressSelect={(details) => {
+              const fullAddress = details.rue 
+                ? `${details.rue}, ${details.codePostal} ${details.localite}`
+                : data.adresse;
+              onUpdate({ 
+                ...data, 
+                adresse: fullAddress,
+                coordinates: details.coordinates
+              });
+            }}
             placeholder="Ex: Chemin du Jardin-Alpin 3a, 1217 Meyrin"
             className="mt-1"
           />
