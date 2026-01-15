@@ -8,6 +8,7 @@ import EstimationsList from "./pages/EstimationsList";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
 import Module3AnalyseTerrain from "./pages/estimation/Module3AnalyseTerrain";
+import ModulePhotos from "./pages/estimation/ModulePhotos";
 import Module4PreEstimation from "./pages/estimation/Module4PreEstimation";
 import Module5Strategie from "./pages/estimation/Module5Strategie";
 import Login from "./pages/Login";
@@ -64,6 +65,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Module3AnalyseTerrain />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/estimation/:id/photos"
+            element={
+              <ProtectedRoute>
+                <ModulePhotos />
               </ProtectedRoute>
             }
           />
