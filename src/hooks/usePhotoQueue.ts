@@ -53,7 +53,7 @@ export function usePhotoQueue(estimationId: string) {
       const localPreview = URL.createObjectURL(file);
       
       const item: QueuedPhoto = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         file,
         estimationId,
         status: 'pending',
@@ -146,7 +146,7 @@ export function usePhotoQueue(estimationId: string) {
         // 2. Upload vers Supabase Storage
         const fileName = `${estimationId}/${Date.now()}-${pendingItem.id}.jpg`;
         
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from('estimation-photos')
           .upload(fileName, compressedFile, {
             cacheControl: '3600',
@@ -157,7 +157,7 @@ export function usePhotoQueue(estimationId: string) {
           throw error;
         }
 
-        // 3. Récupérer l'URL publique
+        // Récupérer l'URL publique
         const { data: urlData } = supabase.storage
           .from('estimation-photos')
           .getPublicUrl(fileName);
