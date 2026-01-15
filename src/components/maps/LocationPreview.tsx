@@ -48,14 +48,21 @@ const GoogleMapComponent: React.FC<LocationPreviewProps & { apiKey: string }> = 
 
   const defaultCenter = coordinates || { lat: 46.2044, lng: 6.1432 }; // Genève par défaut
 
-  const [mapState, setMapState] = useState<MapState>(
-    initialMapState || {
+  const [mapState, setMapState] = useState<MapState>(() => {
+    // Si initialMapState existe, on l'utilise mais on force satellite par défaut si non défini
+    if (initialMapState) {
+      return {
+        ...initialMapState,
+        mapType: initialMapState.mapType || "satellite",
+      };
+    }
+    return {
       center: defaultCenter,
       zoom: 18,
       mapType: "satellite",
       markerPosition: defaultCenter,
-    }
-  );
+    };
+  });
 
   // Mettre à jour quand les coordonnées changent
   useEffect(() => {
