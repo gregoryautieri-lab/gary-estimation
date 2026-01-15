@@ -1,9 +1,10 @@
 // ============================================
-// Composant Jauge Capital-Visibilité
+// Composant Jauge Capital-Visibilité (Barre)
 // ============================================
 
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, TrendingDown } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface CapitalGaugeProps {
   pourcentage: number;
@@ -12,44 +13,71 @@ interface CapitalGaugeProps {
   pauseRecalibrage: number;
 }
 
-const LABELS: Record<string, string> = {
-  intact: 'Capital intact',
-  entame: 'Capital entamé',
-  faible: 'Capital faible'
+const CONFIG: Record<string, { 
+  label: string; 
+  icon: React.ReactNode;
+  description: string;
+  bgClass: string;
+  textClass: string;
+  progressClass: string;
+}> = {
+  green: {
+    label: 'Capital intact',
+    icon: <Eye className="h-5 w-5" />,
+    description: "Le bien n'a pas été exposé récemment",
+    bgClass: 'bg-emerald-50 border-emerald-200',
+    textClass: 'text-emerald-600',
+    progressClass: '[&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-emerald-400'
+  },
+  yellow: {
+    label: 'Capital entamé',
+    icon: <TrendingDown className="h-5 w-5" />,
+    description: "Le bien a déjà été vu par le marché",
+    bgClass: 'bg-amber-50 border-amber-200',
+    textClass: 'text-amber-600',
+    progressClass: '[&>div]:bg-gradient-to-r [&>div]:from-amber-500 [&>div]:to-amber-400'
+  },
+  red: {
+    label: 'Capital faible',
+    icon: <EyeOff className="h-5 w-5" />,
+    description: "Le bien a été longuement exposé",
+    bgClass: 'bg-red-50 border-red-200',
+    textClass: 'text-red-600',
+    progressClass: '[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-red-400'
+  }
 };
 
 export function CapitalGauge({ pourcentage, label, color, pauseRecalibrage }: CapitalGaugeProps) {
+  const config = CONFIG[color];
+  
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        {/* Jauge circulaire */}
-        <div 
-          className={cn(
-            "w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg",
-            color === 'green' && "bg-gradient-to-br from-emerald-500 to-emerald-400",
-            color === 'yellow' && "bg-gradient-to-br from-amber-500 to-amber-400",
-            color === 'red' && "bg-gradient-to-br from-red-500 to-red-400"
-          )}
-        >
-          {pourcentage}%
+      {/* Header avec icône et label */}
+      <div className={cn(
+        "p-4 rounded-xl border",
+        config.bgClass
+      )}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className={config.textClass}>{config.icon}</span>
+            <h4 className={cn("font-semibold", config.textClass)}>
+              {config.label}
+            </h4>
+          </div>
+          <span className={cn("text-2xl font-bold", config.textClass)}>
+            {pourcentage}%
+          </span>
         </div>
         
-        {/* Label et description */}
-        <div className="flex-1">
-          <h4 className={cn(
-            "font-semibold text-lg",
-            color === 'green' && "text-emerald-600",
-            color === 'yellow' && "text-amber-600",
-            color === 'red' && "text-red-600"
-          )}>
-            {LABELS[label]}
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            {color === 'green' && "Le bien n'a pas été exposé récemment"}
-            {color === 'yellow' && "Le bien a déjà été vu par le marché"}
-            {color === 'red' && "Le bien a été longuement exposé"}
-          </p>
-        </div>
+        {/* Barre de progression */}
+        <Progress 
+          value={pourcentage} 
+          className={cn("h-3 bg-white/50", config.progressClass)}
+        />
+        
+        <p className="text-xs text-muted-foreground mt-2">
+          {config.description}
+        </p>
       </div>
       
       {/* Alerte pause recalibrage */}
@@ -67,7 +95,7 @@ export function CapitalGauge({ pourcentage, label, color, pauseRecalibrage }: Ca
               "text-sm font-medium",
               color === 'red' ? "text-red-700" : "text-amber-700"
             )}>
-              Pause de recalibrage recommandée : {pauseRecalibrage} semaine{pauseRecalibrage > 1 ? 's' : ''}
+              Pause de recalibrage : {pauseRecalibrage} semaine{pauseRecalibrage > 1 ? 's' : ''}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Cette pause permet de repositionner le bien avec une nouvelle stratégie.
