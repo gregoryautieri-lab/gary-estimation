@@ -8,9 +8,8 @@ const corsHeaders = {
 /**
  * Edge function pour récupérer les données cadastrales
  * Sources :
- * - SITG (Genève) : https://ge.ch/sitg
- * - Swisstopo : API fédérale des parcelles
- * - ASIT-VD (Vaud) : https://www.asitvd.ch (à vérifier disponibilité)
+ * - SITG (Genève) : https://ge.ch/sitg via ArcGIS REST API
+ * - Autres cantons : saisie manuelle (pas d'API disponible)
  */
 
 interface CadastreData {
@@ -20,7 +19,7 @@ interface CadastreData {
   zoneDetail?: string;
   commune: string;
   canton: string;
-  source: 'sitg' | 'swisstopo' | 'asitvd' | 'unknown';
+  source: 'sitg' | 'manual';
   error?: string;
 }
 
@@ -147,101 +146,7 @@ function mapSITGZone(zoneCode: string): string {
   return '';
 }
 
-// Récupérer les données depuis Swisstopo (national)
-async function fetchFromSwisstopo(lat: number, lng: number): Promise<CadastreData | null> {
-  try {
-    // API REST geo.admin.ch pour identifier la parcelle
-    // Documentation : https://api3.geo.admin.ch/services/sdiservices.html
-    const identifyUrl = `https://api3.geo.admin.ch/rest/services/all/MapServer/identify?` +
-      `geometry=${lng},${lat}&geometryType=esriGeometryPoint&` +
-      `sr=4326&layers=all:ch.kantone.cadastralwebmap-farbe&` +
-      `tolerance=0&returnGeometry=false&` +
-      `imageDisplay=1,1,1&mapExtent=0,0,1,1`;
-    
-    const response = await fetch(identifyUrl);
-    
-    if (!response.ok) {
-      console.error('Swisstopo identify error:', response.status);
-      return null;
-    }
-    
-    const data = await response.json();
-    
-    if (data.results && data.results.length > 0) {
-      const result = data.results[0];
-      const attrs = result.attributes || {};
-      
-      return {
-        numeroParcelle: attrs.number || attrs.egrid || '',
-        surfaceParcelle: attrs.area || 0,
-        zone: '', // Swisstopo ne donne pas la zone d'affectation
-        zoneDetail: '',
-        commune: attrs.municipality || '',
-        canton: attrs.canton || '',
-        source: 'swisstopo'
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Swisstopo fetch error:', error);
-    return null;
-  }
-}
-
-// Récupérer les données depuis ASIT-VD (Vaud)
-async function fetchFromASITVD(lat: number, lng: number): Promise<CadastreData | null> {
-  try {
-    // ASIT-VD WMS/WFS pour le cadastre vaudois
-    // Note: L'accès peut nécessiter une authentification
-    // On utilise le géoportail vaudois
-    const wfsUrl = `https://ows.geo.vd.ch/wfs?` +
-      `service=WFS&version=2.0.0&request=GetFeature&` +
-      `typeName=vd_cadastre:immeuble&` +
-      `outputFormat=application/json&` +
-      `srsName=EPSG:4326&` +
-      `CQL_FILTER=INTERSECTS(SHAPE,POINT(${lng} ${lat}))`;
-
-    const response = await fetch(wfsUrl);
-    
-    if (!response.ok) {
-      console.error('ASIT-VD WFS error:', response.status);
-      return null;
-    }
-    
-    const data = await response.json();
-    
-    if (data.features && data.features.length > 0) {
-      const feature = data.features[0];
-      const props = feature.properties;
-      
-      return {
-        numeroParcelle: props.no_parcelle || props.numero || '',
-        surfaceParcelle: props.surface || props.area || 0,
-        zone: mapVDZone(props.zone_affectation || ''),
-        zoneDetail: props.zone_affectation || '',
-        commune: props.commune || '',
-        canton: 'VD',
-        source: 'asitvd'
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('ASIT-VD fetch error:', error);
-    return null;
-  }
-}
-
-// Mapper les zones VD vers nos catégories
-function mapVDZone(zoneCode: string): string {
-  const upper = zoneCode.toUpperCase();
-  if (upper.includes('VILLA') || upper.includes('FAIBLE')) return 'villa';
-  if (upper.includes('MOYENNE') || upper.includes('RESIDENTIEL')) return 'residentielle';
-  if (upper.includes('MIXTE') || upper.includes('CENTRE')) return 'mixte';
-  if (upper.includes('AGRICOLE')) return 'agricole';
-  return '';
-}
+// Pour les autres cantons : pas d'API disponible, saisie manuelle requise
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -266,20 +171,14 @@ serve(async (req) => {
     
     let result: CadastreData | null = null;
     
-    // Essayer les sources spécifiques au canton
+    // Seul Genève a une API fonctionnelle
     if (canton === 'GE') {
       result = await fetchFromSITG(lat, lng);
-    } else if (canton === 'VD') {
-      result = await fetchFromASITVD(lat, lng);
     }
     
-    // Fallback sur Swisstopo si pas de résultat cantonal
+    // Pour les autres cantons, retourner un message indiquant saisie manuelle
     if (!result) {
-      result = await fetchFromSwisstopo(lat, lng);
-    }
-    
-    // Si toujours rien, retourner un objet vide
-    if (!result) {
+      const isGeneva = canton === 'GE';
       return new Response(
         JSON.stringify({
           numeroParcelle: '',
@@ -288,8 +187,10 @@ serve(async (req) => {
           zoneDetail: '',
           commune: '',
           canton: canton,
-          source: 'unknown',
-          error: 'Aucune donnée cadastrale trouvée pour ces coordonnées'
+          source: 'manual',
+          error: isGeneva 
+            ? 'Aucune donnée cadastrale trouvée pour ces coordonnées' 
+            : 'Saisie manuelle requise (API cadastre non disponible pour ce canton)'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
