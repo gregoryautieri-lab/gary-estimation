@@ -95,6 +95,15 @@ export default function Module5Strategie() {
     strategie
   );
 
+  // Calcul LuxMode basé sur le prix - DOIT être avant tout return conditionnel
+  const prixAffiche = estimation?.prixFinal || 0;
+  const luxMode = useLuxMode(
+    estimation?.caracteristiques || null,
+    estimation?.identification?.contexte || null,
+    estimation?.identification?.historique || null,
+    prixAffiche
+  );
+
   const updateField = <K extends keyof StrategiePitch>(field: K, value: StrategiePitch[K]) => {
     setStrategie(prev => ({ ...prev, [field]: value }));
   };
@@ -255,8 +264,6 @@ export default function Module5Strategie() {
     );
   }
 
-  const prixAffiche = estimation?.prixFinal || 0;
-  
   // Adresse complète - essayer plusieurs sources
   const adresseData = estimation?.identification?.adresse;
   const adresse = adresseData?.rue || estimation?.adresse || '';
@@ -270,14 +277,6 @@ export default function Module5Strategie() {
     ? parseFloat(estimation?.caracteristiques?.surfaceHabitableMaison || '0')
     : parseFloat(estimation?.caracteristiques?.surfacePPE || '0');
   const pointsForts = estimation?.analyseTerrain?.pointsForts || [];
-
-  // Calcul LuxMode basé sur le prix
-  const luxMode = useLuxMode(
-    estimation?.caracteristiques || null,
-    estimation?.identification?.contexte || null,
-    estimation?.identification?.historique || null,
-    prixAffiche
-  );
 
   // Préparer actions Phase 0 avec état checked
   const phase0ActionsWithState = logic.actionsPhase0.map(a => ({
