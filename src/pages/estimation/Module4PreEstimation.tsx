@@ -116,6 +116,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete }: ComparableCar
 interface PrixMiseEnVenteOptionProps {
   type: TypeMiseEnVente;
   label: string;
+  description: string;
   icon: React.ReactNode;
   selected: boolean;
   pourcentage: number;
@@ -124,7 +125,7 @@ interface PrixMiseEnVenteOptionProps {
   onPourcChange: (delta: number) => void;
 }
 
-function PrixMiseEnVenteOption({ type, label, icon, selected, pourcentage, prix, onSelect, onPourcChange }: PrixMiseEnVenteOptionProps) {
+function PrixMiseEnVenteOption({ type, label, description, icon, selected, pourcentage, prix, onSelect, onPourcChange }: PrixMiseEnVenteOptionProps) {
   return (
     <div 
       onClick={onSelect}
@@ -155,6 +156,9 @@ function PrixMiseEnVenteOption({ type, label, icon, selected, pourcentage, prix,
           {formatPriceCHF(prix)}
         </span>
       </div>
+      
+      {/* Description de la stratégie */}
+      <p className="text-xs text-muted-foreground ml-8 mt-1">{description}</p>
       
       <div className="flex items-center gap-2 mt-2 ml-8">
         <span className="text-sm text-muted-foreground">Vénale +</span>
@@ -625,6 +629,7 @@ export default function Module4PreEstimation() {
             <PrixMiseEnVenteOption
               type="offmarket"
               label="Off Market"
+              description="Diffusion confidentielle — réseau privé GARY uniquement"
               icon={<span>🔒</span>}
               selected={preEst.typeMiseEnVente === 'offmarket'}
               pourcentage={preEst.pourcOffmarket}
@@ -636,6 +641,7 @@ export default function Module4PreEstimation() {
             <PrixMiseEnVenteOption
               type="comingsoon"
               label="Coming Soon"
+              description="Création d'attente avant mise en ligne publique"
               icon={<span>⏳</span>}
               selected={preEst.typeMiseEnVente === 'comingsoon'}
               pourcentage={preEst.pourcComingsoon}
@@ -647,6 +653,7 @@ export default function Module4PreEstimation() {
             <PrixMiseEnVenteOption
               type="public"
               label="Public"
+              description="Visibilité maximale sur tous les portails immobiliers"
               icon={<span>📢</span>}
               selected={preEst.typeMiseEnVente === 'public'}
               pourcentage={preEst.pourcPublic}
