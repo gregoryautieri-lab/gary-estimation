@@ -247,29 +247,37 @@ export default function Module2Caracteristiques() {
     const result = await fetchCadastre(coords.lat, coords.lng, postalCode);
 
     if (result && !result.error) {
-      // Mettre à jour les champs si des données ont été trouvées
+      const updates: string[] = [];
+      
       if (result.numeroParcelle) {
         updateField('numeroParcelle', result.numeroParcelle);
+        updates.push(`N° ${result.numeroParcelle}`);
       }
       if (result.surfaceParcelle && result.surfaceParcelle > 0) {
         updateField('surfaceTerrain', result.surfaceParcelle.toString());
+        updates.push(`${result.surfaceParcelle.toLocaleString('fr-CH')} m²`);
       }
       if (result.zone) {
         updateField('zone', result.zone);
+        updates.push(`Zone ${result.zone}`);
       }
-
+      
       setCadastreFetched(true);
-
-      const sourceLabel = result.source === 'sitg' ? 'SITG (Genève)'
-        : result.source === 'asitvd' ? 'ASIT-VD (Vaud)'
-        : result.source === 'swisstopo' ? 'Swisstopo'
-        : 'Base cadastrale';
-
-      // Si la source ne fournit pas tout, on informe plutôt que de faire croire à un échec
-      if (!result.surfaceParcelle || !result.zone) {
-        toast.success(`Parcelle trouvée (${sourceLabel}). Complétez surface/zone si nécessaire.`);
+      
+      if (updates.length > 0) {
+        toast.success(`Cadastre: ${updates.join(' • ')}`);
       } else {
-        toast.success(`Données récupérées depuis ${sourceLabel}`);
+        toast.warning('Parcelle localisée mais aucune donnée disponible');
+      }
+      
+      // Avertir si des données manquent
+      const missing: string[] = [];
+      if (!result.numeroParcelle) missing.push('n° parcelle');
+      if (!result.surfaceParcelle) missing.push('surface');
+      if (!result.zone) missing.push('zone');
+      
+      if (missing.length > 0 && updates.length > 0) {
+        toast.info(`À compléter manuellement: ${missing.join(', ')}`);
       }
     } else {
       toast.error(result?.error || 'Aucune donnée cadastrale trouvée');
