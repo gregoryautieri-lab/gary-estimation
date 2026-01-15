@@ -107,6 +107,13 @@ export default function Module5Strategie() {
     prixAffiche
   );
 
+  // Progress tracking - MUST be before any conditional returns
+  const { moduleStatuses, missingFields, canProceed, presentationBlocker } = useModuleProgress(
+    estimation,
+    id || '',
+    5
+  );
+
   const updateField = <K extends keyof StrategiePitch>(field: K, value: StrategiePitch[K]) => {
     setStrategie(prev => ({ ...prev, [field]: value }));
   };
@@ -311,14 +318,6 @@ export default function Module5Strategie() {
     criteresAchat.zones.length === 0 ||
     criteresAchat.budgetMax === 0
   );
-
-  // Progress tracking
-  const { moduleStatuses, missingFields, canProceed, presentationBlocker } = useModuleProgress(
-    estimation,
-    id || '',
-    5
-  );
-
   return (
     <div className="min-h-screen bg-background pb-32">
       <ModuleHeader 
