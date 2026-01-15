@@ -1,5 +1,5 @@
-import { ChevronLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, LayoutDashboard } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { SyncIndicator } from './SyncIndicator';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -11,6 +11,7 @@ interface ModuleHeaderProps {
   backPath?: string;
   onBack?: () => void;
   showSyncIndicator?: boolean;
+  showOverviewButton?: boolean;
 }
 
 export const ModuleHeader = ({ 
@@ -19,9 +20,11 @@ export const ModuleHeader = ({
   subtitle, 
   backPath,
   onBack,
-  showSyncIndicator = true
+  showSyncIndicator = true,
+  showOverviewButton = true
 }: ModuleHeaderProps) => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { syncStatus, pendingCount, isOnline, forceSync } = useOfflineSync();
   
   const handleBack = () => {
@@ -56,6 +59,19 @@ export const ModuleHeader = ({
             <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
           )}
         </div>
+        
+        {/* Bouton Vue d'ensemble */}
+        {showOverviewButton && id && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/estimation/${id}/overview`)}
+            className="shrink-0 gap-1.5"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">360°</span>
+          </Button>
+        )}
         
         {/* Indicateur de synchronisation */}
         {showSyncIndicator && (
