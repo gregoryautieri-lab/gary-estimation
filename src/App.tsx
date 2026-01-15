@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
+import EstimationOverview from "./pages/estimation/EstimationOverview";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
 import Module3AnalyseTerrain from "./pages/estimation/Module3AnalyseTerrain";
@@ -62,6 +63,21 @@ const App = () => (
                   <Admin />
                 </ProtectedRoute>
               }
+            />
+            
+            {/* Estimation Overview (nouvelle route par défaut) */}
+            <Route
+              path="/estimation/:id/overview"
+              element={
+                <ProtectedRoute>
+                  <EstimationOverview />
+                </ProtectedRoute>
+              }
+            />
+            {/* Redirection /estimation/:id vers overview */}
+            <Route
+              path="/estimation/:id"
+              element={<Navigate to="overview" replace />}
             />
             
             {/* Estimation Modules */}
