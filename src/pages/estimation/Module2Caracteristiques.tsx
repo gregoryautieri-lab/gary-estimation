@@ -603,13 +603,13 @@ export default function Module2Caracteristiques() {
           <Collapsible open={cubageOpen} onOpenChange={setCubageOpen}>
             <CollapsibleTrigger asChild>
               <Button 
-                variant="ghost" 
-                className="w-full justify-between px-4 py-3 h-auto bg-muted/50 hover:bg-muted"
+                variant="outline" 
+                className="w-full justify-between px-4 py-3 h-auto border-dashed border-2 hover:border-primary hover:bg-primary/5"
               >
                 <div className="flex items-center gap-2">
-                  <Ruler className="h-4 w-4 text-muted-foreground" />
+                  <Ruler className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Précision cubage SIA</span>
-                  <span className="text-xs text-muted-foreground">(optionnel)</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">(optionnel)</span>
                 </div>
                 {cubageOpen ? (
                   <ChevronDown className="h-4 w-4" />
