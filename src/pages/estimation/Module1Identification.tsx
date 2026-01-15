@@ -16,9 +16,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { ChevronRight, Save, Loader2 } from 'lucide-react';
-import type { EstimationData, Identification } from '@/types/estimation';
+import type { EstimationData, Identification, MapState } from '@/types/estimation';
 import { defaultIdentification, defaultEstimation } from '@/types/estimation';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
+import { LocationPreview } from '@/components/maps/LocationPreview';
+import { CadastreMap } from '@/components/maps/CadastreMap';
 
 // Options pour les selects
 const MOTIFS_VENTE = [
@@ -252,6 +254,40 @@ const Module1Identification = () => {
               Coordonnées GPS : {identification.adresse.coordinates.lat.toFixed(5)}, {identification.adresse.coordinates.lng.toFixed(5)}
             </div>
           )}
+
+          {/* Carte Google Maps */}
+          <div className="mt-4">
+            <LocationPreview
+              coordinates={identification.adresse.coordinates || null}
+              initialMapState={identification.adresse.mapState}
+              onMapStateChange={(mapState) => {
+                setIdentification(prev => ({
+                  ...prev,
+                  adresse: {
+                    ...prev.adresse,
+                    mapState
+                  }
+                }));
+              }}
+            />
+          </div>
+
+          {/* Plan cadastral Swisstopo */}
+          <div className="mt-4">
+            <CadastreMap
+              coordinates={identification.adresse.coordinates || null}
+              initialZoom={identification.adresse.cadastreZoom}
+              onZoomChange={(zoom) => {
+                setIdentification(prev => ({
+                  ...prev,
+                  adresse: {
+                    ...prev.adresse,
+                    cadastreZoom: zoom
+                  }
+                }));
+              }}
+            />
+          </div>
         </FormSection>
 
         {/* Contexte */}

@@ -48,6 +48,13 @@ export interface Vendeur {
   profession?: string;
 }
 
+export interface MapState {
+  center: { lat: number; lng: number };
+  zoom: number;
+  mapType: "hybrid" | "satellite" | "roadmap";
+  markerPosition: { lat: number; lng: number };
+}
+
 export interface Adresse {
   rue: string;
   numero?: string;
@@ -61,6 +68,8 @@ export interface Adresse {
   };
   placeId?: string; // Google Places ID
   loading?: boolean;
+  mapState?: MapState; // État de la carte Google Maps
+  cadastreZoom?: number; // Niveau de zoom cadastre Swisstopo
 }
 
 export interface Contexte {

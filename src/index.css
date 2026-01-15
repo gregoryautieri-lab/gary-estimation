@@ -140,3 +140,13 @@
     margin-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* Leaflet custom styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
