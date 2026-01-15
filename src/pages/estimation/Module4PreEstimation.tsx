@@ -9,14 +9,17 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationCalcul, formatPriceCHF } from '@/hooks/useEstimationCalcul';
 import { EstimationData, defaultPreEstimation, PreEstimation, TypeMiseEnVente, Comparable, LigneSupp, Annexe } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse, Map } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse, Map, ExternalLink, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ComparablesMap } from '@/components/comparables/ComparablesMap';
+import { ComparableImport } from '@/components/comparables/ComparableImport';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
+import { getDistanceFromReference, formatDistance } from '@/lib/geoDistance';
 
 // ============================================
 // Composant Ligne Comparable
@@ -27,21 +30,58 @@ interface ComparableCardProps {
   data: Comparable;
   onUpdate: (data: Comparable) => void;
   onDelete: () => void;
+  referenceCoords?: { lat: number; lng: number } | null;
 }
 
-function ComparableCard({ index, type, data, onUpdate, onDelete }: ComparableCardProps) {
+function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords }: ComparableCardProps) {
   const isVendu = type === 'vendu';
   const label = isVendu ? `Vendu #${index + 1}` : `En vente #${index + 1}`;
+  
+  // Calculer la distance si on a les coordonnées
+  const distance = getDistanceFromReference(referenceCoords, data.coordinates);
   
   return (
     <div className="border border-border rounded-xl p-4 space-y-3 bg-card relative">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{label}</span>
+          {data.isGary && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+              GARY
+            </Badge>
+          )}
+          {data.source && data.source !== 'GARY' && (
+            <Badge variant="outline" className="text-xs">
+              {data.source}
+            </Badge>
+          )}
+          {distance !== null && (
+            <Badge variant="outline" className="text-xs gap-1">
+              <MapPin className="h-3 w-3" />
+              {formatDistance(distance)}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <Checkbox id={`gary-${type}-${index}`} />
+            <Checkbox 
+              id={`gary-${type}-${index}`}
+              checked={data.isGary || false}
+              onCheckedChange={(checked) => onUpdate({ ...data, isGary: !!checked })}
+            />
             <Label htmlFor={`gary-${type}-${index}`} className="text-xs text-muted-foreground">GARY</Label>
           </div>
+          {data.lien && (
+            <a 
+              href={data.lien} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
           <button onClick={onDelete} className="text-destructive hover:text-destructive/80">
             <X className="h-4 w-4" />
           </button>
@@ -1160,9 +1200,20 @@ export default function Module4PreEstimation() {
             
             {/* Transactions récentes (Vendus) */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="font-medium">Transactions récentes</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="font-medium">Transactions récentes</span>
+                </div>
+                <ComparableImport
+                  type="vendu"
+                  estimationId={id}
+                  currentType={estimation?.caracteristiques?.typeBien as any}
+                  onImport={(comp) => {
+                    updateField('comparablesVendus', [...preEst.comparablesVendus, comp]);
+                    toast.success('Comparable vendu importé');
+                  }}
+                />
               </div>
               
               {preEst.comparablesVendus.map((comp, index) => (
@@ -1173,6 +1224,7 @@ export default function Module4PreEstimation() {
                   data={comp}
                   onUpdate={(data) => updateComparableVendu(index, data)}
                   onDelete={() => deleteComparableVendu(index)}
+                  referenceCoords={estimation?.identification?.adresse?.coordinates}
                 />
               ))}
               
@@ -1180,15 +1232,26 @@ export default function Module4PreEstimation() {
                 onClick={addComparableVendu}
                 className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
-                + Ajouter un bien vendu
+                + Ajouter manuellement
               </button>
             </div>
             
             {/* Actuellement en vente */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Circle className="h-4 w-4 text-orange-500" />
-                <span className="font-medium">Actuellement en vente</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Circle className="h-4 w-4 text-orange-500" />
+                  <span className="font-medium">Actuellement en vente</span>
+                </div>
+                <ComparableImport
+                  type="enVente"
+                  estimationId={id}
+                  currentType={estimation?.caracteristiques?.typeBien as any}
+                  onImport={(comp) => {
+                    updateField('comparablesEnVente', [...preEst.comparablesEnVente, comp]);
+                    toast.success('Comparable en vente importé');
+                  }}
+                />
               </div>
               
               {preEst.comparablesEnVente.map((comp, index) => (
@@ -1199,6 +1262,7 @@ export default function Module4PreEstimation() {
                   data={comp}
                   onUpdate={(data) => updateComparableEnVente(index, data)}
                   onDelete={() => deleteComparableEnVente(index)}
+                  referenceCoords={estimation?.identification?.adresse?.coordinates}
                 />
               ))}
               
@@ -1206,7 +1270,7 @@ export default function Module4PreEstimation() {
                 onClick={addComparableEnVente}
                 className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
-                + Ajouter un bien en vente
+                + Ajouter manuellement
               </button>
             </div>
           </div>
