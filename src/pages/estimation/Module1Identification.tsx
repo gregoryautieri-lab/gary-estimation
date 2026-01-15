@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationLock } from '@/hooks/useEstimationLock';
@@ -85,6 +87,82 @@ const TYPES_DIFFUSION = [
   { value: 'massive', label: 'Massive (tous portails)' }
 ];
 
+const PORTAILS_OPTIONS = [
+  { value: 'immoscout', label: 'ImmoScout24' },
+  { value: 'homegate', label: 'Homegate' },
+  { value: 'acheterlouer', label: 'Acheter-Louer' },
+  { value: 'anibis', label: 'Anibis' },
+  { value: 'immostreet', label: 'ImmoStreet' },
+  { value: 'comparis', label: 'Comparis' },
+  { value: 'newhome', label: 'Newhome' },
+  { value: 'autres', label: 'Autres portails' }
+];
+
+const RAISONS_ECHEC = [
+  { value: 'prix_eleve', label: 'Prix trop élevé' },
+  { value: 'mauvaises_photos', label: 'Photos de mauvaise qualité' },
+  { value: 'description_faible', label: 'Description insuffisante' },
+  { value: 'visibilite_faible', label: 'Manque de visibilité' },
+  { value: 'agence_passive', label: 'Agence peu réactive' },
+  { value: 'marche_difficile', label: 'Marché difficile' },
+  { value: 'bien_atypique', label: 'Bien atypique' },
+  { value: 'travaux_importants', label: 'Travaux à prévoir' },
+  { value: 'emplacement', label: 'Emplacement peu attractif' },
+  { value: 'autre', label: 'Autre raison' }
+];
+
+// Projet Post-Vente options
+const NATURES_PROJET = [
+  { value: 'achat', label: 'Achat d\'un nouveau bien' },
+  { value: 'location', label: 'Location' },
+  { value: 'depart', label: 'Départ (étranger, EMS, etc.)' },
+  { value: 'autre', label: 'Autre projet' },
+  { value: 'non_concerne', label: 'Non concerné / Pas de projet' }
+];
+
+const AVANCEMENTS_PROJET = [
+  { value: 'pas_commence', label: 'Pas encore commencé' },
+  { value: 'recherche', label: 'En recherche active' },
+  { value: 'bien_identifie', label: 'Bien identifié' },
+  { value: 'offre_deposee', label: 'Offre déposée' },
+  { value: 'compromis_signe', label: 'Compromis signé' },
+  { value: 'acte_programme', label: 'Acte programmé' }
+];
+
+const FLEXIBILITES = [
+  { value: 'faible', label: 'Faible - Dates impératives' },
+  { value: 'moyenne', label: 'Moyenne - Quelques semaines' },
+  { value: 'elevee', label: 'Élevée - Très flexible' }
+];
+
+const NIVEAUX_COORDINATION = [
+  { value: 'vente_seule', label: 'Vente seule (pas d\'achat lié)' },
+  { value: 'legere', label: 'Coordination légère' },
+  { value: 'active', label: 'Coordination active requise' },
+  { value: 'achat_envisageable', label: 'Achat envisageable avec GARY' },
+  { value: 'achat_souhaite', label: 'Achat souhaité avec GARY' }
+];
+
+const MOIS_OPTIONS = [
+  { value: '01', label: 'Janvier' },
+  { value: '02', label: 'Février' },
+  { value: '03', label: 'Mars' },
+  { value: '04', label: 'Avril' },
+  { value: '05', label: 'Mai' },
+  { value: '06', label: 'Juin' },
+  { value: '07', label: 'Juillet' },
+  { value: '08', label: 'Août' },
+  { value: '09', label: 'Septembre' },
+  { value: '10', label: 'Octobre' },
+  { value: '11', label: 'Novembre' },
+  { value: '12', label: 'Décembre' }
+];
+
+const ANNEES_OPTIONS = Array.from({ length: 5 }, (_, i) => {
+  const year = new Date().getFullYear() + i;
+  return { value: year.toString(), label: year.toString() };
+});
+
 const Module1Identification = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -126,6 +204,27 @@ const Module1Identification = () => {
         [field]: value
       }
     }));
+  };
+
+  // Toggle pour les tableaux (portails, raisons échec, etc.)
+  const toggleArrayField = (
+    section: 'historique',
+    field: 'portails' | 'raisonEchec',
+    value: string
+  ) => {
+    setIdentification(prev => {
+      const currentArray = prev[section][field] || [];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter(v => v !== value)
+        : [...currentArray, value];
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: newArray
+        }
+      };
+    });
   };
 
   const handleSave = async (goNext = false) => {
@@ -421,45 +520,129 @@ const Module1Identification = () => {
           </div>
           
           {identification.historique.dejaDiffuse && (
-            <>
-              <FormRow label="Durée de mise en vente">
-                <Select
-                  value={identification.historique.duree}
-                  onValueChange={(value) => updateField('historique', 'duree', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DUREES_DIFFUSION.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormRow>
-              <FormRow label="Prix affiché">
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Prix initial">
+                  <Input
+                    placeholder="CHF"
+                    value={identification.historique.prixInitial || ''}
+                    onChange={(e) => updateField('historique', 'prixInitial', e.target.value)}
+                  />
+                </FormRow>
+                <FormRow label="Dernier prix affiché">
+                  <Input
+                    placeholder="CHF"
+                    value={identification.historique.prixAffiche}
+                    onChange={(e) => updateField('historique', 'prixAffiche', e.target.value)}
+                  />
+                </FormRow>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Durée de mise en vente">
+                  <Select
+                    value={identification.historique.duree}
+                    onValueChange={(value) => updateField('historique', 'duree', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DUREES_DIFFUSION.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                <FormRow label="Type de diffusion">
+                  <Select
+                    value={identification.historique.typeDiffusion}
+                    onValueChange={(value) => updateField('historique', 'typeDiffusion', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPES_DIFFUSION.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+              </div>
+
+              {/* Portails utilisés */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Portails utilisés</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PORTAILS_OPTIONS.map(opt => (
+                    <div key={opt.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`portail-${opt.value}`}
+                        checked={identification.historique.portails?.includes(opt.value) || false}
+                        onCheckedChange={() => toggleArrayField('historique', 'portails', opt.value)}
+                      />
+                      <Label htmlFor={`portail-${opt.value}`} className="text-sm cursor-pointer">
+                        {opt.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Raisons d'échec */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Raisons de l'échec</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {RAISONS_ECHEC.map(opt => (
+                    <div key={opt.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`raison-${opt.value}`}
+                        checked={identification.historique.raisonEchec?.includes(opt.value) || false}
+                        onCheckedChange={() => toggleArrayField('historique', 'raisonEchec', opt.value)}
+                      />
+                      <Label htmlFor={`raison-${opt.value}`} className="text-sm cursor-pointer">
+                        {opt.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {identification.historique.raisonEchec?.includes('autre') && (
+                  <Input
+                    placeholder="Précisez la raison..."
+                    value={identification.historique.raisonEchecDetail || ''}
+                    onChange={(e) => updateField('historique', 'raisonEchecDetail', e.target.value)}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Agence précédente" optional>
+                  <Input
+                    placeholder="Nom de l'agence"
+                    value={identification.historique.agencePrecedente || ''}
+                    onChange={(e) => updateField('historique', 'agencePrecedente', e.target.value)}
+                  />
+                </FormRow>
+                <FormRow label="Nb visites effectuées" optional>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={identification.historique.visitesPrecedentes || ''}
+                    onChange={(e) => updateField('historique', 'visitesPrecedentes', parseInt(e.target.value) || undefined)}
+                  />
+                </FormRow>
+              </div>
+
+              <FormRow label="Offres reçues" optional>
                 <Input
-                  placeholder="CHF"
-                  value={identification.historique.prixAffiche}
-                  onChange={(e) => updateField('historique', 'prixAffiche', e.target.value)}
+                  placeholder="Ex: 2 offres, meilleure à 1.2M"
+                  value={identification.historique.offresRecues || ''}
+                  onChange={(e) => updateField('historique', 'offresRecues', e.target.value)}
                 />
               </FormRow>
-              <FormRow label="Type de diffusion">
-                <Select
-                  value={identification.historique.typeDiffusion}
-                  onValueChange={(value) => updateField('historique', 'typeDiffusion', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPES_DIFFUSION.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormRow>
-            </>
+            </div>
           )}
         </FormSection>
 
@@ -472,20 +655,257 @@ const Module1Identification = () => {
               onChange={(e) => updateField('financier', 'dateAchat', e.target.value)}
             />
           </FormRow>
-          <FormRow label="Prix d'achat">
-            <Input
-              placeholder="CHF"
-              value={identification.financier.prixAchat}
-              onChange={(e) => updateField('financier', 'prixAchat', e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <FormRow label="Prix d'achat">
+              <Input
+                placeholder="CHF"
+                value={identification.financier.prixAchat}
+                onChange={(e) => updateField('financier', 'prixAchat', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Valeur locative" optional>
+              <Input
+                placeholder="CHF"
+                value={identification.financier.valeurLocative || ''}
+                onChange={(e) => updateField('financier', 'valeurLocative', e.target.value)}
+              />
+            </FormRow>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FormRow label="Cédule hypothécaire">
+              <Input
+                placeholder="CHF"
+                value={identification.financier.ceduleHypothecaire}
+                onChange={(e) => updateField('financier', 'ceduleHypothecaire', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Montant hypothèque" optional>
+              <Input
+                placeholder="CHF"
+                value={identification.financier.montantHypotheque || ''}
+                onChange={(e) => updateField('financier', 'montantHypotheque', e.target.value)}
+              />
+            </FormRow>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FormRow label="Charges annuelles" optional>
+              <Input
+                placeholder="CHF/an"
+                value={identification.financier.chargesAnnuelles || ''}
+                onChange={(e) => updateField('financier', 'chargesAnnuelles', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Impôt foncier" optional>
+              <Input
+                placeholder="CHF/an"
+                value={identification.financier.impotFoncier || ''}
+                onChange={(e) => updateField('financier', 'impotFoncier', e.target.value)}
+              />
+            </FormRow>
+          </div>
+        </FormSection>
+
+        {/* Fin de bail (si locataire) */}
+        {identification.contexte.statutOccupation === 'occupe_locataire' && (
+          <FormSection icon="📅" title="Fin de bail">
+            <div className="grid grid-cols-2 gap-3">
+              <FormRow label="Mois">
+                <Select
+                  value={identification.contexte.finBailMois}
+                  onValueChange={(value) => updateField('contexte', 'finBailMois', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mois..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOIS_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="Année">
+                <Select
+                  value={identification.contexte.finBailAnnee}
+                  onValueChange={(value) => updateField('contexte', 'finBailAnnee', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Année..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ANNEES_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+            </div>
+          </FormSection>
+        )}
+
+        {/* Projet Post-Vente */}
+        <FormSection icon="🎯" title="Projet post-vente">
+          <FormRow label="Nature du projet">
+            <Select
+              value={identification.projetPostVente.nature}
+              onValueChange={(value) => updateField('projetPostVente', 'nature', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner..." />
+              </SelectTrigger>
+              <SelectContent>
+                {NATURES_PROJET.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormRow>
-          <FormRow label="Cédule hypothécaire">
-            <Input
-              placeholder="CHF"
-              value={identification.financier.ceduleHypothecaire}
-              onChange={(e) => updateField('financier', 'ceduleHypothecaire', e.target.value)}
-            />
-          </FormRow>
+
+          {identification.projetPostVente.nature && identification.projetPostVente.nature !== 'non_concerne' && (
+            <div className="space-y-4 pt-2">
+              {identification.projetPostVente.nature === 'achat' && (
+                <>
+                  <FormRow label="Avancement du projet">
+                    <Select
+                      value={identification.projetPostVente.avancement}
+                      onValueChange={(value) => updateField('projetPostVente', 'avancement', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVANCEMENTS_PROJET.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormRow>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormRow label="Budget projet suivant" optional>
+                      <Input
+                        placeholder="CHF"
+                        value={identification.projetPostVente.budgetProjetSuivant || ''}
+                        onChange={(e) => updateField('projetPostVente', 'budgetProjetSuivant', e.target.value)}
+                      />
+                    </FormRow>
+                    <FormRow label="Région recherchée" optional>
+                      <Input
+                        placeholder="Ex: Rive droite"
+                        value={identification.projetPostVente.regionRecherche || ''}
+                        onChange={(e) => updateField('projetPostVente', 'regionRecherche', e.target.value)}
+                      />
+                    </FormRow>
+                  </div>
+
+                  <FormRow label="Niveau de coordination">
+                    <Select
+                      value={identification.projetPostVente.niveauCoordination}
+                      onValueChange={(value) => updateField('projetPostVente', 'niveauCoordination', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NIVEAUX_COORDINATION.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormRow>
+                </>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormRow label="Date cible">
+                  <Input
+                    type="date"
+                    value={identification.projetPostVente.dateCible}
+                    onChange={(e) => updateField('projetPostVente', 'dateCible', e.target.value)}
+                  />
+                </FormRow>
+                <FormRow label="Date butoir" optional>
+                  <Input
+                    type="date"
+                    value={identification.projetPostVente.dateButoir || ''}
+                    onChange={(e) => updateField('projetPostVente', 'dateButoir', e.target.value)}
+                  />
+                </FormRow>
+              </div>
+
+              <FormRow label="Flexibilité sur les dates">
+                <Select
+                  value={identification.projetPostVente.flexibilite}
+                  onValueChange={(value) => updateField('projetPostVente', 'flexibilite', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FLEXIBILITES.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+
+              {/* Tolérances stratégiques */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tolérances du vendeur</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tol-vente-longue"
+                      checked={identification.projetPostVente.toleranceVenteLongue || false}
+                      onCheckedChange={(checked) => updateField('projetPostVente', 'toleranceVenteLongue', !!checked)}
+                    />
+                    <Label htmlFor="tol-vente-longue" className="text-sm cursor-pointer">
+                      Accepte une vente plus longue si meilleur prix
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tol-vente-rapide"
+                      checked={identification.projetPostVente.toleranceVenteRapide || false}
+                      onCheckedChange={(checked) => updateField('projetPostVente', 'toleranceVenteRapide', !!checked)}
+                    />
+                    <Label htmlFor="tol-vente-rapide" className="text-sm cursor-pointer">
+                      Accepte un prix inférieur pour vendre vite
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tol-decalage"
+                      checked={identification.projetPostVente.accepteDecalage === 'oui'}
+                      onCheckedChange={(checked) => updateField('projetPostVente', 'accepteDecalage', checked ? 'oui' : 'non')}
+                    />
+                    <Label htmlFor="tol-decalage" className="text-sm cursor-pointer">
+                      Accepte un décalage entre vente et achat
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tol-transitoire"
+                      checked={identification.projetPostVente.accepteTransitoire === 'oui'}
+                      onCheckedChange={(checked) => updateField('projetPostVente', 'accepteTransitoire', checked ? 'oui' : 'non')}
+                    />
+                    <Label htmlFor="tol-transitoire" className="text-sm cursor-pointer">
+                      Accepte un logement transitoire
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <FormRow label="Commentaire projet" optional>
+                <Textarea
+                  placeholder="Notes libres sur le projet post-vente..."
+                  value={identification.projetPostVente.commentaireProjet || ''}
+                  onChange={(e) => updateField('projetPostVente', 'commentaireProjet', e.target.value)}
+                  rows={2}
+                />
+              </FormRow>
+            </div>
+          )}
         </FormSection>
       </main>
 
