@@ -430,6 +430,7 @@ const Module1Identification = () => {
           </p>
           <ProximitesEditor
             proximites={identification.proximites}
+            coordinates={identification.adresse.coordinates}
             onChange={(proximites) => setIdentification(prev => ({ ...prev, proximites }))}
             disabled={isLocked}
           />

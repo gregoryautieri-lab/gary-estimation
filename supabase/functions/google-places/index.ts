@@ -22,7 +22,7 @@ serve(async (req) => {
       );
     }
 
-    const { action, input, placeId } = await req.json();
+    const { action, input, placeId, lat, lng } = await req.json();
 
     if (action === "autocomplete") {
       // Google Places Autocomplete API
@@ -109,6 +109,118 @@ serve(async (req) => {
           coordinates: result.geometry?.location || null,
           placeId,
           formattedAddress: result.formatted_address
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "nearbyTransit") {
+      // Recherche des transports à proximité (bus, tram, gare)
+      // lat/lng sont déjà parsés au début de la fonction
+      const latitude = lat;
+      const longitude = lng;
+
+      if (!latitude || !longitude) {
+        return new Response(
+          JSON.stringify({ error: "Coordinates (lat, lng) required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Recherche arrêt de bus/tram le plus proche
+      const busUrl = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
+      busUrl.searchParams.set("location", `${latitude},${longitude}`);
+      busUrl.searchParams.set("radius", "2000"); // 2km max
+      busUrl.searchParams.set("type", "transit_station");
+      busUrl.searchParams.set("key", GOOGLE_PLACES_API_KEY);
+      busUrl.searchParams.set("language", "fr");
+
+      // Recherche gare la plus proche
+      const trainUrl = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
+      trainUrl.searchParams.set("location", `${latitude},${longitude}`);
+      trainUrl.searchParams.set("radius", "5000"); // 5km max
+      trainUrl.searchParams.set("type", "train_station");
+      trainUrl.searchParams.set("key", GOOGLE_PLACES_API_KEY);
+      trainUrl.searchParams.set("language", "fr");
+
+      const [busResponse, trainResponse] = await Promise.all([
+        fetch(busUrl.toString()),
+        fetch(trainUrl.toString())
+      ]);
+
+      const busData = await busResponse.json();
+      const trainData = await trainResponse.json();
+
+      // Helper pour calculer distance en mètres
+      const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+        const R = 6371000; // Rayon de la Terre en mètres
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(R * c);
+      };
+
+      // Helper pour formater le temps de trajet
+      const formatTravelTime = (distanceMeters: number): { temps: string; mode: 'pied' | 'voiture' } => {
+        if (distanceMeters <= 1000) {
+          // À pied: ~80m/min
+          const minutes = Math.ceil(distanceMeters / 80);
+          return { temps: `${minutes} min`, mode: 'pied' };
+        } else {
+          // En voiture: ~500m/min en ville
+          const minutes = Math.ceil(distanceMeters / 500);
+          return { temps: `${minutes} min`, mode: 'voiture' };
+        }
+      };
+
+      // Trouver le plus proche
+      let busStop = null;
+      let trainStation = null;
+
+      if (busData.results && busData.results.length > 0) {
+        const closest = busData.results[0];
+        const distance = calculateDistance(
+          latitude, longitude,
+          closest.geometry.location.lat,
+          closest.geometry.location.lng
+        );
+        const travel = formatTravelTime(distance);
+        busStop = {
+          nom: closest.name,
+          distance: distance,
+          distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
+          temps: travel.temps,
+          mode: travel.mode,
+          placeId: closest.place_id
+        };
+      }
+
+      if (trainData.results && trainData.results.length > 0) {
+        const closest = trainData.results[0];
+        const distance = calculateDistance(
+          latitude, longitude,
+          closest.geometry.location.lat,
+          closest.geometry.location.lng
+        );
+        const travel = formatTravelTime(distance);
+        trainStation = {
+          nom: closest.name,
+          distance: distance,
+          distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
+          temps: travel.temps,
+          mode: travel.mode,
+          placeId: closest.place_id
+        };
+      }
+
+      return new Response(
+        JSON.stringify({
+          busStop,
+          trainStation,
+          origin: { lat: latitude, lng: longitude }
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
