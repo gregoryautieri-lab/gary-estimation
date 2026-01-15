@@ -1,8 +1,7 @@
 import { ChevronLeft, LayoutDashboard } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { SyncIndicator } from './SyncIndicator';
-import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { NetworkStatusBadge } from './NetworkStatusBadge';
 
 interface ModuleHeaderProps {
   moduleNumber: number;
@@ -25,7 +24,6 @@ export const ModuleHeader = ({
 }: ModuleHeaderProps) => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { syncStatus, pendingCount, isOnline, forceSync } = useOfflineSync();
   
   const handleBack = () => {
     if (onBack) {
@@ -75,12 +73,7 @@ export const ModuleHeader = ({
         
         {/* Indicateur de synchronisation */}
         {showSyncIndicator && (
-          <SyncIndicator
-            status={syncStatus}
-            pendingCount={pendingCount}
-            isOnline={isOnline}
-            onForceSync={forceSync}
-          />
+          <NetworkStatusBadge showDetails />
         )}
       </div>
     </div>
