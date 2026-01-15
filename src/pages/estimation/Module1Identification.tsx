@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
+import { LockBanner } from '@/components/gary/LockBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { useEstimationLock } from '@/hooks/useEstimationLock';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { ChevronRight, Save, Loader2 } from 'lucide-react';
 import type { EstimationData, Identification, MapState } from '@/types/estimation';
 import { defaultIdentification, defaultEstimation } from '@/types/estimation';
@@ -85,11 +88,16 @@ const TYPES_DIFFUSION = [
 const Module1Identification = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchEstimation, updateEstimation, loading } = useEstimationPersistence();
+  const { fetchEstimation, updateEstimation, duplicateEstimation, loading } = useEstimationPersistence();
+  const { saveLocal } = useOfflineSync();
   
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [identification, setIdentification] = useState<Identification>(defaultIdentification);
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  
+  // Verrouillage selon statut
+  const { isLocked, lockMessage } = useEstimationLock(estimation?.statut);
 
   useEffect(() => {
     if (id && id !== 'new') {
@@ -121,10 +129,10 @@ const Module1Identification = () => {
   };
 
   const handleSave = async (goNext = false) => {
-    if (!id) return;
+    if (!id || isLocked) return;
     setSaving(true);
     
-    const updated = await updateEstimation(id, {
+    const dataToSave = {
       identification,
       vendeurNom: identification.vendeur.nom,
       vendeurEmail: identification.vendeur.email,
@@ -132,12 +140,28 @@ const Module1Identification = () => {
       adresse: identification.adresse.rue,
       codePostal: identification.adresse.codePostal,
       localite: identification.adresse.localite
-    }, true);
+    };
+    
+    // Sauvegarde locale immédiate (offline-first)
+    saveLocal(id, dataToSave);
+    
+    // Puis sync avec Supabase
+    const updated = await updateEstimation(id, dataToSave, true);
     
     setSaving(false);
     
     if (goNext && updated) {
       navigate(`/estimation/${id}/2`);
+    }
+  };
+  
+  const handleDuplicate = async () => {
+    if (!id) return;
+    setDuplicating(true);
+    const duplicated = await duplicateEstimation(id);
+    setDuplicating(false);
+    if (duplicated) {
+      navigate(`/estimation/${duplicated.id}/1`);
     }
   };
 
@@ -159,6 +183,15 @@ const Module1Identification = () => {
       />
 
       <main className="flex-1 p-4 pb-32 space-y-4">
+        {/* Bandeau de verrouillage */}
+        {isLocked && lockMessage && (
+          <LockBanner 
+            message={lockMessage} 
+            onDuplicate={handleDuplicate}
+            duplicating={duplicating}
+          />
+        )}
+        
         {/* Vendeur */}
         <FormSection icon="👤" title="Vendeur">
           <FormRow label="Nom complet" required>
@@ -469,10 +502,10 @@ const Module1Identification = () => {
           <Button
             className="flex-1 bg-primary hover:bg-primary/90"
             onClick={() => handleSave(true)}
-            disabled={saving}
+            disabled={saving || isLocked}
           >
-            {saving ? 'Enregistrement...' : 'Suivant'}
-            <ChevronRight className="h-4 w-4 ml-2" />
+            {saving ? 'Enregistrement...' : isLocked ? 'Lecture seule' : 'Suivant'}
+            {!saving && !isLocked && <ChevronRight className="h-4 w-4 ml-2" />}
           </Button>
         </div>
       </div>
