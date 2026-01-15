@@ -13,6 +13,7 @@ import ModulePhotos from "./pages/estimation/ModulePhotos";
 import Module4PreEstimation from "./pages/estimation/Module4PreEstimation";
 import Module5Strategie from "./pages/estimation/Module5Strategie";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
                 </ProtectedRoute>
               }
             />

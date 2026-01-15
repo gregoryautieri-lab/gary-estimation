@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -24,12 +26,15 @@ import {
   ChevronRight,
   Moon,
   Sun,
+  Crown,
+  Users,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null }>({
     full_name: null,
@@ -200,6 +205,34 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Administration - visible seulement pour les admins */}
+        {isAdmin && (
+          <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-500" />
+                Administration
+                <Badge className="bg-amber-500 text-white text-xs ml-auto">Admin</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <button 
+                className="flex items-center justify-between w-full py-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg px-2 -mx-2 transition-colors"
+                onClick={() => navigate("/admin")}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-amber-600" />
+                  <div className="text-left">
+                    <p className="font-medium">Gestion des utilisateurs</p>
+                    <p className="text-sm text-muted-foreground">Rôles et permissions</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sécurité */}
         <Card>
