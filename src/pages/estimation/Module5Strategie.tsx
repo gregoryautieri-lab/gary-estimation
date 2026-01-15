@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -11,7 +11,8 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Composants stratégie
 import { CapitalGauge } from '@/components/strategie/CapitalGauge';
@@ -37,6 +38,8 @@ export default function Module5Strategie() {
   const [pitchCustom, setPitchCustom] = useState('');
   const [customPhase0Actions, setCustomPhase0Actions] = useState<string[]>([]);
   const [checkedPhase0Actions, setCheckedPhase0Actions] = useState<string[]>([]);
+  const [generatingPitch, setGeneratingPitch] = useState(false);
+  const [pitchSource, setPitchSource] = useState<'rule' | 'ai'>('rule');
 
   useEffect(() => {
     if (id) loadEstimation();
@@ -110,6 +113,73 @@ export default function Module5Strategie() {
         : [...prev, actionId]
     );
   };
+
+  // Génération du pitch via IA avec fallback rule-based
+  const generateAIPitch = useCallback(async () => {
+    if (!estimation) return;
+    
+    setGeneratingPitch(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-pitch', {
+        body: {
+          vendeur: {
+            nom: estimation.identification?.vendeur?.nom || 'Client',
+            prenom: estimation.identification?.vendeur?.prenom || ''
+          },
+          motifVente: estimation.identification?.contexte?.motifVente,
+          prioriteVendeur: estimation.identification?.contexte?.prioriteVendeur,
+          horizon: estimation.identification?.contexte?.horizon,
+          typeBien: estimation.caracteristiques?.typeBien || 'appartement',
+          pointsForts: estimation.analyseTerrain?.pointsForts || [],
+          pointsFaibles: estimation.analyseTerrain?.pointsFaibles || [],
+          prixEntre: estimation.preEstimation?.prixEntre,
+          prixEt: estimation.preEstimation?.prixEt,
+          capitalVisibilite: {
+            label: logic.capitalVisibilite.label,
+            pauseRecalibrage: logic.capitalVisibilite.pauseRecalibrage
+          },
+          projetPostVente: estimation.identification?.projetPostVente ? {
+            nature: estimation.identification.projetPostVente.nature,
+            avancement: estimation.identification.projetPostVente.avancement,
+            niveauCoordination: estimation.identification.projetPostVente.niveauCoordination,
+            accepteDecalage: estimation.identification.projetPostVente.accepteDecalage
+          } : undefined,
+          dateDebutFormate: logic.dateDebutFormate,
+          typeMiseEnVente: logic.typeMiseEnVente,
+          fallbackPitch: logic.pitch.complet
+        }
+      });
+
+      if (error) {
+        console.error('Error generating AI pitch:', error);
+        toast.error('Erreur IA, pitch standard utilisé');
+        setPitchCustom(logic.pitch.complet);
+        setPitchSource('rule');
+        return;
+      }
+
+      if (data?.pitch) {
+        setPitchCustom(data.pitch);
+        setPitchSource(data.source === 'ai' ? 'ai' : 'rule');
+        
+        if (data.source === 'ai') {
+          toast.success('Pitch généré par IA');
+        } else if (data.error === 'rate_limited') {
+          toast.warning('Limite atteinte, pitch standard utilisé');
+        } else {
+          toast.info('Pitch standard utilisé');
+        }
+      }
+    } catch (err) {
+      console.error('Error calling generate-pitch:', err);
+      toast.error('Erreur de connexion, pitch standard utilisé');
+      setPitchCustom(logic.pitch.complet);
+      setPitchSource('rule');
+    } finally {
+      setGeneratingPitch(false);
+    }
+  }, [estimation, logic]);
 
   const handleSave = async () => {
     if (!id || !estimation) return;
@@ -280,11 +350,42 @@ export default function Module5Strategie() {
 
         {/* Pitch de Closing */}
         <FormSection title="Pitch de closing" icon={<MessageSquare className="h-5 w-5" />}>
-          <PitchEditor
-            value={pitchCustom}
-            defaultValue={logic.pitch.complet}
-            onChange={setPitchCustom}
-          />
+          <div className="space-y-3">
+            {/* Bouton générer avec IA */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={generateAIPitch}
+                disabled={generatingPitch}
+                className="flex items-center gap-2"
+              >
+                {generatingPitch ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Génération...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Générer avec IA
+                  </>
+                )}
+              </Button>
+              {pitchSource === 'ai' && (
+                <span className="text-xs text-primary flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Généré par IA
+                </span>
+              )}
+            </div>
+            
+            <PitchEditor
+              value={pitchCustom}
+              defaultValue={logic.pitch.complet}
+              onChange={setPitchCustom}
+            />
+          </div>
         </FormSection>
 
         {/* Prochaines Étapes */}

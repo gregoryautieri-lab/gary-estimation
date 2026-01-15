@@ -350,12 +350,113 @@ export const calculerPhasesDepuisDateIdeale = (
 };
 
 // ============================================
-// Calcul des Dates des Phases
+// Calcul des Dates des Phases selon typeMiseEnVente
 // ============================================
+
+interface PhaseConfig {
+  nom: string;
+  icon: string;
+  description: string;
+  objectif: string;
+  canaux: string[];
+}
+
+const getPhaseConfigs = (typeMiseEnVente: 'offmarket' | 'comingsoon' | 'public'): PhaseConfig[] => {
+  // Phase 0 est toujours la même
+  const phase0: PhaseConfig = {
+    nom: 'Préparation',
+    icon: '🎬',
+    description: 'Photos, vidéo, rédaction annonce',
+    objectif: 'Préparer tous les supports de communication',
+    canaux: []
+  };
+
+  switch (typeMiseEnVente) {
+    case 'offmarket':
+      return [
+        phase0,
+        {
+          nom: 'Off-Market',
+          icon: '🔒',
+          description: 'Diffusion confidentielle réseau qualifié',
+          objectif: 'Tester le prix et générer des offres premium',
+          canaux: ['Base acheteurs GARY', 'Réseau courtiers partenaires']
+        },
+        {
+          nom: 'Off-Market +',
+          icon: '🤝',
+          description: 'Extension réseau élargi si nécessaire',
+          objectif: 'Maintenir la confidentialité avec plus de reach',
+          canaux: ['Partenaires privilégiés', 'Clients VIP']
+        },
+        {
+          nom: 'Public (si besoin)',
+          icon: '🌐',
+          description: 'Ouverture portails uniquement si pas de vente',
+          objectif: 'Maximiser l\'exposition en dernier recours',
+          canaux: ['Immoscout', 'Homegate', 'Site GARY']
+        }
+      ];
+
+    case 'comingsoon':
+      return [
+        phase0,
+        {
+          nom: 'Teasing',
+          icon: '⏳',
+          description: 'Annonce imminente, création de l\'attente',
+          objectif: 'Construire l\'intérêt avant mise en ligne',
+          canaux: ['Réseaux sociaux GARY', 'Newsletter', 'Vitrine agence']
+        },
+        {
+          nom: 'Coming Soon',
+          icon: '🚀',
+          description: 'Prise de rendez-vous avant publication',
+          objectif: 'Qualifier les acheteurs sérieux',
+          canaux: ['Base acheteurs GARY', 'Réseaux sociaux']
+        },
+        {
+          nom: 'Public',
+          icon: '🌐',
+          description: 'Visibilité maximale sur tous les portails',
+          objectif: 'Maximiser l\'exposition',
+          canaux: ['Immoscout', 'Homegate', 'Acheter-Louer', 'Site GARY']
+        }
+      ];
+
+    case 'public':
+    default:
+      return [
+        phase0,
+        {
+          nom: 'Soft Launch',
+          icon: '📢',
+          description: 'Mise en ligne ciblée',
+          objectif: 'Test de réception du marché',
+          canaux: ['Site GARY', 'Base acheteurs']
+        },
+        {
+          nom: 'Full Launch',
+          icon: '🚀',
+          description: 'Diffusion large sur tous les canaux',
+          objectif: 'Maximiser la visibilité immédiatement',
+          canaux: ['Immoscout', 'Homegate', 'Acheter-Louer', 'Réseaux sociaux']
+        },
+        {
+          nom: 'Boost',
+          icon: '⚡',
+          description: 'Relances et actions supplémentaires',
+          objectif: 'Maintenir l\'intérêt et finaliser la vente',
+          canaux: ['Publicités ciblées', 'Relances base acheteurs']
+        }
+      ];
+  }
+};
 
 export const calculerDatesPhases = (
   dateDebut: string,
-  phaseDurees: PhaseDurees
+  phaseDurees: PhaseDurees,
+  typeMiseEnVente: 'offmarket' | 'comingsoon' | 'public' = 'public'
 ): PhaseInfo[] => {
   if (!dateDebut) return [];
   
@@ -363,62 +464,25 @@ export const calculerDatesPhases = (
   // Toujours démarrer un lundi
   currentDate = nextMonday(currentDate);
   
+  const phaseConfigs = getPhaseConfigs(typeMiseEnVente);
+  const durees = [phaseDurees.phase0, phaseDurees.phase1, phaseDurees.phase2, phaseDurees.phase3];
+  
   const phases: PhaseInfo[] = [];
   
-  // Phase 0 : Préparation
-  const phase0End = addWeeks(currentDate, phaseDurees.phase0);
-  phases.push({
-    nom: 'Préparation',
-    icon: '🎬',
-    duree: phaseDurees.phase0,
-    description: 'Photos, vidéo, rédaction annonce',
-    objectif: 'Préparer tous les supports de communication',
-    canaux: [],
-    dateDebut: currentDate,
-    dateFin: phase0End
-  });
-  
-  // Phase 1 : Off-Market
-  const phase1Start = phase0End;
-  const phase1End = addWeeks(phase1Start, phaseDurees.phase1);
-  phases.push({
-    nom: 'Off-Market',
-    icon: '🔒',
-    duree: phaseDurees.phase1,
-    description: 'Diffusion confidentielle réseau qualifié',
-    objectif: 'Tester le prix et générer des offres premium',
-    canaux: ['Base acheteurs GARY', 'Réseau courtiers partenaires'],
-    dateDebut: phase1Start,
-    dateFin: phase1End
-  });
-  
-  // Phase 2 : Coming Soon
-  const phase2Start = phase1End;
-  const phase2End = addWeeks(phase2Start, phaseDurees.phase2);
-  phases.push({
-    nom: 'Coming Soon',
-    icon: '⏳',
-    duree: phaseDurees.phase2,
-    description: 'Création de l\'attente avant mise en ligne',
-    objectif: 'Construire l\'intérêt et qualifier les acheteurs',
-    canaux: ['Réseaux sociaux GARY', 'Newsletter', 'Vitrine agence'],
-    dateDebut: phase2Start,
-    dateFin: phase2End
-  });
-  
-  // Phase 3 : Public
-  const phase3Start = phase2End;
-  const phase3End = addWeeks(phase3Start, phaseDurees.phase3);
-  phases.push({
-    nom: 'Public',
-    icon: '🌐',
-    duree: phaseDurees.phase3,
-    description: 'Visibilité maximale sur tous les portails',
-    objectif: 'Maximiser l\'exposition si nécessaire',
-    canaux: ['Immoscout', 'Homegate', 'Acheter-Louer', 'Site GARY'],
-    dateDebut: phase3Start,
-    dateFin: phase3End
-  });
+  for (let i = 0; i < phaseConfigs.length; i++) {
+    const config = phaseConfigs[i];
+    const duree = durees[i] || 1;
+    const phaseEnd = addWeeks(currentDate, duree);
+    
+    phases.push({
+      ...config,
+      duree,
+      dateDebut: currentDate,
+      dateFin: phaseEnd
+    });
+    
+    currentDate = phaseEnd;
+  }
   
   return phases;
 };
@@ -823,8 +887,8 @@ export const useStrategieLogic = (
   
   const phases = useMemo(() => {
     const dateDebut = strategiePitch?.dateDebut || '';
-    return calculerDatesPhases(dateDebut, phaseDurees);
-  }, [strategiePitch?.dateDebut, phaseDurees]);
+    return calculerDatesPhases(dateDebut, phaseDurees, typeMiseEnVente);
+  }, [strategiePitch?.dateDebut, phaseDurees, typeMiseEnVente]);
   
   const dateDebutFormate = useMemo(() => {
     if (phases.length > 0 && phases[0].dateDebut) {
