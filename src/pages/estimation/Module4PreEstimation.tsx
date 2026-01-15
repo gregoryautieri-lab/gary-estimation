@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -219,20 +219,19 @@ export default function Module4PreEstimation() {
   const [preEst, setPreEst] = useState<PreEstimation>(defaultPreEstimation);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadEstimation();
-    }
-  }, [id]);
-
-  const loadEstimation = async () => {
+  const loadEstimation = useCallback(async () => {
     if (!id) return;
     const data = await fetchEstimation(id);
     if (data) {
       setEstimation(data);
       setPreEst({ ...defaultPreEstimation, ...data.preEstimation });
     }
-  };
+  }, [id, fetchEstimation]);
+
+  useEffect(() => {
+    if (!id) return;
+    loadEstimation();
+  }, [id, loadEstimation]);
 
   // Calculs automatiques
   const calcul = useEstimationCalcul(
