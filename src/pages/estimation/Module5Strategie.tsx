@@ -217,6 +217,12 @@ export default function Module5Strategie() {
   const prixAffiche = estimation?.prixFinal || 0;
   const adresse = estimation?.identification?.adresse?.rue || '';
   const localite = estimation?.identification?.adresse?.localite || '';
+  const typeBien = estimation?.caracteristiques?.typeBien || '';
+  // Surface selon type de bien (PPE pour appart, surfaceHabitableMaison pour maison)
+  const surface = typeBien === 'maison' 
+    ? parseFloat(estimation?.caracteristiques?.surfaceHabitableMaison || '0')
+    : parseFloat(estimation?.caracteristiques?.surfacePPE || '0');
+  const pointsForts = estimation?.analyseTerrain?.pointsForts || [];
 
   // Préparer actions Phase 0 avec état checked
   const phase0ActionsWithState = logic.actionsPhase0.map(a => ({
@@ -241,6 +247,9 @@ export default function Module5Strategie() {
           prixAffiche={prixAffiche}
           typeMiseEnVente={logic.typeMiseEnVente}
           dateDebut={logic.dateDebutFormate}
+          typeBien={typeBien}
+          surface={surface}
+          pointsForts={pointsForts}
         />
 
         {/* Niveau de Contrainte Vendeur */}
