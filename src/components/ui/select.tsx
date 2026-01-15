@@ -72,6 +72,8 @@ const SelectContent = React.forwardRef<
         className,
       )}
       position={position}
+      // Empêcher le scroll vers le haut lors de la fermeture du Select
+      onCloseAutoFocus={(e) => e.preventDefault()}
       {...props}
     >
       <SelectScrollUpButton />
