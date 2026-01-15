@@ -37,6 +37,8 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
     setLoading(true);
     setError(null);
 
+    console.log(`🔍 [Cadastre] Recherche: lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}, CP=${postalCode}`);
+
     try {
       const { data: responseData, error: fetchError } = await supabase.functions.invoke(
         'cadastre-lookup',
@@ -45,22 +47,34 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
         }
       );
 
+      console.log('📦 [Cadastre] Réponse brute:', responseData);
+
       if (fetchError) {
+        console.error('❌ [Cadastre] Erreur Supabase:', fetchError);
         throw new Error(fetchError.message);
       }
 
       if (responseData?.error && !responseData.numeroParcelle) {
+        console.warn('⚠️ [Cadastre] Erreur métier:', responseData.error);
         setError(responseData.error);
         setData(null);
         return null;
       }
 
       const cadastreData = responseData as CadastreData;
+      console.log('✅ [Cadastre] Données chargées:', {
+        numeroParcelle: cadastreData.numeroParcelle,
+        surface: cadastreData.surfaceParcelle,
+        zone: cadastreData.zone,
+        source: cadastreData.source
+      });
+      
       setData(cadastreData);
       return cadastreData;
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la recherche cadastrale';
+      console.error('💥 [Cadastre] Exception:', err);
       setError(message);
       setData(null);
       return null;
