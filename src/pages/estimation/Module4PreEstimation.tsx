@@ -362,9 +362,6 @@ export default function Module4PreEstimation() {
   // Calculs détaillés pour affichage
   const deductionTravauxAppart = calcul.valeurSurfaceBrute - calcul.valeurSurface;
   const deductionTravauxMaison = calcul.cubage * (parseFloat(preEst.prixM3 || '0') - calcul.prixM3Ajuste);
-  const chargesMensuelles = calcul.loyerBrut * 0.1;
-  const loyerNet = calcul.loyerBrut - chargesMensuelles;
-  const loyerAnnuel = loyerNet * 12;
 
   if (loading) {
     return (
@@ -914,20 +911,49 @@ export default function Module4PreEstimation() {
                   placeholder="3900"
                   className="mt-1.5 text-lg"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Si inconnu, indiquez la valeur locative annuelle ci-dessous
+                </p>
               </div>
               
+              {/* Valeur locative estimée (alternative au loyer) */}
+              {!preEst.loyerMensuel && (
+                <div>
+                  <Label className="text-sm">OU Valeur locative annuelle estimée (CHF)</Label>
+                  <Input
+                    type="number"
+                    value={preEst.valeurLocativeEstimee || ''}
+                    onChange={(e) => updateField('valeurLocativeEstimee', e.target.value)}
+                    placeholder="46800"
+                    className="mt-1.5"
+                  />
+                </div>
+              )}
+              
               <div className="space-y-2 pt-2 border-t border-border">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Charges (10%)</span>
-                  <span>- {chargesMensuelles.toLocaleString('fr-CH')} CHF</span>
+                {/* Taux de charges personnalisable */}
+                <div className="flex justify-between text-sm items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Charges</span>
+                    <Input
+                      type="number"
+                      value={preEst.tauxChargesLocatives || 10}
+                      onChange={(e) => updateField('tauxChargesLocatives', parseFloat(e.target.value) || 10)}
+                      className="w-14 h-7 text-center text-xs"
+                      min={0}
+                      max={30}
+                    />
+                    <span className="text-muted-foreground">%</span>
+                  </div>
+                  <span>- {calcul.loyerBrut * ((preEst.tauxChargesLocatives || 10) / 100) | 0} CHF/mois</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Loyer net mensuel</span>
-                  <span>{loyerNet.toLocaleString('fr-CH')} CHF</span>
+                  <span>{calcul.loyerNet.toLocaleString('fr-CH')} CHF</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total annuel</span>
-                  <span className="font-medium">{loyerAnnuel.toLocaleString('fr-CH')} CHF</span>
+                  <span className="text-muted-foreground">Total annuel net</span>
+                  <span className="font-medium">{calcul.loyerAnnuel.toLocaleString('fr-CH')} CHF</span>
                 </div>
               </div>
             </div>
@@ -941,20 +967,25 @@ export default function Module4PreEstimation() {
               <Slider
                 value={[preEst.tauxCapitalisation]}
                 onValueChange={([v]) => updateField('tauxCapitalisation', v)}
-                min={2}
-                max={3}
+                min={2.5}
+                max={5}
                 step={0.25}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>2%</span>
                 <span>2.5%</span>
-                <span>3%</span>
+                <span>3.5%</span>
+                <span>5%</span>
               </div>
             </div>
             
             {/* Résultat */}
             <div className="flex items-center justify-between pt-4 border-t border-border">
-              <span className="font-semibold text-lg">Valeur de Rendement</span>
+              <div>
+                <span className="font-semibold text-lg">Valeur de Rendement</span>
+                <p className="text-xs text-muted-foreground">
+                  = Loyer annuel net ÷ Taux de capitalisation
+                </p>
+              </div>
               <span className="text-2xl font-bold text-primary">
                 {formatPriceCHF(calcul.valeurRendement)}
               </span>

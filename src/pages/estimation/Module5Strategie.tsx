@@ -262,7 +262,7 @@ export default function Module5Strategie() {
           </FormSection>
         )}
 
-        {/* Alerte Courtier */}
+        {/* Alertes Courtier */}
         {logic.ajustementPhases.alerteCourtier && (
           <AlerteCourtier
             type={logic.ajustementPhases.alerteCourtier.type}
@@ -271,6 +271,17 @@ export default function Module5Strategie() {
             actions={logic.ajustementPhases.alerteCourtier.actions}
           />
         )}
+        
+        {/* Alertes supplémentaires */}
+        {logic.ajustementPhases.alertesSupplementaires?.map((alerte, idx) => (
+          <AlerteCourtier
+            key={idx}
+            type={alerte.type}
+            title={alerte.title}
+            message={alerte.message}
+            actions={alerte.actions}
+          />
+        ))}
 
         {/* Capital-Visibilité */}
         <FormSection title="Capital-Visibilité" icon={<BarChart3 className="h-5 w-5" />}>
