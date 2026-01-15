@@ -202,6 +202,7 @@ export function useEstimationCalcul(
     const loyerBrut = parseNum(preEst.loyerMensuel);
     const loyerNet = loyerBrut * 0.9; // 10% charges
     const loyerAnnuel = loyerNet * 12;
+    // tauxCapitalisation est maintenant directement en % (ex: 2.5 pour 2.5%)
     const tauxCapi = (preEst.tauxCapitalisation || 2.5) / 100;
     const valeurRendement = tauxCapi > 0 ? arrondir5000(loyerAnnuel / tauxCapi) : 0;
     
