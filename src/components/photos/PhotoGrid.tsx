@@ -1,36 +1,74 @@
-import React from 'react';
-import { X, Star, StarOff, Loader2, GripVertical } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Star, StarOff, Loader2, Pencil, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Photo } from '@/types/estimation';
+import type { Photo, PhotoCategorie } from '@/types/estimation';
+import { PHOTO_CATEGORIES, getCategorieConfig } from '@/types/estimation';
+import { PhotoEditModal } from './PhotoEditModal';
 
 interface PhotoGridProps {
   photos: Photo[];
   onDelete: (photo: Photo) => void;
+  onUpdate?: (photo: Photo) => void;
   onToggleFavori?: (photo: Photo) => void;
-  onCategorieChange?: (photo: Photo, categorie: Photo['categorie']) => void;
+  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie) => void;
   readonly?: boolean;
+  groupByCategory?: boolean;
 }
-
-const CATEGORIES: { value: Photo['categorie']; label: string; emoji: string }[] = [
-  { value: 'exterieur', label: 'Extérieur', emoji: '🏠' },
-  { value: 'sejour', label: 'Séjour', emoji: '🛋️' },
-  { value: 'cuisine', label: 'Cuisine', emoji: '🍳' },
-  { value: 'chambre', label: 'Chambre', emoji: '🛏️' },
-  { value: 'sdb', label: 'Salle de bain', emoji: '🚿' },
-  { value: 'vue', label: 'Vue', emoji: '🌄' },
-  { value: 'parking', label: 'Parking', emoji: '🚗' },
-  { value: 'autre', label: 'Autre', emoji: '📷' },
-];
 
 export function PhotoGrid({ 
   photos, 
-  onDelete, 
+  onDelete,
+  onUpdate,
   onToggleFavori,
   onCategorieChange,
-  readonly 
+  readonly,
+  groupByCategory = true
 }: PhotoGridProps) {
+  const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
+
+  // Grouper et trier par catégorie
+  const groupedPhotos = useMemo(() => {
+    if (!groupByCategory) {
+      return [{ category: null, photos }];
+    }
+
+    const groups: Map<PhotoCategorie | 'unset', Photo[]> = new Map();
+    
+    // Initialiser les groupes dans l'ordre des catégories
+    PHOTO_CATEGORIES.forEach(cat => {
+      groups.set(cat.value, []);
+    });
+    groups.set('unset', []);
+
+    // Répartir les photos
+    photos.forEach(photo => {
+      const cat = photo.categorie || 'unset';
+      if (!groups.has(cat)) {
+        groups.set(cat, []);
+      }
+      groups.get(cat)!.push(photo);
+    });
+
+    // Convertir en array et filtrer les groupes vides
+    return Array.from(groups.entries())
+      .filter(([_, photos]) => photos.length > 0)
+      .map(([category, photos]) => ({
+        category: category === 'unset' ? null : category,
+        photos: photos.sort((a, b) => (a.ordre || 0) - (b.ordre || 0))
+      }));
+  }, [photos, groupByCategory]);
+
+  const handlePhotoSave = (updatedPhoto: Photo) => {
+    if (onUpdate) {
+      onUpdate(updatedPhoto);
+    } else if (onCategorieChange && updatedPhoto.categorie) {
+      onCategorieChange(updatedPhoto, updatedPhoto.categorie);
+    }
+    setEditingPhoto(null);
+  };
+
   if (photos.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -41,33 +79,80 @@ export function PhotoGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      {photos.map((photo) => (
-        <PhotoCard
-          key={photo.id}
-          photo={photo}
-          onDelete={() => onDelete(photo)}
-          onToggleFavori={onToggleFavori ? () => onToggleFavori(photo) : undefined}
-          onCategorieChange={onCategorieChange}
-          readonly={readonly}
-        />
-      ))}
-    </div>
+    <>
+      <div className="space-y-6">
+        {groupedPhotos.map(({ category, photos: groupPhotos }) => {
+          const catConfig = category ? getCategorieConfig(category) : null;
+          
+          return (
+            <div key={category || 'unset'}>
+              {/* Header catégorie */}
+              {groupByCategory && (
+                <div className="flex items-center gap-2 mb-2">
+                  {catConfig ? (
+                    <>
+                      <span className="text-base">{catConfig.emoji}</span>
+                      <span className="font-medium text-sm">{catConfig.label}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {groupPhotos.length}
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-base">📷</span>
+                      <span className="font-medium text-sm text-muted-foreground">Non catégorisées</span>
+                      <Badge variant="outline" className="text-xs">
+                        {groupPhotos.length}
+                      </Badge>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Grille photos */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {groupPhotos.map((photo) => (
+                  <PhotoCard
+                    key={photo.id}
+                    photo={photo}
+                    onDelete={() => onDelete(photo)}
+                    onEdit={() => setEditingPhoto(photo)}
+                    onToggleFavori={onToggleFavori ? () => onToggleFavori(photo) : undefined}
+                    onCategorieChange={onCategorieChange}
+                    readonly={readonly}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal d'édition */}
+      <PhotoEditModal
+        photo={editingPhoto}
+        open={!!editingPhoto}
+        onOpenChange={(open) => !open && setEditingPhoto(null)}
+        onSave={handlePhotoSave}
+        onDelete={!readonly ? onDelete : undefined}
+      />
+    </>
   );
 }
 
 interface PhotoCardProps {
   photo: Photo;
   onDelete: () => void;
+  onEdit: () => void;
   onToggleFavori?: () => void;
-  onCategorieChange?: (photo: Photo, categorie: Photo['categorie']) => void;
+  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie) => void;
   readonly?: boolean;
 }
 
-function PhotoCard({ photo, onDelete, onToggleFavori, onCategorieChange, readonly }: PhotoCardProps) {
-  const [showCategories, setShowCategories] = React.useState(false);
+function PhotoCard({ photo, onDelete, onEdit, onToggleFavori, onCategorieChange, readonly }: PhotoCardProps) {
+  const [showCategories, setShowCategories] = useState(false);
   const imageUrl = photo.storageUrl || photo.dataUrl;
-  const categoryInfo = CATEGORIES.find(c => c.value === photo.categorie) || CATEGORIES[7];
+  const categoryConfig = getCategorieConfig(photo.categorie);
 
   return (
     <div className="relative group rounded-lg overflow-hidden bg-muted aspect-square">
@@ -79,15 +164,27 @@ function PhotoCard({ photo, onDelete, onToggleFavori, onCategorieChange, readonl
       ) : (
         <img
           src={imageUrl}
-          alt={photo.nom}
-          className="w-full h-full object-cover"
+          alt={photo.titre || photo.nom}
+          className="w-full h-full object-cover cursor-pointer"
           loading="lazy"
+          onClick={onEdit}
         />
       )}
 
       {/* Overlay actions */}
       {!readonly && !photo.uploading && (
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 gap-1">
+          {/* Éditer */}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-white hover:bg-white/20"
+            onClick={onEdit}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+
           {/* Favori */}
           {onToggleFavori && (
             <Button
@@ -118,43 +215,61 @@ function PhotoCard({ photo, onDelete, onToggleFavori, onCategorieChange, readonl
         </div>
       )}
 
-      {/* Badge catégorie */}
-      <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
-        <Badge 
-          variant="secondary" 
-          className={cn(
-            "text-xs cursor-pointer hover:bg-secondary/80",
-            !readonly && "cursor-pointer"
-          )}
-          onClick={() => !readonly && onCategorieChange && setShowCategories(!showCategories)}
-        >
-          {categoryInfo.emoji} {categoryInfo.label}
-        </Badge>
-      </div>
-
-      {/* Sélecteur catégorie */}
-      {showCategories && !readonly && onCategorieChange && (
-        <div className="absolute inset-0 bg-black/80 p-2 flex flex-wrap content-center gap-1 z-10">
-          {CATEGORIES.map(cat => (
-            <Badge
-              key={cat.value}
-              variant={cat.value === photo.categorie ? "default" : "outline"}
-              className="cursor-pointer text-xs"
-              onClick={() => {
-                onCategorieChange(photo, cat.value);
-                setShowCategories(false);
-              }}
-            >
-              {cat.emoji} {cat.label}
-            </Badge>
-          ))}
-        </div>
-      )}
-
       {/* Indicateur favori */}
       {photo.favori && (
         <div className="absolute top-1.5 left-1.5">
           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow" />
+        </div>
+      )}
+
+      {/* Indicateur défaut */}
+      {photo.defaut && (
+        <div className="absolute top-1.5 right-1.5">
+          <AlertTriangle className="h-4 w-4 text-destructive drop-shadow" />
+        </div>
+      )}
+
+      {/* Badge info bas */}
+      <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+        <div className="flex items-center gap-1">
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "text-xs shrink-0",
+              !readonly && "cursor-pointer hover:bg-secondary/80"
+            )}
+            onClick={() => !readonly && onCategorieChange && setShowCategories(!showCategories)}
+          >
+            {categoryConfig.emoji}
+          </Badge>
+          {photo.titre && (
+            <span className="text-white text-xs truncate drop-shadow">
+              {photo.titre}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Sélecteur catégorie rapide */}
+      {showCategories && !readonly && onCategorieChange && (
+        <div 
+          className="absolute inset-0 bg-black/85 p-2 flex flex-wrap content-center gap-1 z-10"
+          onClick={() => setShowCategories(false)}
+        >
+          {PHOTO_CATEGORIES.slice(0, 12).map(cat => (
+            <Badge
+              key={cat.value}
+              variant={cat.value === photo.categorie ? "default" : "outline"}
+              className="cursor-pointer text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCategorieChange(photo, cat.value);
+                setShowCategories(false);
+              }}
+            >
+              {cat.emoji}
+            </Badge>
+          ))}
         </div>
       )}
     </div>

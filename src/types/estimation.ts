@@ -592,6 +592,58 @@ export interface AnalyseTerrain {
 // Module 4 : Photos
 // ============================================
 
+export type PhotoCategorie = 
+  | 'exterieur' 
+  | 'sejour' 
+  | 'cuisine' 
+  | 'chambre' 
+  | 'sdb' 
+  | 'autre' 
+  | 'vue' 
+  | 'parking'
+  | 'salon'
+  | 'bureau'
+  | 'cave'
+  | 'grenier'
+  | 'jardin'
+  | 'terrasse'
+  | 'balcon'
+  | 'entree'
+  | 'couloir'
+  | 'defaut'; // Photo montrant un défaut
+
+export interface PhotoCategorieConfig {
+  value: PhotoCategorie;
+  label: string;
+  emoji: string;
+  order: number;
+}
+
+export const PHOTO_CATEGORIES: PhotoCategorieConfig[] = [
+  { value: 'exterieur', label: 'Extérieur', emoji: '🏠', order: 1 },
+  { value: 'entree', label: 'Entrée', emoji: '🚪', order: 2 },
+  { value: 'sejour', label: 'Séjour', emoji: '🛋️', order: 3 },
+  { value: 'salon', label: 'Salon', emoji: '🪑', order: 4 },
+  { value: 'cuisine', label: 'Cuisine', emoji: '🍳', order: 5 },
+  { value: 'chambre', label: 'Chambre', emoji: '🛏️', order: 6 },
+  { value: 'bureau', label: 'Bureau', emoji: '💼', order: 7 },
+  { value: 'sdb', label: 'Salle de bain', emoji: '🚿', order: 8 },
+  { value: 'couloir', label: 'Couloir', emoji: '🚶', order: 9 },
+  { value: 'balcon', label: 'Balcon', emoji: '🌿', order: 10 },
+  { value: 'terrasse', label: 'Terrasse', emoji: '☀️', order: 11 },
+  { value: 'jardin', label: 'Jardin', emoji: '🌳', order: 12 },
+  { value: 'vue', label: 'Vue', emoji: '🌄', order: 13 },
+  { value: 'parking', label: 'Parking', emoji: '🚗', order: 14 },
+  { value: 'cave', label: 'Cave', emoji: '📦', order: 15 },
+  { value: 'grenier', label: 'Grenier', emoji: '🏚️', order: 16 },
+  { value: 'defaut', label: 'Défaut', emoji: '⚠️', order: 17 },
+  { value: 'autre', label: 'Autre', emoji: '📷', order: 18 },
+];
+
+export function getCategorieConfig(categorie?: PhotoCategorie): PhotoCategorieConfig {
+  return PHOTO_CATEGORIES.find(c => c.value === categorie) || PHOTO_CATEGORIES[PHOTO_CATEGORIES.length - 1];
+}
+
 export interface Photo {
   id: string;
   dataUrl: string;
@@ -603,11 +655,18 @@ export interface Photo {
   uploaded: boolean;
   uploading?: boolean;
   driveUrl?: string;
-  categorie?: 'exterieur' | 'sejour' | 'cuisine' | 'chambre' | 'sdb' | 'autre' | 'vue' | 'parking';
+  categorie?: PhotoCategorie;
   ordre?: number;
   favori?: boolean;
   tailleFichier?: number; // Taille en bytes
   dimensionsOriginales?: { width: number; height: number };
+  
+  // Annotations (NOUVEAU)
+  titre?: string;             // Ex: "Cuisine équipée"
+  description?: string;       // Ex: "État impeccable, rénovée en 2022"
+  defaut?: boolean;           // Si c'est une photo de défaut à noter
+  uploadedAt?: string;        // ISO timestamp
+  uploadedBy?: string;        // ID ou nom du courtier
 }
 
 export interface Photos {

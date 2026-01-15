@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Camera, Loader2, Image } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Loader2, Image, Grid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection } from '@/components/gary/FormSection';
@@ -11,12 +13,14 @@ import { PhotoCapture } from '@/components/photos/PhotoCapture';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
-import type { EstimationData, Photo, Photos } from '@/types/estimation';
+import { useAuth } from '@/hooks/useAuth';
+import type { EstimationData, Photo, Photos, PhotoCategorie } from '@/types/estimation';
 import { defaultPhotos } from '@/types/estimation';
 
 export default function ModulePhotos() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { fetchEstimation, updateEstimation } = useEstimationPersistence();
   const { uploading, progress, uploadPhoto, deletePhoto } = usePhotoUpload();
 
@@ -24,6 +28,7 @@ export default function ModulePhotos() {
   const [photos, setPhotos] = useState<Photos>(defaultPhotos);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [groupByCategory, setGroupByCategory] = useState(true);
 
   // Charger l'estimation
   useEffect(() => {
@@ -57,7 +62,9 @@ export default function ModulePhotos() {
           date: new Date().toISOString(),
           uploaded: false,
           uploading: true,
-          categorie: 'autre'
+          categorie: 'autre',
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: user?.email || 'unknown'
         };
 
         // Ajouter la photo temporaire
@@ -70,11 +77,17 @@ export default function ModulePhotos() {
         const uploadedPhoto = await uploadPhoto(file, id);
         
         if (uploadedPhoto) {
-          // Remplacer la photo temp par la vraie
+          // Remplacer la photo temp par la vraie avec les métadonnées
           setPhotos(prev => ({
             ...prev,
             items: prev.items.map(p => 
-              p.id === tempPhoto.id ? uploadedPhoto : p
+              p.id === tempPhoto.id 
+                ? { 
+                    ...uploadedPhoto, 
+                    uploadedAt: tempPhoto.uploadedAt,
+                    uploadedBy: tempPhoto.uploadedBy
+                  } 
+                : p
             )
           }));
         } else {
@@ -87,7 +100,7 @@ export default function ModulePhotos() {
       };
       reader.readAsDataURL(file);
     }
-  }, [id, uploadPhoto]);
+  }, [id, uploadPhoto, user]);
 
   // Supprimer une photo
   const handleDelete = useCallback(async (photo: Photo) => {
@@ -102,6 +115,16 @@ export default function ModulePhotos() {
     }
   }, [id, deletePhoto]);
 
+  // Mettre à jour une photo (annotations)
+  const handleUpdate = useCallback((updatedPhoto: Photo) => {
+    setPhotos(prev => ({
+      ...prev,
+      items: prev.items.map(p =>
+        p.id === updatedPhoto.id ? updatedPhoto : p
+      )
+    }));
+  }, []);
+
   // Toggle favori
   const handleToggleFavori = useCallback((photo: Photo) => {
     setPhotos(prev => ({
@@ -113,7 +136,7 @@ export default function ModulePhotos() {
   }, []);
 
   // Changer catégorie
-  const handleCategorieChange = useCallback((photo: Photo, categorie: Photo['categorie']) => {
+  const handleCategorieChange = useCallback((photo: Photo, categorie: PhotoCategorie) => {
     setPhotos(prev => ({
       ...prev,
       items: prev.items.map(p =>
@@ -194,18 +217,37 @@ export default function ModulePhotos() {
           </div>
         )}
 
-        {/* Stats photos */}
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Image className="h-4 w-4 text-muted-foreground" />
-            <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
-          </div>
-          {pendingCount > 0 && (
-            <div className="flex items-center gap-2 text-primary">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{pendingCount} en cours</span>
+        {/* Stats photos & Options */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Image className="h-4 w-4 text-muted-foreground" />
+              <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
             </div>
-          )}
+            {pendingCount > 0 && (
+              <div className="flex items-center gap-2 text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{pendingCount} en cours</span>
+              </div>
+            )}
+            {photos.items.filter(p => p.favori).length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                ⭐ {photos.items.filter(p => p.favori).length} favori(s)
+              </span>
+            )}
+          </div>
+          
+          {/* Toggle vue groupée */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="groupBy" className="text-xs text-muted-foreground">
+              Grouper
+            </Label>
+            <Switch
+              id="groupBy"
+              checked={groupByCategory}
+              onCheckedChange={setGroupByCategory}
+            />
+          </div>
         </div>
 
         {/* Progress upload */}
@@ -235,11 +277,14 @@ export default function ModulePhotos() {
           title="Photos du bien" 
           icon={<Image className="h-4 w-4" />}
         >
+          <p className="text-xs text-muted-foreground mb-3">Cliquez sur une photo pour l'annoter</p>
           <PhotoGrid
             photos={photos.items}
             onDelete={handleDelete}
+            onUpdate={handleUpdate}
             onToggleFavori={handleToggleFavori}
             onCategorieChange={handleCategorieChange}
+            groupByCategory={groupByCategory}
           />
         </FormSection>
 
