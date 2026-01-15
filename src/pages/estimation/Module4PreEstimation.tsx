@@ -11,9 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationCalcul, formatPriceCHF } from '@/hooks/useEstimationCalcul';
-import { EstimationData, defaultPreEstimation, PreEstimation, TypeMiseEnVente, Comparable, LigneSupp } from '@/types/estimation';
+import { EstimationData, defaultPreEstimation, PreEstimation, TypeMiseEnVente, Comparable, LigneSupp, Annexe } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ============================================
@@ -181,6 +181,22 @@ function PrixMiseEnVenteOption({ type, label, description, icon, selected, pourc
 }
 
 // ============================================
+// ANNEXES MAISON PRÉDÉFINIES
+// ============================================
+const ANNEXES_MAISON_OPTIONS = [
+  { id: 'piscine', label: 'Piscine', icon: '🏊', defaultPrix: '50000' },
+  { id: 'pool_house', label: 'Pool House', icon: '🏠', defaultPrix: '30000' },
+  { id: 'garage_double', label: 'Garage double', icon: '🚗', defaultPrix: '40000' },
+  { id: 'carport', label: 'Carport', icon: '🅿️', defaultPrix: '15000' },
+  { id: 'abri_jardin', label: 'Abri de jardin', icon: '🏡', defaultPrix: '5000' },
+  { id: 'veranda', label: 'Véranda', icon: '🌿', defaultPrix: '25000' },
+  { id: 'sauna', label: 'Sauna', icon: '🧖', defaultPrix: '15000' },
+  { id: 'jacuzzi', label: 'Jacuzzi', icon: '🛁', defaultPrix: '10000' },
+  { id: 'terrain_tennis', label: 'Terrain tennis', icon: '🎾', defaultPrix: '80000' },
+  { id: 'ecurie', label: 'Écurie', icon: '🐴', defaultPrix: '60000' },
+];
+
+// ============================================
 // Composant Principal
 // ============================================
 export default function Module4PreEstimation() {
@@ -248,7 +264,7 @@ export default function Module4PreEstimation() {
     navigate(`/estimation/${id}/photos`);
   };
 
-  // Gestion des lignes supplémentaires
+  // Gestion des lignes supplémentaires (Appartement)
   const addLigneSupp = () => {
     updateField('lignesSupp', [...preEst.lignesSupp, { libelle: '', prix: '' }]);
   };
@@ -261,6 +277,28 @@ export default function Module4PreEstimation() {
 
   const deleteLigneSupp = (index: number) => {
     updateField('lignesSupp', preEst.lignesSupp.filter((_, i) => i !== index));
+  };
+
+  // Gestion des annexes (Maison)
+  const addAnnexe = (annexeId?: string) => {
+    if (annexeId) {
+      const opt = ANNEXES_MAISON_OPTIONS.find(a => a.id === annexeId);
+      if (opt) {
+        updateField('annexes', [...preEst.annexes, { libelle: opt.label, prix: opt.defaultPrix }]);
+      }
+    } else {
+      updateField('annexes', [...preEst.annexes, { libelle: '', prix: '' }]);
+    }
+  };
+
+  const updateAnnexe = (index: number, data: Annexe) => {
+    const newAnnexes = [...preEst.annexes];
+    newAnnexes[index] = data;
+    updateField('annexes', newAnnexes);
+  };
+
+  const deleteAnnexe = (index: number) => {
+    updateField('annexes', preEst.annexes.filter((_, i) => i !== index));
   };
 
   // Gestion des comparables vendus
@@ -305,11 +343,13 @@ export default function Module4PreEstimation() {
   // Récupération données caractéristiques
   const carac = estimation?.caracteristiques;
   const nbPlaceInt = parseInt(carac?.parkingInterieur || '0') || 0;
+  const nbPlaceExt = parseInt(carac?.parkingExterieur || '0') || 0;
+  const nbBox = parseInt(carac?.box || '0') || 0;
   const hasCave = carac?.cave || false;
-  const nbCave = hasCave ? 1 : 0;
 
   // Calculs détaillés pour affichage
-  const deductionTravaux = calcul.valeurSurfaceBrute - calcul.valeurSurface;
+  const deductionTravauxAppart = calcul.valeurSurfaceBrute - calcul.valeurSurface;
+  const deductionTravauxMaison = calcul.cubage * (parseFloat(preEst.prixM3 || '0') - calcul.prixM3Ajuste);
   const chargesMensuelles = calcul.loyerBrut * 0.1;
   const loyerNet = calcul.loyerBrut - chargesMensuelles;
   const loyerAnnuel = loyerNet * 12;
@@ -338,168 +378,487 @@ export default function Module4PreEstimation() {
       />
 
       <div className="p-4 space-y-6">
+
+        {/* ============================================ */}
+        {/* BADGE TYPE DE BIEN */}
+        {/* ============================================ */}
+        <div className="flex items-center gap-2">
+          {isAppartement && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+              <Building2 className="h-4 w-4" />
+              Appartement
+            </div>
+          )}
+          {isMaison && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
+              <Home className="h-4 w-4" />
+              Maison
+            </div>
+          )}
+        </div>
         
         {/* ============================================ */}
-        {/* VALEUR VÉNALE */}
+        {/* VALEUR VÉNALE - APPARTEMENT */}
         {/* ============================================ */}
-        <FormSection 
-          title="VALEUR VÉNALE" 
-          icon={<Flame className="h-4 w-4 text-orange-500" />}
-          variant="highlight"
-        >
-          <div className="space-y-4">
-            
-            {/* Surface pondérée × Prix/m² */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h4 className="font-medium mb-3">Surface pondérée</h4>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {calcul.surfacePonderee.toFixed(1)} m²
-                </span>
-                <span className="text-muted-foreground">×</span>
-                <Input
-                  type="number"
-                  value={preEst.prixM2}
-                  onChange={(e) => updateField('prixM2', e.target.value)}
-                  placeholder="11900"
-                  className="w-28 text-center"
-                />
-                <span className="text-muted-foreground">=</span>
-                <span className="font-medium whitespace-nowrap">
-                  {formatPriceCHF(calcul.valeurSurfaceBrute)}
-                </span>
-              </div>
-            </div>
-            
-            {/* Réduction travaux / vétusté */}
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-amber-600">🔧</span>
-                  <span className="font-medium">Réduction travaux / vétusté</span>
-                </div>
-                <span className="font-bold text-amber-600">{preEst.tauxVetuste}%</span>
-              </div>
+        {isAppartement && (
+          <FormSection 
+            title="VALEUR VÉNALE" 
+            icon={<Flame className="h-4 w-4 text-orange-500" />}
+            variant="highlight"
+          >
+            <div className="space-y-4">
               
-              <Slider
-                value={[preEst.tauxVetuste]}
-                onValueChange={([v]) => updateField('tauxVetuste', v)}
-                min={0}
-                max={50}
-                step={1}
-                className="my-3"
-              />
-              
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0%</span>
-                <span>25%</span>
-                <span>50%</span>
-              </div>
-              
-              <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-900 space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span>Prix/m² ajusté</span>
-                  <span className="font-medium">{calcul.prixM2Ajuste.toLocaleString('fr-CH')} CHF/m²</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-destructive">Déduction travaux</span>
-                  <span className="font-medium text-destructive">- {deductionTravaux.toLocaleString('fr-CH')} CHF</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-primary font-medium">Valeur ajustée</span>
-                  <span className="font-bold text-primary">{formatPriceCHF(calcul.valeurSurface)}</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Places intérieures */}
-            {nbPlaceInt > 0 && (
+              {/* Surface pondérée × Prix/m² */}
               <div className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span>🚗</span>
-                  <h4 className="font-medium">Places intérieures</h4>
-                </div>
+                <h4 className="font-medium mb-3">Surface pondérée</h4>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">{nbPlaceInt} place(s)</span>
+                  <span className="text-muted-foreground">
+                    {calcul.surfacePonderee.toFixed(1)} m²
+                  </span>
                   <span className="text-muted-foreground">×</span>
                   <Input
                     type="number"
-                    value={preEst.prixPlaceInt}
-                    onChange={(e) => updateField('prixPlaceInt', e.target.value)}
-                    placeholder="30000"
+                    value={preEst.prixM2}
+                    onChange={(e) => updateField('prixM2', e.target.value)}
+                    placeholder="11900"
                     className="w-28 text-center"
                   />
                   <span className="text-muted-foreground">=</span>
                   <span className="font-medium whitespace-nowrap">
-                    {formatPriceCHF(calcul.valeurPlaceInt)}
+                    {formatPriceCHF(calcul.valeurSurfaceBrute)}
                   </span>
                 </div>
               </div>
-            )}
-            
-            {/* Cave */}
-            {hasCave && (
+              
+              {/* Réduction travaux / vétusté Appartement */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-600">🔧</span>
+                    <span className="font-medium">Réduction travaux / vétusté</span>
+                  </div>
+                  <span className="font-bold text-amber-600">{preEst.tauxVetuste}%</span>
+                </div>
+                
+                <Slider
+                  value={[preEst.tauxVetuste]}
+                  onValueChange={([v]) => updateField('tauxVetuste', v)}
+                  min={0}
+                  max={50}
+                  step={1}
+                  className="my-3"
+                />
+                
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0%</span>
+                  <span>25%</span>
+                  <span>50%</span>
+                </div>
+                
+                <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-900 space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span>Prix/m² ajusté</span>
+                    <span className="font-medium">{calcul.prixM2Ajuste.toLocaleString('fr-CH')} CHF/m²</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-destructive">Déduction travaux</span>
+                    <span className="font-medium text-destructive">- {deductionTravauxAppart.toLocaleString('fr-CH')} CHF</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-primary font-medium">Valeur ajustée</span>
+                    <span className="font-bold text-primary">{formatPriceCHF(calcul.valeurSurface)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Places intérieures */}
+              {nbPlaceInt > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>🚗</span>
+                    <h4 className="font-medium">Places intérieures ({nbPlaceInt})</h4>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{nbPlaceInt} place(s)</span>
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixPlaceInt}
+                      onChange={(e) => updateField('prixPlaceInt', e.target.value)}
+                      placeholder="30000"
+                      className="w-28 text-center"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatPriceCHF(calcul.valeurPlaceInt)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Places extérieures */}
+              {nbPlaceExt > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>🅿️</span>
+                    <h4 className="font-medium">Places extérieures ({nbPlaceExt})</h4>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{nbPlaceExt} place(s)</span>
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixPlaceExt}
+                      onChange={(e) => updateField('prixPlaceExt', e.target.value)}
+                      placeholder="20000"
+                      className="w-28 text-center"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatPriceCHF(calcul.valeurPlaceExt)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Box */}
+              {nbBox > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>🏠</span>
+                    <h4 className="font-medium">Box ({nbBox})</h4>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{nbBox} box</span>
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixBox}
+                      onChange={(e) => updateField('prixBox', e.target.value)}
+                      placeholder="40000"
+                      className="w-28 text-center"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatPriceCHF(calcul.valeurBox)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Cave */}
+              {hasCave && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>🍷</span>
+                    <h4 className="font-medium">Cave</h4>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">1 cave</span>
+                    <span className="text-muted-foreground">=</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixCave}
+                      onChange={(e) => updateField('prixCave', e.target.value)}
+                      placeholder="0"
+                      className="w-28 text-center"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Lignes supplémentaires */}
+              {preEst.lignesSupp.map((ligne, index) => (
+                <div key={index} className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <Input
+                      value={ligne.libelle}
+                      onChange={(e) => updateLigneSupp(index, { ...ligne, libelle: e.target.value })}
+                      placeholder="Libellé"
+                      className="flex-1"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <Input
+                      type="number"
+                      value={ligne.prix}
+                      onChange={(e) => updateLigneSupp(index, { ...ligne, prix: e.target.value })}
+                      placeholder="Prix"
+                      className="w-28 text-center"
+                    />
+                    <button onClick={() => deleteLigneSupp(index)} className="text-destructive">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Bouton ajouter ligne */}
+              <button 
+                onClick={addLigneSupp}
+                className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                + Ajouter une ligne
+              </button>
+              
+              {/* Total Valeur Vénale */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="font-semibold text-lg">Total Valeur Vénale</span>
+                <span className="text-2xl font-bold text-primary">
+                  {formatPriceCHF(calcul.totalVenaleArrondi)}
+                </span>
+              </div>
+            </div>
+          </FormSection>
+        )}
+
+        {/* ============================================ */}
+        {/* VALEUR VÉNALE - MAISON */}
+        {/* ============================================ */}
+        {isMaison && (
+          <FormSection 
+            title="VALEUR VÉNALE" 
+            icon={<Flame className="h-4 w-4 text-orange-500" />}
+            variant="highlight"
+          >
+            <div className="space-y-4">
+              
+              {/* 1. TERRAIN */}
               <div className="bg-card border border-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <span>🍷</span>
-                  <h4 className="font-medium">Cave</h4>
+                  <TreeDeciduous className="h-4 w-4 text-green-600" />
+                  <h4 className="font-medium">Terrain</h4>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">{nbCave} cave</span>
-                  <span className="text-muted-foreground">=</span>
+                  <span className="text-muted-foreground">
+                    {parseFloat(carac?.surfaceTerrain || '0').toLocaleString('fr-CH')} m²
+                  </span>
+                  <span className="text-muted-foreground">×</span>
                   <Input
                     type="number"
-                    value={preEst.prixCave}
-                    onChange={(e) => updateField('prixCave', e.target.value)}
-                    placeholder="0"
+                    value={preEst.prixM2Terrain}
+                    onChange={(e) => updateField('prixM2Terrain', e.target.value)}
+                    placeholder="1200"
                     className="w-28 text-center"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Lignes supplémentaires */}
-            {preEst.lignesSupp.map((ligne, index) => (
-              <div key={index} className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <Input
-                    value={ligne.libelle}
-                    onChange={(e) => updateLigneSupp(index, { ...ligne, libelle: e.target.value })}
-                    placeholder="Libellé"
-                    className="flex-1"
                   />
                   <span className="text-muted-foreground">=</span>
-                  <Input
-                    type="number"
-                    value={ligne.prix}
-                    onChange={(e) => updateLigneSupp(index, { ...ligne, prix: e.target.value })}
-                    placeholder="Prix"
-                    className="w-28 text-center"
-                  />
-                  <button onClick={() => deleteLigneSupp(index)} className="text-destructive">
-                    <X className="h-4 w-4" />
-                  </button>
+                  <span className="font-medium whitespace-nowrap">
+                    {formatPriceCHF(calcul.valeurTerrain)}
+                  </span>
                 </div>
               </div>
-            ))}
-            
-            {/* Bouton ajouter ligne */}
-            <button 
-              onClick={addLigneSupp}
-              className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-            >
-              + Ajouter une ligne
-            </button>
-            
-            {/* Total Valeur Vénale */}
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <span className="font-semibold text-lg">Total Valeur Vénale</span>
-              <span className="text-2xl font-bold text-primary">
-                {formatPriceCHF(calcul.totalVenaleArrondi)}
-              </span>
+
+              {/* 2. CUBAGE (VOLUME) */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mountain className="h-4 w-4 text-slate-600" />
+                  <h4 className="font-medium">Volume bâti (cubage SIA)</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Cubage automatique</span>
+                    <span>{calcul.cubageAuto.toFixed(0)} m³</span>
+                  </div>
+                  
+                  <FormRow label="Cubage manuel (optionnel)">
+                    <Input
+                      type="number"
+                      value={preEst.cubageManuel}
+                      onChange={(e) => updateField('cubageManuel', e.target.value)}
+                      placeholder="Laisser vide pour auto"
+                      className="text-center"
+                    />
+                  </FormRow>
+                  
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <span className="text-muted-foreground font-medium">
+                      {calcul.cubage.toFixed(0)} m³
+                    </span>
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixM3}
+                      onChange={(e) => updateField('prixM3', e.target.value)}
+                      placeholder="950"
+                      className="w-28 text-center"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatPriceCHF(calcul.cubage * parseFloat(preEst.prixM3 || '0'))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Réduction vétusté MAISON */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-600">🔧</span>
+                    <span className="font-medium">Réduction travaux / vétusté</span>
+                  </div>
+                  <span className="font-bold text-amber-600">{preEst.tauxVetusteMaison}%</span>
+                </div>
+                
+                <Slider
+                  value={[preEst.tauxVetusteMaison]}
+                  onValueChange={([v]) => updateField('tauxVetusteMaison', v)}
+                  min={0}
+                  max={50}
+                  step={1}
+                  className="my-3"
+                />
+                
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0%</span>
+                  <span>25%</span>
+                  <span>50%</span>
+                </div>
+                
+                <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-900 space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span>Prix/m³ ajusté</span>
+                    <span className="font-medium">{calcul.prixM3Ajuste.toLocaleString('fr-CH')} CHF/m³</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-destructive">Déduction travaux</span>
+                    <span className="font-medium text-destructive">- {deductionTravauxMaison.toLocaleString('fr-CH')} CHF</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-primary font-medium">Valeur cubage ajustée</span>
+                    <span className="font-bold text-primary">{formatPriceCHF(calcul.valeurCubage)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. AMÉNAGEMENTS EXTÉRIEURS */}
+              {calcul.surfaceAmenagement > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>🌳</span>
+                    <h4 className="font-medium">Aménagements extérieurs</h4>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      {calcul.surfaceAmenagement.toFixed(0)} m²
+                    </span>
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={preEst.prixM2Amenagement}
+                      onChange={(e) => updateField('prixM2Amenagement', e.target.value)}
+                      placeholder="200"
+                      className="w-28 text-center"
+                    />
+                    <span className="text-muted-foreground">=</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatPriceCHF(calcul.valeurAmenagement)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. ANNEXES MAISON */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Warehouse className="h-4 w-4 text-slate-600" />
+                  <h4 className="font-medium">Annexes & Équipements</h4>
+                </div>
+                
+                {/* Annexes existantes */}
+                {preEst.annexes.map((annexe, index) => (
+                  <div key={index} className="bg-card border border-border rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <Input
+                        value={annexe.libelle}
+                        onChange={(e) => updateAnnexe(index, { ...annexe, libelle: e.target.value })}
+                        placeholder="Libellé"
+                        className="flex-1"
+                      />
+                      <span className="text-muted-foreground">=</span>
+                      <Input
+                        type="number"
+                        value={annexe.prix}
+                        onChange={(e) => updateAnnexe(index, { ...annexe, prix: e.target.value })}
+                        placeholder="Prix"
+                        className="w-28 text-center"
+                      />
+                      <button onClick={() => deleteAnnexe(index)} className="text-destructive">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Chips annexes prédéfinies */}
+                <div className="flex flex-wrap gap-2">
+                  {ANNEXES_MAISON_OPTIONS
+                    .filter(opt => !preEst.annexes.some(a => a.libelle === opt.label))
+                    .slice(0, 6)
+                    .map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => addAnnexe(opt.id)}
+                        className="px-3 py-1.5 bg-muted rounded-full text-sm hover:bg-muted/80 flex items-center gap-1.5"
+                      >
+                        <span>{opt.icon}</span>
+                        {opt.label}
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    ))}
+                </div>
+
+                {/* Bouton ajouter annexe libre */}
+                <button 
+                  onClick={() => addAnnexe()}
+                  className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  + Ajouter une annexe
+                </button>
+
+                {/* Total annexes */}
+                {preEst.annexes.length > 0 && (
+                  <div className="flex justify-between text-sm pt-2">
+                    <span className="text-muted-foreground">Total annexes</span>
+                    <span className="font-medium">{formatPriceCHF(calcul.valeurAnnexes)}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Total Valeur Vénale Maison */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="font-semibold text-lg">Total Valeur Vénale</span>
+                <span className="text-2xl font-bold text-primary">
+                  {formatPriceCHF(calcul.totalVenaleArrondi)}
+                </span>
+              </div>
+
+              {/* Détail du calcul maison */}
+              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Terrain</span>
+                  <span>{formatPriceCHF(calcul.valeurTerrain)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Volume bâti (après vétusté)</span>
+                  <span>{formatPriceCHF(calcul.valeurCubage)}</span>
+                </div>
+                {calcul.valeurAmenagement > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Aménagements</span>
+                    <span>{formatPriceCHF(calcul.valeurAmenagement)}</span>
+                  </div>
+                )}
+                {calcul.valeurAnnexes > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Annexes</span>
+                    <span>{formatPriceCHF(calcul.valeurAnnexes)}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </FormSection>
+          </FormSection>
+        )}
 
         {/* ============================================ */}
         {/* VALEUR DE RENDEMENT */}
