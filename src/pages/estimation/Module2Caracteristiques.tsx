@@ -566,19 +566,32 @@ export default function Module2Caracteristiques() {
                           </FormRow>
                         </div>
 
-                        <FormRow 
-                          label="Surface sous-sol (m²)" 
-                          optional 
-                          helper={`Auto: ${Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0))} m²`}
-                        >
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            value={carac.surfaceSousSol || ''}
-                            onChange={(e) => updateField('surfaceSousSol', e.target.value)}
-                            placeholder={Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0)).toString()}
-                          />
-                        </FormRow>
+                        {(() => {
+                          const maxSousSol = Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0));
+                          return (
+                            <FormRow 
+                              label="Surface sous-sol (m²)" 
+                              optional 
+                              helper={`Max: ${maxSousSol} m²`}
+                            >
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                max={maxSousSol}
+                                value={carac.surfaceSousSol || ''}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (val <= maxSousSol) {
+                                    updateField('surfaceSousSol', e.target.value);
+                                  } else {
+                                    updateField('surfaceSousSol', maxSousSol.toString());
+                                  }
+                                }}
+                                placeholder={maxSousSol.toString()}
+                              />
+                            </FormRow>
+                          );
+                        })()}
 
                         <FormRow label="Combles">
                           <div className="flex flex-col gap-2">
