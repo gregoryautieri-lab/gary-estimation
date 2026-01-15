@@ -275,6 +275,16 @@ export function getModuleStatuses(estimation: EstimationData | null, id: string)
       route: `/estimation/${id}/3`
     },
     {
+      name: 'Photos',
+      moduleNumber: '📸',
+      completion: estimation?.photos?.items?.length ? 100 : 0,
+      status: estimation?.photos?.items?.length ? 'complete' : 'empty',
+      details: estimation?.photos?.items?.length 
+        ? `${estimation.photos.items.length} photo(s)` 
+        : 'Aucune photo',
+      route: `/estimation/${id}/photos`
+    },
+    {
       name: 'Pré-estimation',
       moduleNumber: 4,
       completion: completion.module4,
@@ -289,16 +299,6 @@ export function getModuleStatuses(estimation: EstimationData | null, id: string)
       status: getStatus(completion.module5),
       details: getDetail(completion.module5, 'Stratégie'),
       route: `/estimation/${id}/5`
-    },
-    {
-      name: 'Photos',
-      moduleNumber: '📸',
-      completion: estimation?.photos?.items?.length ? 100 : 0,
-      status: estimation?.photos?.items?.length ? 'complete' : 'empty',
-      details: estimation?.photos?.items?.length 
-        ? `${estimation.photos.items.length} photo(s)` 
-        : 'Aucune photo',
-      route: `/estimation/${id}/photos`
     }
   ];
 }
