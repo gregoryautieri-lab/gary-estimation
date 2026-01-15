@@ -11,7 +11,7 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Composants stratégie
@@ -25,6 +25,7 @@ import { PitchEditor } from '@/components/strategie/PitchEditor';
 import { EtapeChecklist, ETAPES_PROCHAINES } from '@/components/strategie/EtapeChecklist';
 import { Phase0Checklist } from '@/components/strategie/Phase0Checklist';
 import { DateVenteIdeale } from '@/components/strategie/DateVenteIdeale';
+import { ContrainteBadge } from '@/components/strategie/ContrainteBadge';
 import { format, nextMonday } from 'date-fns';
 
 export default function Module5Strategie() {
@@ -241,6 +242,16 @@ export default function Module5Strategie() {
           typeMiseEnVente={logic.typeMiseEnVente}
           dateDebut={logic.dateDebutFormate}
         />
+
+        {/* Niveau de Contrainte Vendeur */}
+        {logic.niveauContrainte > 0 && (
+          <FormSection title="Contrainte vendeur" icon={<Users className="h-5 w-5" />}>
+            <ContrainteBadge 
+              niveau={logic.niveauContrainte} 
+              label={logic.contrainteLabel}
+            />
+          </FormSection>
+        )}
 
         {/* Alerte Courtier */}
         {logic.ajustementPhases.alerteCourtier && (
