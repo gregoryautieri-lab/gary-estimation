@@ -176,12 +176,10 @@ serve(async (req) => {
         }
       };
 
-      // Helper pour vérifier si un lieu est en Suisse (via vicinity ou coordonnées)
-      // Coordonnées approximatives de la Suisse
+      // Helper pour vérifier si un lieu est en Suisse
       const isInSwitzerland = (result: any): boolean => {
-        const lat = result.geometry?.location?.lat;
-        const lng = result.geometry?.location?.lng;
         const vicinity = (result.vicinity || '').toLowerCase();
+        const name = (result.name || '').toLowerCase();
         
         // Exclure les villes françaises frontalières connues
         const frenchCities = ['annemasse', 'saint-julien', 'gaillard', 'ambilly', 'ville-la-grand', 
@@ -189,33 +187,61 @@ serve(async (req) => {
                               'annecy', 'bonneville', 'cluses', 'chamonix', 'megève'];
         
         for (const city of frenchCities) {
-          if (vicinity.includes(city) || (result.name || '').toLowerCase().includes(city)) {
+          if (vicinity.includes(city) || name.includes(city)) {
             return false;
           }
         }
-        
-        // Vérification par coordonnées (frontière ouest de la Suisse ~6.0°)
-        // La France est généralement à l'ouest (longitude plus basse) dans la région de Genève
-        // Mais c'est approximatif, donc on se fie surtout aux noms de villes
-        
         return true;
       };
 
-      // Trouver le plus proche EN SUISSE
+      // Fonction pour obtenir la distance réelle par la route via Distance Matrix API
+      const getRoadDistance = async (destinations: any[]): Promise<{ index: number; distance: number; duration: number }[]> => {
+        if (destinations.length === 0) return [];
+        
+        const destinationsStr = destinations
+          .map(d => `${d.geometry.location.lat},${d.geometry.location.lng}`)
+          .join('|');
+        
+        const matrixUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${latitude},${longitude}&destinations=${destinationsStr}&mode=driving&key=${GOOGLE_PLACES_API_KEY}`;
+        
+        const matrixResponse = await fetch(matrixUrl);
+        const matrixData = await matrixResponse.json();
+        
+        if (matrixData.status !== 'OK' || !matrixData.rows?.[0]?.elements) {
+          // Fallback: retourner les distances vol d'oiseau
+          return destinations.map((d, i) => ({
+            index: i,
+            distance: calculateDistance(latitude, longitude, d.geometry.location.lat, d.geometry.location.lng),
+            duration: 0
+          }));
+        }
+        
+        return matrixData.rows[0].elements.map((element: any, index: number) => ({
+          index,
+          distance: element.status === 'OK' ? element.distance.value : Infinity,
+          duration: element.status === 'OK' ? element.duration.value : 0
+        }));
+      };
+
+      // Trouver le plus proche EN SUISSE par la route
       let busStop = null;
       let trainStation = null;
 
+      // Traitement des arrêts de bus
       if (busData.results && busData.results.length > 0) {
-        // Filtrer pour ne garder que les résultats suisses
         const swissResults = busData.results.filter(isInSwitzerland);
-        const closest = swissResults[0] || busData.results[0]; // Fallback au premier si aucun suisse trouvé
         
         if (swissResults.length > 0) {
-          const distance = calculateDistance(
-            latitude, longitude,
-            closest.geometry.location.lat,
-            closest.geometry.location.lng
-          );
+          // Pour les bus, on prend les 5 premiers et on calcule la distance réelle
+          const topCandidates = swissResults.slice(0, 5);
+          const roadDistances = await getRoadDistance(topCandidates);
+          
+          // Trier par distance route
+          roadDistances.sort((a, b) => a.distance - b.distance);
+          const closestIndex = roadDistances[0].index;
+          const closest = topCandidates[closestIndex];
+          const distance = roadDistances[0].distance;
+          
           const travel = formatTravelTime(distance);
           busStop = {
             nom: closest.name,
@@ -228,17 +254,21 @@ serve(async (req) => {
         }
       }
 
+      // Traitement des gares
       if (trainData.results && trainData.results.length > 0) {
-        // Filtrer pour ne garder que les résultats suisses
         const swissResults = trainData.results.filter(isInSwitzerland);
         
         if (swissResults.length > 0) {
-          const closest = swissResults[0];
-          const distance = calculateDistance(
-            latitude, longitude,
-            closest.geometry.location.lat,
-            closest.geometry.location.lng
-          );
+          // Pour les gares, on prend les 10 premiers et on calcule la distance réelle
+          const topCandidates = swissResults.slice(0, 10);
+          const roadDistances = await getRoadDistance(topCandidates);
+          
+          // Trier par distance route
+          roadDistances.sort((a, b) => a.distance - b.distance);
+          const closestIndex = roadDistances[0].index;
+          const closest = topCandidates[closestIndex];
+          const distance = roadDistances[0].distance;
+          
           const travel = formatTravelTime(distance);
           trainStation = {
             nom: closest.name,
