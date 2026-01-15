@@ -58,12 +58,16 @@ function rowToEstimation(row: {
 }): EstimationData {
   // Deep merge pour identification avec adresse imbriquée
   const identificationFromDb = row.identification as object || {};
+  const adresseFromDb = (identificationFromDb as any).adresse || {};
   const mergedIdentification = {
     ...defIdent,
     ...identificationFromDb,
     adresse: {
       ...defIdent.adresse,
-      ...((identificationFromDb as any).adresse || {})
+      ...adresseFromDb,
+      // Préserver les objets imbriqués dans adresse
+      coordinates: adresseFromDb.coordinates || defIdent.adresse.coordinates,
+      cadastreData: adresseFromDb.cadastreData || defIdent.adresse.cadastreData
     },
     vendeur: {
       ...defIdent.vendeur,
@@ -84,7 +88,9 @@ function rowToEstimation(row: {
     projetPostVente: {
       ...defIdent.projetPostVente,
       ...((identificationFromDb as any).projetPostVente || {})
-    }
+    },
+    // Préserver le tableau de proximités
+    proximites: (identificationFromDb as any).proximites || defIdent.proximites
   } as Identification;
 
   return {
