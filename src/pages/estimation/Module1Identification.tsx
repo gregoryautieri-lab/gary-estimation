@@ -278,10 +278,10 @@ const Module1Identification = () => {
     }
   };
 
-  // Déclencher cadastre auto si maison + coordonnées
+  // Déclencher cadastre auto dès qu'on a des coordonnées
+  // (le filtrage maison/appartement se fait dans Module 2 pour le pré-remplissage)
   useEffect(() => {
     const coords = identification.adresse.coordinates;
-    const typeBien = estimation?.caracteristiques?.typeBien;
     const postalCode = identification.adresse.codePostal;
     const alreadyHasCadastre = identification.adresse.cadastreData?.numeroParcelle;
     
@@ -291,7 +291,6 @@ const Module1Identification = () => {
     if (
       coords?.lat && 
       coords?.lng && 
-      typeBien === 'maison' && 
       !alreadyHasCadastre &&
       coordsKey &&
       cadastreFetchedRef.current !== coordsKey &&
@@ -302,7 +301,6 @@ const Module1Identification = () => {
     }
   }, [
     identification.adresse.coordinates,
-    estimation?.caracteristiques?.typeBien,
     identification.adresse.cadastreData
   ]);
 
