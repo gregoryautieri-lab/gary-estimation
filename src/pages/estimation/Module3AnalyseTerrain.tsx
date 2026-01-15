@@ -155,7 +155,7 @@ export default function Module3AnalyseTerrain() {
 
   const handleNext = async () => {
     await handleSave();
-    navigate(`/estimation/${id}/4`);
+    navigate(`/estimation/${id}/photos`);
   };
 
   if (loading) {

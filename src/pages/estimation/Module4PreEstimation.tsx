@@ -241,7 +241,7 @@ export default function Module4PreEstimation() {
   };
 
   const handlePrevious = () => {
-    navigate(`/estimation/${id}/3`);
+    navigate(`/estimation/${id}/photos`);
   };
 
   // Gestion des lignes supplémentaires
