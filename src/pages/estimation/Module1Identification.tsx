@@ -279,19 +279,18 @@ const Module1Identification = () => {
   };
 
   // Déclencher cadastre auto dès qu'on a des coordonnées
-  // (le filtrage maison/appartement se fait dans Module 2 pour le pré-remplissage)
+  // Se déclenche à chaque changement d'adresse (nouvelles coordonnées)
   useEffect(() => {
     const coords = identification.adresse.coordinates;
     const postalCode = identification.adresse.codePostal;
-    const alreadyHasCadastre = identification.adresse.cadastreData?.numeroParcelle;
     
-    // Clé unique pour éviter de déclencher plusieurs fois pour les mêmes coords
+    // Clé unique basée sur les coordonnées
     const coordsKey = coords ? `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : null;
     
+    // Se déclenche si nouvelles coordonnées différentes des précédentes
     if (
       coords?.lat && 
       coords?.lng && 
-      !alreadyHasCadastre &&
       coordsKey &&
       cadastreFetchedRef.current !== coordsKey &&
       !cadastreLoading
@@ -300,8 +299,7 @@ const Module1Identification = () => {
       handleAutoCadastre(coords.lat, coords.lng, postalCode);
     }
   }, [
-    identification.adresse.coordinates,
-    identification.adresse.cadastreData
+    identification.adresse.coordinates
   ]);
 
   const updateField = <K extends keyof Identification>(
