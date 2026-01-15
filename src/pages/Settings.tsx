@@ -11,6 +11,13 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +36,7 @@ import {
   Crown,
   Users,
   Edit2,
+  RefreshCw,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -43,6 +51,11 @@ export default function Settings() {
   });
   const [notifications, setNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
+  
+  // État pour édition du profil
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -72,6 +85,34 @@ export default function Settings() {
     await signOut();
     navigate("/login");
     toast.success("Déconnexion réussie");
+  };
+
+  const handleEditProfile = () => {
+    setEditFullName(profile.full_name || "");
+    setShowEditProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user || !editFullName.trim()) return;
+    
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: editFullName.trim() })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => ({ ...prev, full_name: editFullName.trim() }));
+      setShowEditProfile(false);
+      toast.success("Profil mis à jour");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Erreur lors de la mise à jour");
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const getInitials = () => {
@@ -119,7 +160,7 @@ export default function Settings() {
                 </h2>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
-              <Button variant="ghost" size="sm" className="shrink-0">
+              <Button variant="ghost" size="sm" className="shrink-0" onClick={handleEditProfile}>
                 <Edit2 className="h-4 w-4" />
               </Button>
             </div>
@@ -273,6 +314,47 @@ export default function Settings() {
       </div>
 
       <BottomNav />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-5 w-5" />
+              Modifier mon profil
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullname">Nom complet</Label>
+              <Input
+                id="edit-fullname"
+                placeholder="Votre nom"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={user?.email || ""} disabled className="bg-muted" />
+              <p className="text-xs text-muted-foreground">
+                L'email ne peut pas être modifié
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditProfile(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={savingProfile || !editFullName.trim()}>
+              {savingProfile ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

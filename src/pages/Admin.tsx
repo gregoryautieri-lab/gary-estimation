@@ -79,6 +79,14 @@ export default function Admin() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("courtier");
   const [savingRole, setSavingRole] = useState(false);
+  
+  // État pour l'invitation
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFullName, setInviteFullName] = useState("");
+  const [inviteRole, setInviteRole] = useState<AppRole>("courtier");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -193,6 +201,78 @@ export default function Admin() {
     }
   };
 
+  const handleInviteUser = async () => {
+    if (!inviteEmail || !inviteFullName || !invitePassword) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+    
+    if (invitePassword.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    setInviting(true);
+    try {
+      // Créer l'utilisateur via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: inviteEmail,
+        password: invitePassword,
+        options: {
+          data: {
+            full_name: inviteFullName,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      
+      if (!authData.user) {
+        throw new Error("Erreur lors de la création de l'utilisateur");
+      }
+
+      // Le trigger handle_new_user crée automatiquement le profil et le rôle courtier
+      // Si le rôle choisi est différent, on le met à jour
+      if (inviteRole !== "courtier") {
+        // Attendre un peu que le trigger s'exécute
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Supprimer le rôle courtier par défaut
+        await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", authData.user.id);
+        
+        // Ajouter le rôle choisi
+        await supabase
+          .from("user_roles")
+          .insert({
+            user_id: authData.user.id,
+            role: inviteRole,
+          });
+      }
+
+      // Mettre à jour le nom dans le profil
+      await supabase
+        .from("profiles")
+        .update({ full_name: inviteFullName })
+        .eq("user_id", authData.user.id);
+
+      toast.success(`Utilisateur ${inviteFullName} créé avec succès`);
+      setShowInviteDialog(false);
+      setInviteEmail("");
+      setInviteFullName("");
+      setInvitePassword("");
+      setInviteRole("courtier");
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error inviting user:", error);
+      toast.error(error.message || "Erreur lors de l'invitation");
+    } finally {
+      setInviting(false);
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -286,6 +366,15 @@ export default function Admin() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Bouton Inviter */}
+        <Button 
+          onClick={() => setShowInviteDialog(true)}
+          className="w-full"
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Inviter un utilisateur
+        </Button>
 
         {/* Users Management */}
         <Card className="border-0 shadow-sm">
@@ -486,6 +575,89 @@ export default function Admin() {
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Inviter un utilisateur
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-fullname">Nom complet</Label>
+              <Input
+                id="invite-fullname"
+                placeholder="Jean Dupont"
+                value={inviteFullName}
+                onChange={(e) => setInviteFullName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="jean.dupont@gary.ch"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-password">Mot de passe temporaire</Label>
+              <Input
+                id="invite-password"
+                type="text"
+                placeholder="Minimum 6 caractères"
+                value={invitePassword}
+                onChange={(e) => setInvitePassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                L'utilisateur pourra le modifier dans ses paramètres
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Rôle attribué</Label>
+              <Select
+                value={inviteRole}
+                onValueChange={(val) => setInviteRole(val as AppRole)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ROLE_LABELS).map(([role, info]) => {
+                    const Icon = info.icon;
+                    return (
+                      <SelectItem key={role} value={role}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {info.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleInviteUser} disabled={inviting}>
+              {inviting ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-2" />
+              )}
+              Créer l'utilisateur
             </Button>
           </DialogFooter>
         </DialogContent>
