@@ -282,7 +282,6 @@ export default function Module2Caracteristiques() {
     
     const success = await updateEstimation(id, {
       caracteristiques: carac,
-      typeBien: carac.typeBien || undefined,
     });
     
     setSaving(false);
