@@ -347,8 +347,8 @@ export default function Module4PreEstimation() {
     updateField('comparablesEnVente', preEst.comparablesEnVente.filter((_, i) => i !== index));
   };
 
-  // Récupérer typeBien depuis l'estimation principale OU depuis caracteristiques (fallback)
-  const typeBien = estimation?.typeBien || estimation?.caracteristiques?.typeBien;
+  // Source unique : caracteristiques
+  const typeBien = estimation?.caracteristiques?.typeBien;
   const isAppartement = typeBien === 'appartement';
   const isMaison = typeBien === 'maison';
   
