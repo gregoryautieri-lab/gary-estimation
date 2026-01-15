@@ -407,6 +407,23 @@ export default function Module4PreEstimation() {
             </div>
           )}
         </div>
+
+        {/* AVERTISSEMENT SI PAS DE TYPE DE BIEN */}
+        {!isAppartement && !isMaison && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-200">
+                  Type de bien non défini
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  Veuillez d'abord remplir le Module 2 (Caractéristiques) pour sélectionner le type de bien.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* ============================================ */}
         {/* VALEUR VÉNALE - APPARTEMENT */}
@@ -874,6 +891,7 @@ export default function Module4PreEstimation() {
         {/* ============================================ */}
         {/* VALEUR DE RENDEMENT */}
         {/* ============================================ */}
+        {(isAppartement || isMaison) && (
         <FormSection 
           title="VALEUR DE RENDEMENT" 
           icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
@@ -915,14 +933,15 @@ export default function Module4PreEstimation() {
                 <span className="text-lg font-bold text-primary">{preEst.tauxCapitalisation.toFixed(2)}%</span>
               </div>
               <Slider
-                value={[preEst.tauxCapitalisation * 100]}
-                onValueChange={([v]) => updateField('tauxCapitalisation', v / 100)}
-                min={200}
-                max={300}
-                step={5}
+                value={[preEst.tauxCapitalisation]}
+                onValueChange={([v]) => updateField('tauxCapitalisation', v)}
+                min={2}
+                max={3}
+                step={0.25}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>2%</span>
+                <span>2.5%</span>
                 <span>3%</span>
               </div>
             </div>
@@ -936,10 +955,12 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </FormSection>
+        )}
 
         {/* ============================================ */}
-        {/* VALEUR DE GAGE */}
+        {/* VALEUR DE GAGE - UNIQUEMENT SI VÉNALE > 0 */}
         {/* ============================================ */}
+        {calcul.totalVenale > 0 && (
         <FormSection 
           title="VALEUR DE GAGE" 
           icon={<Landmark className="h-4 w-4 text-emerald-500" />}
@@ -957,10 +978,12 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </FormSection>
+        )}
 
         {/* ============================================ */}
-        {/* FOURCHETTE DE PRIX */}
+        {/* FOURCHETTE DE PRIX - UNIQUEMENT SI VÉNALE > 0 */}
         {/* ============================================ */}
+        {calcul.totalVenale > 0 && (
         <FormSection 
           title="FOURCHETTE DE PRIX" 
           icon={<Target className="h-4 w-4 text-purple-500" />}
@@ -986,10 +1009,12 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </FormSection>
+        )}
 
         {/* ============================================ */}
-        {/* PRIX DE MISE EN VENTE */}
+        {/* PRIX DE MISE EN VENTE - UNIQUEMENT SI VÉNALE > 0 */}
         {/* ============================================ */}
+        {calcul.totalVenale > 0 && (
         <FormSection 
           title="PRIX DE MISE EN VENTE" 
           icon={<Rocket className="h-4 w-4 text-rose-500" />}
@@ -1033,10 +1058,12 @@ export default function Module4PreEstimation() {
             />
           </div>
         </FormSection>
+        )}
 
         {/* ============================================ */}
-        {/* RÉCAPITULATIF */}
+        {/* RÉCAPITULATIF - UNIQUEMENT SI VÉNALE > 0 */}
         {/* ============================================ */}
+        {calcul.totalVenale > 0 && (
         <div className="bg-gray-900 text-white rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-semibold tracking-wide uppercase text-gray-400">
             Récapitulatif
@@ -1070,6 +1097,7 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </div>
+        )}
 
         {/* ============================================ */}
         {/* COMPARABLES MARCHÉ */}
