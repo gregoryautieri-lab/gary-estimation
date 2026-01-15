@@ -190,7 +190,37 @@ const Module1Identification = () => {
     const data = await fetchEstimation(id);
     if (data) {
       setEstimation(data);
-      setIdentification({ ...defaultIdentification, ...data.identification });
+      // Deep merge pour préserver les objets imbriqués (adresse, vendeur, etc.)
+      const ident = (data.identification || {}) as Partial<Identification>;
+      setIdentification({
+        ...defaultIdentification,
+        ...ident,
+        adresse: {
+          ...defaultIdentification.adresse,
+          ...(ident.adresse || {})
+        },
+        vendeur: {
+          ...defaultIdentification.vendeur,
+          ...(ident.vendeur || {})
+        },
+        contexte: {
+          ...defaultIdentification.contexte,
+          ...(ident.contexte || {})
+        },
+        historique: {
+          ...defaultIdentification.historique,
+          ...(ident.historique || {})
+        },
+        financier: {
+          ...defaultIdentification.financier,
+          ...(ident.financier || {})
+        },
+        projetPostVente: {
+          ...defaultIdentification.projetPostVente,
+          ...(ident.projetPostVente || {})
+        },
+        proximites: ident.proximites || defaultIdentification.proximites
+      });
     }
   };
 
