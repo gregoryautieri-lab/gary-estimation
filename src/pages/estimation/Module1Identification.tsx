@@ -4,6 +4,7 @@ import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { LockBanner } from '@/components/gary/LockBanner';
+import { CourtierSelector } from '@/components/gary/CourtierSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -292,8 +293,20 @@ const Module1Identification = () => {
           />
         )}
         
+        {/* Courtier en charge */}
+        <FormSection icon="👤" title="Courtier en charge">
+          <CourtierSelector
+            value={identification.courtierAssigne || ''}
+            onChange={(courtierId) => setIdentification(prev => ({
+              ...prev,
+              courtierAssigne: courtierId
+            }))}
+            disabled={isLocked}
+          />
+        </FormSection>
+        
         {/* Vendeur */}
-        <FormSection icon="👤" title="Vendeur">
+        <FormSection icon="🏠" title="Vendeur">
           <FormRow label="Nom complet" required>
             <Input
               placeholder="Prénom Nom"

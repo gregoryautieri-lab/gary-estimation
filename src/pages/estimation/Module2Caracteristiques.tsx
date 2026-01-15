@@ -14,6 +14,13 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
 import { ChevronRight, Home, Building2, Key } from 'lucide-react';
+import { 
+  PictoChipsGrid, 
+  RENOVATION_OPTIONS, 
+  TRAVAUX_RECENTS_OPTIONS, 
+  NUISANCES_OPTIONS,
+  CHAUFFAGE_MAISON_OPTIONS 
+} from '@/components/gary/PictoChipsGrid';
 
 // Type de bien options
 const typeBienOptions: { value: TypeBien | ''; label: string; icon: React.ElementType }[] = [
@@ -798,6 +805,75 @@ export default function Module2Caracteristiques() {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">CHF</span>
                 </div>
               </FormRow>
+            </div>
+          </FormSection>
+        )}
+
+        {/* Rénovation & Travaux */}
+        {(isAppartement || isMaison) && carac.anneeRenovation && (
+          <FormSection title="Détails de la rénovation">
+            <div className="space-y-4">
+              {/* Type de rénovation */}
+              <FormRow label="Type de rénovation">
+                <PictoChipsGrid
+                  options={RENOVATION_OPTIONS}
+                  selected={carac.typeRenovation || []}
+                  onChange={(selected) => updateField('typeRenovation', selected)}
+                  columns={4}
+                />
+              </FormRow>
+
+              {/* Travaux récents */}
+              <FormRow label="Travaux réalisés">
+                <PictoChipsGrid
+                  options={TRAVAUX_RECENTS_OPTIONS}
+                  selected={carac.travauxRecents || []}
+                  onChange={(selected) => updateField('travauxRecents', selected)}
+                  columns={4}
+                />
+              </FormRow>
+            </div>
+          </FormSection>
+        )}
+
+        {/* Chauffage Maison */}
+        {isMaison && (
+          <FormSection title="Chauffage">
+            <FormRow label="Type de chauffage">
+              <PictoChipsGrid
+                options={CHAUFFAGE_MAISON_OPTIONS}
+                selected={carac.chauffage ? [carac.chauffage] : []}
+                onChange={(selected) => updateField('chauffage', selected[selected.length - 1] || '')}
+                columns={4}
+              />
+            </FormRow>
+          </FormSection>
+        )}
+
+        {/* Nuisances */}
+        {(isAppartement || isMaison) && (
+          <FormSection title="Nuisances & Environnement">
+            <div className="space-y-4">
+              <FormRow label="Nuisances identifiées">
+                <PictoChipsGrid
+                  options={NUISANCES_OPTIONS}
+                  selected={carac.nuisances || []}
+                  onChange={(selected) => updateField('nuisances', selected)}
+                  variant="negative"
+                  columns={4}
+                />
+              </FormRow>
+
+              {/* Détail nuisance si sélectionné */}
+              {(carac.nuisances || []).length > 0 && (
+                <FormRow label="Précisions sur les nuisances" optional>
+                  <Input
+                    value={carac.nuisanceDetail || ''}
+                    onChange={(e) => updateField('nuisanceDetail', e.target.value)}
+                    placeholder="Détails supplémentaires..."
+                  />
+                </FormRow>
+              )}
             </div>
           </FormSection>
         )}

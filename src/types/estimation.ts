@@ -265,6 +265,10 @@ export interface Caracteristiques {
   // Espaces maison
   espacesMaison: string[];
   
+  // Nuisances (environnement)
+  nuisances: string[];
+  nuisanceDetail?: string;
+  
   // Données supplémentaires
   styleArchitectural?: string;
   materiauConstruction?: string;
@@ -843,6 +847,8 @@ export const defaultCaracteristiques: Caracteristiques = {
   buanderie: '',
   autresAnnexes: '',
   espacesMaison: [],
+  nuisances: [],
+  nuisanceDetail: '',
   styleArchitectural: '',
   materiauConstruction: '',
   toiture: '',

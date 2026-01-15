@@ -29,35 +29,41 @@ const piecesEtat = [
 ] as const;
 
 const pointsFortsOptions = [
-  'Luminosité exceptionnelle',
-  'Vue dégagée',
-  'Calme absolu',
-  'Beaux volumes',
-  'Finitions haut de gamme',
-  'Cuisine équipée récente',
-  'Parquet massif',
-  'Cheminée',
-  'Dressing',
-  'Grande terrasse',
-  'Jardin privatif',
-  'Proximité transports',
-  'Quartier recherché',
-  'Faibles charges',
-  'Pas de vis-à-vis',
+  { value: 'lumineux', label: '☀️ Lumineux' },
+  { value: 'vue_degagee', label: '🗝️ Vue dégagée' },
+  { value: 'calme', label: '😌 Calme' },
+  { value: 'cuisine_equipee', label: '🍳 Cuisine équipée' },
+  { value: 'sdb_moderne', label: '🚿 SDB moderne' },
+  { value: 'beaux_volumes', label: '🪵 Beaux volumes' },
+  { value: 'exterieur', label: '🌳 Extérieur' },
+  { value: 'parking', label: '🚗 Parking' },
+  { value: 'bon_etat', label: '🏠 Bon état général' },
+  { value: 'emplacement', label: '📍 Emplacement' },
+  { value: 'transports', label: '🚆 Transports' },
+  { value: 'ecoles', label: '🏫 Écoles proches' },
+  { value: 'parquet', label: '🪵 Parquet massif' },
+  { value: 'cheminee', label: '🔥 Cheminée' },
+  { value: 'dressing', label: '👔 Dressing' },
+  { value: 'faibles_charges', label: '💰 Faibles charges' },
+  { value: 'pas_vis_a_vis', label: '👁️ Pas de vis-à-vis' },
 ];
 
 const pointsFaiblesOptions = [
-  'Travaux à prévoir',
-  'Cuisine à refaire',
-  'SDB vieillissante',
-  'Manque de rangements',
-  'Étage sans ascenseur',
-  'Nuisances sonores',
-  'Vis-à-vis',
-  'Exposition nord',
-  'Charges élevées',
-  'Stationnement difficile',
-  'Copropriété vieillissante',
+  { value: 'vis_a_vis', label: '👁️ Vis-à-vis' },
+  { value: 'travaux', label: '🔨 Travaux à prévoir' },
+  { value: 'pas_parking', label: '🚗 Pas de parking' },
+  { value: 'petites_surfaces', label: '📐 Petites surfaces' },
+  { value: 'sombre', label: '🌑 Sombre' },
+  { value: 'bruyant', label: '📢 Bruyant' },
+  { value: 'vetuste', label: '🏚️ Vétuste' },
+  { value: 'charges_elevees', label: '💰 Charges élevées' },
+  { value: 'electricite', label: '🔌 Électricité à refaire' },
+  { value: 'fenetres_anciennes', label: '🪟 Fenêtres anciennes' },
+  { value: 'mal_isole', label: '❄️ Mal isolé' },
+  { value: 'mauvais_emplacement', label: '📍 Emplacement' },
+  { value: 'copro_vieillissante', label: '🏢 Copro vieillissante' },
+  { value: 'manque_rangements', label: '📦 Manque rangements' },
+  { value: 'sans_ascenseur', label: '🪜 Sans ascenseur' },
 ];
 
 const nuisancesOptions = [
@@ -253,17 +259,17 @@ export default function Module3AnalyseTerrain() {
         {/* Points forts */}
         <FormSection title="Points forts">
           <div className="flex flex-wrap gap-2">
-            {pointsFortsOptions.map((point) => (
+            {pointsFortsOptions.map(({ value, label }) => (
               <button
-                key={point}
-                onClick={() => toggleArrayItem('pointsForts', point)}
+                key={value}
+                onClick={() => toggleArrayItem('pointsForts', value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  analyse.pointsForts?.includes(point)
+                  analyse.pointsForts?.includes(value)
                     ? 'bg-green-500 text-white'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                {point}
+                {label}
               </button>
             ))}
           </div>
@@ -280,17 +286,17 @@ export default function Module3AnalyseTerrain() {
         {/* Points faibles */}
         <FormSection title="Points faibles">
           <div className="flex flex-wrap gap-2">
-            {pointsFaiblesOptions.map((point) => (
+            {pointsFaiblesOptions.map(({ value, label }) => (
               <button
-                key={point}
-                onClick={() => toggleArrayItem('pointsFaibles', point)}
+                key={value}
+                onClick={() => toggleArrayItem('pointsFaibles', value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  analyse.pointsFaibles?.includes(point)
+                  analyse.pointsFaibles?.includes(value)
                     ? 'bg-red-500 text-white'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                {point}
+                {label}
               </button>
             ))}
           </div>
