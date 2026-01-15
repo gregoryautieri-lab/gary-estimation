@@ -27,64 +27,94 @@ interface CadastreData {
 // Déterminer le canton à partir du code postal
 function getCantonFromPostalCode(postalCode: string): string {
   const code = parseInt(postalCode);
-  
+
   // Genève : 1200-1299
   if (code >= 1200 && code <= 1299) return 'GE';
-  
+
   // Vaud : 1000-1199, 1300-1899 (approximatif)
   if ((code >= 1000 && code <= 1199) || (code >= 1300 && code <= 1899)) return 'VD';
-  
+
   // Valais : 1900-1999, 3900-3999
   if ((code >= 1900 && code <= 1999) || (code >= 3900 && code <= 3999)) return 'VS';
-  
+
   // Fribourg : 1600-1699, 1700-1799
   if ((code >= 1630 && code <= 1699) || (code >= 1700 && code <= 1799)) return 'FR';
-  
+
   // Neuchâtel : 2000-2999
   if (code >= 2000 && code <= 2999) return 'NE';
-  
+
   // Jura : 2800-2899
   if (code >= 2800 && code <= 2899) return 'JU';
-  
+
   return 'CH';
+}
+
+// Conversion WGS84 (lat/lng) -> LV95 (EPSG:2056)
+// Formules officielles (approx.) publiées par swisstopo
+function wgs84ToLV95(lat: number, lng: number): { e: number; n: number } {
+  const latSec = lat * 3600;
+  const lngSec = lng * 3600;
+
+  const latAux = (latSec - 169028.66) / 10000;
+  const lngAux = (lngSec - 26782.5) / 10000;
+
+  const e =
+    2600072.37 +
+    211455.93 * lngAux -
+    10938.51 * lngAux * latAux -
+    0.36 * lngAux * latAux * latAux -
+    44.54 * lngAux * lngAux * lngAux;
+
+  const n =
+    1200147.07 +
+    308807.95 * latAux +
+    3745.25 * lngAux * lngAux +
+    76.63 * latAux * latAux -
+    194.56 * lngAux * lngAux * latAux +
+    119.79 * latAux * latAux * latAux;
+
+  return { e, n };
 }
 
 // Récupérer les données depuis SITG (Genève)
 async function fetchFromSITG(lat: number, lng: number): Promise<CadastreData | null> {
   try {
-    // SITG WFS service pour les parcelles
-    // Documentation : https://ge.ch/sitg/services/wfs
-    const wfsUrl = `https://ge.ch/sitg/geodata/SITG/wfs?` +
+    // SITG WFS : les parcelles sont servies en EPSG:2056 (LV95)
+    const { e, n } = wgs84ToLV95(lat, lng);
+
+    const wfsUrl = `https://ge.ch/sitg/wfs?` +
       `service=WFS&version=2.0.0&request=GetFeature&` +
-      `typeName=CAD_PARCELLE_MENSU&` +
+      `typeNames=sitg:CAD_PARCELLE_MENSU&` +
       `outputFormat=application/json&` +
-      `srsName=EPSG:4326&` +
-      `CQL_FILTER=INTERSECTS(SHAPE,POINT(${lng} ${lat}))`;
+      `srsName=EPSG:2056&count=1&` +
+      `CQL_FILTER=INTERSECTS(SHAPE,POINT(${e} ${n}))`;
 
     const response = await fetch(wfsUrl);
-    
+
     if (!response.ok) {
       console.error('SITG WFS error:', response.status);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     if (data.features && data.features.length > 0) {
       const feature = data.features[0];
-      const props = feature.properties;
-      
+      const props = feature.properties || {};
+
+      const zoneDetail = props.ZONE || props.AFFECTATION || props.ZONE_AFFECTATION || props.TYPE_ZONE || '';
+
       return {
-        numeroParcelle: props.NO_PARCELLE || props.EGRID || '',
-        surfaceParcelle: props.SURFACE || props.SHAPE_AREA || 0,
-        zone: mapSITGZone(props.ZONE || props.TYPE_ZONE || ''),
-        zoneDetail: props.ZONE || props.AFFECTATION || '',
-        commune: props.COMMUNE || props.NOM_COMMUNE || '',
+        numeroParcelle: props.NO_PARCELLE || props.NUMERO || props.NUM_PARCELLE || props.EGRID || '',
+        surfaceParcelle: Number(props.SURFACE || props.SURFACE_PI || props.SHAPE_AREA || 0),
+        zone: mapSITGZone(zoneDetail),
+        zoneDetail,
+        commune: props.COMMUNE || props.NOM_COMMUNE || props.COMMUNE_NOM || '',
         canton: 'GE',
         source: 'sitg'
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('SITG fetch error:', error);
@@ -94,7 +124,7 @@ async function fetchFromSITG(lat: number, lng: number): Promise<CadastreData | n
 
 // Mapper les zones SITG vers nos catégories
 function mapSITGZone(zoneCode: string): string {
-  const upper = zoneCode.toUpperCase();
+  const upper = (zoneCode || '').toUpperCase();
   if (upper.includes('5') || upper.includes('VILLA')) return 'villa';
   if (upper.includes('4') || upper.includes('RESIDENTIELLE')) return 'residentielle';
   if (upper.includes('3') || upper.includes('MIXTE')) return 'mixte';

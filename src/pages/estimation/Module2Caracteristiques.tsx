@@ -223,21 +223,29 @@ export default function Module2Caracteristiques() {
 
   // Récupération automatique des données cadastrales
   const handleFetchCadastre = async () => {
-    // Récupérer les coordonnées depuis l'identification
-    const coords = estimation?.identification?.adresse?.coordinates;
-    const postalCode = estimation?.identification?.adresse?.codePostal;
-    
-    console.log('Cadastre lookup - estimation:', estimation?.id);
-    console.log('Cadastre lookup - coords:', coords);
-    console.log('Cadastre lookup - postalCode:', postalCode);
-    
+    if (!id) return;
+
+    // 1) Toujours essayer avec l'estimation en mémoire
+    let coords = estimation?.identification?.adresse?.coordinates;
+    let postalCode = estimation?.identification?.adresse?.codePostal;
+
+    // 2) Si coords manquantes, recharger depuis le backend (évite un state stale)
     if (!coords?.lat || !coords?.lng) {
-      toast.error('Coordonnées non disponibles. Vérifiez l\'adresse dans le Module 1.');
+      const fresh = await fetchEstimation(id);
+      if (fresh) {
+        setEstimation(fresh);
+        coords = fresh.identification?.adresse?.coordinates;
+        postalCode = fresh.identification?.adresse?.codePostal;
+      }
+    }
+
+    if (!coords?.lat || !coords?.lng) {
+      toast.error("Coordonnées non disponibles. Vérifiez l'adresse dans le Module 1.");
       return;
     }
 
     const result = await fetchCadastre(coords.lat, coords.lng, postalCode);
-    
+
     if (result && !result.error) {
       // Mettre à jour les champs si des données ont été trouvées
       if (result.numeroParcelle) {
@@ -249,15 +257,20 @@ export default function Module2Caracteristiques() {
       if (result.zone) {
         updateField('zone', result.zone);
       }
-      
+
       setCadastreFetched(true);
-      
-      const sourceLabel = result.source === 'sitg' ? 'SITG (Genève)' 
-        : result.source === 'asitvd' ? 'ASIT-VD (Vaud)' 
+
+      const sourceLabel = result.source === 'sitg' ? 'SITG (Genève)'
+        : result.source === 'asitvd' ? 'ASIT-VD (Vaud)'
         : result.source === 'swisstopo' ? 'Swisstopo'
         : 'Base cadastrale';
-      
-      toast.success(`Données récupérées depuis ${sourceLabel}`);
+
+      // Si la source ne fournit pas tout, on informe plutôt que de faire croire à un échec
+      if (!result.surfaceParcelle || !result.zone) {
+        toast.success(`Parcelle trouvée (${sourceLabel}). Complétez surface/zone si nécessaire.`);
+      } else {
+        toast.success(`Données récupérées depuis ${sourceLabel}`);
+      }
     } else {
       toast.error(result?.error || 'Aucune donnée cadastrale trouvée');
     }
