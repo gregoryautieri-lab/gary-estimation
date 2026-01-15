@@ -32,6 +32,13 @@ export default function ModulePhotos() {
   const [saving, setSaving] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(true);
 
+  // Progress tracking - MUST be before any conditional returns
+  const { moduleStatuses } = useModuleProgress(
+    estimation,
+    id || '',
+    3
+  );
+
   // Charger l'estimation
   useEffect(() => {
     if (!id) return;
@@ -199,13 +206,6 @@ export default function ModulePhotos() {
   const photoCount = photos.items.length;
   const uploadedCount = photos.items.filter(p => p.uploaded).length;
   const pendingCount = photos.items.filter(p => p.uploading).length;
-
-  // Progress tracking
-  const { moduleStatuses } = useModuleProgress(
-    estimation,
-    id || '',
-    3 // Photos is treated as part of module flow
-  );
 
   return (
     <div className="min-h-screen bg-background pb-24">

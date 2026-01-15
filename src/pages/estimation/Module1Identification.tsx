@@ -189,6 +189,13 @@ const Module1Identification = () => {
   // Verrouillage selon statut
   const { isLocked, lockMessage } = useEstimationLock(estimation?.statut);
 
+  // Progress tracking - MUST be before any conditional returns
+  const { moduleStatuses, missingFields, canProceed } = useModuleProgress(
+    estimation,
+    id || '',
+    1
+  );
+
   useEffect(() => {
     if (id && id !== 'new') {
       loadEstimation();
@@ -385,13 +392,6 @@ const Module1Identification = () => {
       </div>
     );
   }
-
-  // Progress tracking
-  const { moduleStatuses, missingFields, canProceed } = useModuleProgress(
-    estimation,
-    id || '',
-    1
-  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
