@@ -102,7 +102,12 @@ function rowToEstimation(row: {
     vendeurEmail: row.vendeur_email || undefined,
     vendeurTelephone: row.vendeur_telephone || undefined,
     identification: mergedIdentification,
-    caracteristiques: { ...defCarac, ...(row.caracteristiques as object || {}) } as Caracteristiques,
+    caracteristiques: { 
+      ...defCarac, 
+      ...(row.caracteristiques as object || {}),
+      // CORRECTION Prompt 2 : Forcer typeBien depuis la colonne type_bien
+      typeBien: row.type_bien || (row.caracteristiques as any)?.typeBien || ''
+    } as Caracteristiques,
     analyseTerrain: { ...defAnalyse, ...(row.analyse_terrain as object || {}) } as AnalyseTerrain,
     preEstimation: { ...defPre, ...(row.pre_estimation as object || {}) } as PreEstimation,
     strategiePitch: { ...defStrat, ...(row.strategie as object || {}) } as StrategiePitch,
@@ -187,7 +192,13 @@ function estimationToUpdate(data: Partial<EstimationData>) {
   if (data.vendeurEmail !== undefined) update.vendeur_email = data.vendeurEmail;
   if (data.vendeurTelephone !== undefined) update.vendeur_telephone = data.vendeurTelephone;
   if (data.identification !== undefined) update.identification = data.identification as unknown as Json;
-  if (data.caracteristiques !== undefined) update.caracteristiques = data.caracteristiques as unknown as Json;
+  if (data.caracteristiques !== undefined) {
+    update.caracteristiques = data.caracteristiques as unknown as Json;
+    // CORRECTION Prompt 2 : Propager typeBien vers la colonne type_bien
+    if (data.caracteristiques.typeBien) {
+      update.type_bien = data.caracteristiques.typeBien;
+    }
+  }
   if (data.analyseTerrain !== undefined) update.analyse_terrain = data.analyseTerrain as unknown as Json;
   if (data.preEstimation !== undefined) update.pre_estimation = data.preEstimation as unknown as Json;
   if (data.strategiePitch !== undefined) update.strategie = data.strategiePitch as unknown as Json;

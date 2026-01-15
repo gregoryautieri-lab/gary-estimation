@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useCadastreLookup } from '@/hooks/useCadastreLookup';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
 import { ChevronRight, ChevronDown, Home, Building2, Key, MapPin, Loader2, RefreshCw, Ruler, RotateCcw } from 'lucide-react';
@@ -246,8 +247,19 @@ export default function Module2Caracteristiques() {
     }
   };
 
+  // Hook d'autosave avec debounce (Prompt 5)
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 2000,
+    onSave: async () => {
+      if (!id || !estimation) return;
+      await updateEstimation(id, { caracteristiques: carac }, true); // silent = true
+    },
+    enabled: !!id && !!estimation
+  });
+
   const updateField = <K extends keyof Caracteristiques>(field: K, value: Caracteristiques[K]) => {
     setCarac(prev => ({ ...prev, [field]: value }));
+    scheduleSave(); // Déclencher autosave avec debounce
   };
 
   // Récupération automatique des données cadastrales
@@ -673,7 +685,7 @@ export default function Module2Caracteristiques() {
                           </div>
                         </FormRow>
 
-                        {/* Cubage prévisionnel */}
+                        {/* Cubage prévisionnel avec DÉTAIL */}
                         {(() => {
                           const surfHab = parseFloat(carac.surfaceHabitableMaison) || 0;
                           const surfUtil = parseFloat(carac.surfaceUtile) || 0;
@@ -689,9 +701,48 @@ export default function Module2Caracteristiques() {
                           const cubTotal = cubHorsSol + cubSousSol + cubCombles;
                           
                           return cubTotal > 0 ? (
-                            <div className="flex items-center justify-between p-4 bg-primary/10 rounded-xl border border-primary/20">
-                              <span className="text-sm font-medium text-foreground">Cubage SIA prévisionnel</span>
-                              <span className="text-xl font-bold text-primary">{Math.round(cubTotal)} m³</span>
+                            <div className="space-y-3">
+                              {/* Détail du calcul */}
+                              <div className="p-4 bg-muted/30 rounded-lg space-y-2 text-sm">
+                                <div className="font-medium mb-2 text-foreground">📐 Détail du calcul SIA</div>
+                                
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">
+                                    Hors-sol : {surfHab.toFixed(1)} m² × {hEtage} m
+                                  </span>
+                                  <span className="font-mono font-medium">{Math.round(cubHorsSol)} m³</span>
+                                </div>
+                                
+                                {surfSousSol > 0 && (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">
+                                      Sous-sol : {surfSousSol.toFixed(1)} m² × {hSousSol} m
+                                    </span>
+                                    <span className="font-mono font-medium">{Math.round(cubSousSol)} m³</span>
+                                  </div>
+                                )}
+                                
+                                {cubCombles > 0 && (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">
+                                      Combles : {emprise.toFixed(1)} m² × 1.5 m
+                                    </span>
+                                    <span className="font-mono font-medium">{Math.round(cubCombles)} m³</span>
+                                  </div>
+                                )}
+                                
+                                <div className="border-t border-border pt-2 mt-2" />
+                              </div>
+                              
+                              {/* Total */}
+                              <div className="flex items-center justify-between p-4 bg-primary/10 rounded-xl border border-primary/20">
+                                <span className="text-sm font-medium text-foreground">Cubage SIA prévisionnel</span>
+                                <span className="text-xl font-bold text-primary">{Math.round(cubTotal)} m³</span>
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                💡 Utilisé au Module 4 pour estimation au m³. Modifiable manuellement si besoin.
+                              </p>
                             </div>
                           ) : null;
                         })()}
