@@ -4,6 +4,18 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import type { ModuleStatus } from '@/lib/completionScore';
 
+// Labels courts pour chaque module selon le prompt original
+const getModuleShortLabel = (moduleNumber: number): string => {
+  const labels: Record<number, string> = {
+    1: 'Ident',
+    2: 'Carac',
+    3: 'Terrain',
+    4: 'Prix',
+    5: 'Strat'
+  };
+  return labels[moduleNumber] || `M${moduleNumber}`;
+};
+
 interface ModuleProgressBarProps {
   modules: ModuleStatus[];
   currentModule: number | string;
@@ -85,13 +97,15 @@ export const ModuleProgressBar = ({
                 {getStatusIcon(module.status, module.completion)}
               </div>
 
-              {/* Numéro et label */}
+              {/* Label explicite */}
               <div className="flex flex-col items-center">
                 <span className={cn(
-                  "text-[10px] font-medium",
+                  "text-[10px] font-semibold",
                   isCurrent ? "text-primary" : "text-muted-foreground"
                 )}>
-                  {typeof module.moduleNumber === 'number' ? `M${module.moduleNumber}` : module.moduleNumber}
+                  {typeof module.moduleNumber === 'number' 
+                    ? `${module.moduleNumber}.${getModuleShortLabel(module.moduleNumber)}`
+                    : module.moduleNumber}
                 </span>
                 <span className={cn(
                   "text-[9px] truncate max-w-[50px]",
