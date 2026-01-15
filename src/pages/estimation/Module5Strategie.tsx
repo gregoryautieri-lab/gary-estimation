@@ -11,7 +11,7 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown, AlertTriangle, Presentation } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { downloadEstimationPDF } from '@/utils/pdfExport';
 import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
@@ -33,6 +33,7 @@ import { DateVenteIdeale } from '@/components/strategie/DateVenteIdeale';
 import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { ContrainteBadge } from '@/components/strategie/ContrainteBadge';
+import { PresentationMode } from '@/components/presentation';
 import { format, nextMonday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -49,6 +50,7 @@ export default function Module5Strategie() {
   const [checkedPhase0Actions, setCheckedPhase0Actions] = useState<string[]>([]);
   const [generatingPitch, setGeneratingPitch] = useState(false);
   const [pitchSource, setPitchSource] = useState<'rule' | 'ai'>('rule');
+  const [showPresentation, setShowPresentation] = useState(false);
 
   useEffect(() => {
     if (id) loadEstimation();
@@ -574,6 +576,16 @@ export default function Module5Strategie() {
 
         {/* Navigation */}
         <div className="flex flex-col gap-3 pt-4">
+          {/* Bouton Mode Présentation */}
+          <Button 
+            variant="outline" 
+            className="w-full border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setShowPresentation(true)}
+          >
+            <Presentation className="h-4 w-4 mr-2" />
+            🎨 Mode Présentation Client
+          </Button>
+          
           {estimation && (
             <ExportPDFButton estimation={estimation} className="w-full" />
           )}
@@ -589,6 +601,19 @@ export default function Module5Strategie() {
           </div>
         </div>
       </div>
+
+      {/* Mode Présentation */}
+      {showPresentation && estimation && (
+        <PresentationMode
+          estimation={estimation}
+          phases={logic.phases}
+          pitch={pitchCustom || logic.pitch.complet}
+          typeMiseEnVente={logic.typeMiseEnVente}
+          capitalVisibilite={logic.capitalVisibilite}
+          isLuxe={luxMode.isLux}
+          onClose={() => setShowPresentation(false)}
+        />
+      )}
 
       <BottomNav />
     </div>
