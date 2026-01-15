@@ -353,7 +353,8 @@ export interface AnalyseTerrain {
 export interface Photo {
   id: string;
   dataUrl: string;
-  storageUrl?: string; // URL Supabase Storage
+  storageUrl?: string; // URL Supabase Storage publique
+  storagePath?: string; // Chemin dans le bucket (pour suppression)
   thumbnailUrl?: string;
   nom: string;
   date: string;
@@ -363,6 +364,8 @@ export interface Photo {
   categorie?: 'exterieur' | 'sejour' | 'cuisine' | 'chambre' | 'sdb' | 'autre' | 'vue' | 'parking';
   ordre?: number;
   favori?: boolean;
+  tailleFichier?: number; // Taille en bytes
+  dimensionsOriginales?: { width: number; height: number };
 }
 
 export interface Photos {
