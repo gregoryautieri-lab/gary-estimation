@@ -533,15 +533,38 @@ export default function Module2Caracteristiques() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="p-4 space-y-4 border border-t-0 rounded-b-lg bg-card">
-                        <FormRow label="Hauteur sous-plafond (m)" optional helper="Défaut: 2.7m">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={carac.hauteurSousPlafond || ''}
-                            onChange={(e) => updateField('hauteurSousPlafond', e.target.value)}
-                            placeholder="2.7"
-                          />
-                        </FormRow>
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormRow label="Hauteur étages (m)" optional helper="Défaut: 2.7">
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
+                              value={carac.hauteurSousPlafond || ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  updateField('hauteurSousPlafond', val);
+                                }
+                              }}
+                              placeholder="2.7"
+                            />
+                          </FormRow>
+                          <FormRow label="Hauteur sous-sol (m)" optional helper="Défaut: 2.4">
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
+                              value={carac.hauteurSousSol || ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  updateField('hauteurSousSol', val);
+                                }
+                              }}
+                              placeholder="2.4"
+                            />
+                          </FormRow>
+                        </div>
 
                         <FormRow 
                           label="Surface sous-sol (m²)" 
@@ -550,19 +573,10 @@ export default function Module2Caracteristiques() {
                         >
                           <Input
                             type="number"
+                            inputMode="numeric"
                             value={carac.surfaceSousSol || ''}
                             onChange={(e) => updateField('surfaceSousSol', e.target.value)}
                             placeholder={Math.max(0, (parseFloat(carac.surfaceUtile) || 0) - (parseFloat(carac.surfaceHabitableMaison) || 0)).toString()}
-                          />
-                        </FormRow>
-
-                        <FormRow label="Hauteur sous-sol (m)" optional helper="Défaut: 2.4m">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={carac.hauteurSousSol || ''}
-                            onChange={(e) => updateField('hauteurSousSol', e.target.value)}
-                            placeholder="2.4"
                           />
                         </FormRow>
 
@@ -601,6 +615,29 @@ export default function Module2Caracteristiques() {
                             ))}
                           </div>
                         </FormRow>
+
+                        {/* Cubage prévisionnel */}
+                        {(() => {
+                          const surfHab = parseFloat(carac.surfaceHabitableMaison) || 0;
+                          const surfUtil = parseFloat(carac.surfaceUtile) || 0;
+                          const hEtage = parseFloat(carac.hauteurSousPlafond) || 2.7;
+                          const hSousSol = parseFloat(carac.hauteurSousSol) || 2.4;
+                          const surfSousSol = parseFloat(carac.surfaceSousSol) || Math.max(0, surfUtil - surfHab);
+                          const niveaux = parseFloat(carac.nombreNiveaux) || 1;
+                          const emprise = niveaux > 0 ? surfHab / niveaux : surfHab;
+                          
+                          const cubHorsSol = surfHab * hEtage;
+                          const cubSousSol = surfSousSol * hSousSol;
+                          const cubCombles = carac.comblesType === 'amenageables' ? emprise * 1.5 : 0;
+                          const cubTotal = cubHorsSol + cubSousSol + cubCombles;
+                          
+                          return cubTotal > 0 ? (
+                            <div className="flex items-center justify-between p-4 bg-primary/10 rounded-xl border border-primary/20">
+                              <span className="text-sm font-medium text-foreground">Cubage SIA prévisionnel</span>
+                              <span className="text-xl font-bold text-primary">{Math.round(cubTotal)} m³</span>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
