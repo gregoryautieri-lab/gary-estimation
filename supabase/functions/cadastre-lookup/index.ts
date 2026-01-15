@@ -76,46 +76,60 @@ function wgs84ToLV95(lat: number, lng: number): { e: number; n: number } {
   return { e, n };
 }
 
-// Récupérer les données depuis SITG (Genève)
+// Récupérer les données depuis SITG (Genève) via REST API ArcGIS
 async function fetchFromSITG(lat: number, lng: number): Promise<CadastreData | null> {
   try {
-    // SITG WFS : les parcelles sont servies en EPSG:2056 (LV95)
+    // Conversion LV95
     const { e, n } = wgs84ToLV95(lat, lng);
+    const geometry = encodeURIComponent(JSON.stringify({ x: e, y: n }));
 
-    const wfsUrl = `https://ge.ch/sitg/wfs?` +
-      `service=WFS&version=2.0.0&request=GetFeature&` +
-      `typeNames=sitg:CAD_PARCELLE_MENSU&` +
-      `outputFormat=application/json&` +
-      `srsName=EPSG:2056&count=1&` +
-      `CQL_FILTER=INTERSECTS(SHAPE,POINT(${e} ${n}))`;
-
-    const response = await fetch(wfsUrl);
-
-    if (!response.ok) {
-      console.error('SITG WFS error:', response.status);
+    // 1. Appel endpoint PARCELLE
+    const urlParcelle = `https://app2.ge.ch/tergeoservices/rest/services/Hosted/CAD_PARCELLE_MENSU/FeatureServer/0/query?` +
+      `where=1%3D1&geometry=${geometry}&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&` +
+      `outFields=no_parcelle,surface,commune,egrid,type_propri&returnGeometry=false&f=json`;
+    
+    const resParcelle = await fetch(urlParcelle);
+    if (!resParcelle.ok) {
+      console.error('SITG Parcelle error:', resParcelle.status);
+      return null;
+    }
+    
+    const dataParcelle = await resParcelle.json();
+    const attrsParcelle = dataParcelle?.features?.[0]?.attributes;
+    
+    if (!attrsParcelle) {
+      console.log('SITG: Aucune parcelle trouvée');
       return null;
     }
 
-    const data = await response.json();
-
-    if (data.features && data.features.length > 0) {
-      const feature = data.features[0];
-      const props = feature.properties || {};
-
-      const zoneDetail = props.ZONE || props.AFFECTATION || props.ZONE_AFFECTATION || props.TYPE_ZONE || '';
-
-      return {
-        numeroParcelle: props.NO_PARCELLE || props.NUMERO || props.NUM_PARCELLE || props.EGRID || '',
-        surfaceParcelle: Number(props.SURFACE || props.SURFACE_PI || props.SHAPE_AREA || 0),
-        zone: mapSITGZone(zoneDetail),
-        zoneDetail,
-        commune: props.COMMUNE || props.NOM_COMMUNE || props.COMMUNE_NOM || '',
-        canton: 'GE',
-        source: 'sitg'
-      };
+    // 2. Appel endpoint ZONE
+    const urlZone = `https://app2.ge.ch/tergeoservices/rest/services/Hosted/SIT_ZONE_AMENAG/FeatureServer/0/query?` +
+      `where=1%3D1&geometry=${geometry}&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&` +
+      `outFields=zone,description&returnGeometry=false&f=json`;
+    
+    const resZone = await fetch(urlZone);
+    let zoneCode = '';
+    let zoneDetail = '';
+    
+    if (resZone.ok) {
+      const dataZone = await resZone.json();
+      const attrsZone = dataZone?.features?.[0]?.attributes;
+      if (attrsZone) {
+        zoneCode = attrsZone.zone || '';
+        zoneDetail = attrsZone.description || '';
+      }
     }
 
-    return null;
+    return {
+      numeroParcelle: String(attrsParcelle.no_parcelle || ''),
+      surfaceParcelle: Number(attrsParcelle.surface || 0),
+      zone: mapSITGZone(zoneCode),
+      zoneDetail: zoneDetail,
+      commune: attrsParcelle.commune || '',
+      canton: 'GE',
+      source: 'sitg'
+    };
+
   } catch (error) {
     console.error('SITG fetch error:', error);
     return null;
