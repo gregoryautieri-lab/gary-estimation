@@ -11,7 +11,8 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown } from 'lucide-react';
+import { useLuxMode } from '@/hooks/useEstimationCalcul';
 import { supabase } from '@/integrations/supabase/client';
 
 // Composants stratégie
@@ -30,6 +31,7 @@ import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { ContrainteBadge } from '@/components/strategie/ContrainteBadge';
 import { format, nextMonday } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function Module5Strategie() {
   const { id } = useParams<{ id: string }>();
@@ -159,8 +161,10 @@ export default function Module5Strategie() {
             niveauCoordination: estimation.identification.projetPostVente.niveauCoordination,
             accepteDecalage: estimation.identification.projetPostVente.accepteDecalage
           } : undefined,
+          niveauContrainte: logic.niveauContrainte,
           dateDebutFormate: logic.dateDebutFormate,
           typeMiseEnVente: logic.typeMiseEnVente,
+          isLuxe: (estimation.prixFinal || 0) > 5000000,
           fallbackPitch: logic.pitch.complet
         }
       });
@@ -237,11 +241,33 @@ export default function Module5Strategie() {
     : parseFloat(estimation?.caracteristiques?.surfacePPE || '0');
   const pointsForts = estimation?.analyseTerrain?.pointsForts || [];
 
+  // Calcul LuxMode basé sur le prix
+  const luxMode = useLuxMode(
+    estimation?.caracteristiques || null,
+    estimation?.identification?.contexte || null,
+    estimation?.identification?.historique || null,
+    prixAffiche
+  );
+
   // Préparer actions Phase 0 avec état checked
   const phase0ActionsWithState = logic.actionsPhase0.map(a => ({
     ...a,
     checked: checkedPhase0Actions.includes(a.id)
   }));
+  
+  // Calculer date fin estimée et durée totale
+  const dateFinEstimee = logic.phases.length > 0 
+    ? format(logic.phases[logic.phases.length - 1].dateFin, 'd MMMM yyyy', { locale: fr })
+    : undefined;
+  const dureeTotale = logic.phaseDurees.phase0 + logic.phaseDurees.phase1 + 
+    logic.phaseDurees.phase2 + logic.phaseDurees.phase3;
+  
+  // Alerte contrainte pour RecapExpress
+  const contrainteAlerte = logic.niveauContrainte >= 4 
+    ? "Timing serré — projet achat avancé, coordination étroite requise"
+    : logic.niveauContrainte >= 3 
+      ? "Offre en cours côté achat — rester agile sur la vente"
+      : undefined;
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -263,7 +289,19 @@ export default function Module5Strategie() {
           />
         )}
 
-        {/* Récap Express */}
+        {/* Badge Ultra-Luxe si applicable */}
+        {luxMode.isLux && (
+          <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl p-3">
+            <Crown className="h-5 w-5" />
+            <div>
+              <p className="font-bold text-sm">Mode Ultra-Luxe activé</p>
+              <p className="text-xs opacity-90">Vocabulaire premium, stratégie adaptée au segment haut de gamme</p>
+            </div>
+            <span className="ml-auto text-2xl font-bold">{luxMode.score}</span>
+          </div>
+        )}
+
+        {/* Récap Express enrichi */}
         <RecapExpress
           adresse={adresse}
           localite={localite}
@@ -273,6 +311,11 @@ export default function Module5Strategie() {
           typeBien={typeBien}
           surface={surface}
           pointsForts={pointsForts}
+          dateFinEstimee={dateFinEstimee}
+          dureeTotale={dureeTotale}
+          niveauContrainte={logic.niveauContrainte}
+          isLuxe={luxMode.isLux}
+          contrainteAlerte={contrainteAlerte}
         />
 
         {/* Niveau de Contrainte Vendeur */}
