@@ -5,6 +5,9 @@ import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { LockBanner } from '@/components/gary/LockBanner';
 import { CourtierSelector } from '@/components/gary/CourtierSelector';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
+import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -383,6 +386,13 @@ const Module1Identification = () => {
     );
   }
 
+  // Progress tracking
+  const { moduleStatuses, missingFields, canProceed } = useModuleProgress(
+    estimation,
+    id || '',
+    1
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ModuleHeader
@@ -392,6 +402,15 @@ const Module1Identification = () => {
         backPath="/estimations"
       />
 
+      {/* Barre de progression */}
+      {id && (
+        <ModuleProgressBar
+          modules={moduleStatuses}
+          currentModule={1}
+          estimationId={id}
+        />
+      )}
+
       <main className="flex-1 p-4 pb-32 space-y-4">
         {/* Bandeau de verrouillage */}
         {isLocked && lockMessage && (
@@ -399,6 +418,16 @@ const Module1Identification = () => {
             message={lockMessage} 
             onDuplicate={handleDuplicate}
             duplicating={duplicating}
+          />
+        )}
+
+        {/* Alerte champs manquants */}
+        {missingFields.length > 0 && !isLocked && (
+          <MissingFieldsAlert
+            fields={missingFields}
+            moduleName="Identification"
+            showMarkComplete={canProceed}
+            onMarkComplete={() => handleSave(true)}
           />
         )}
         

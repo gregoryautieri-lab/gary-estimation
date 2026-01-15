@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection } from '@/components/gary/FormSection';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
+import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -309,6 +312,13 @@ export default function Module5Strategie() {
     criteresAchat.budgetMax === 0
   );
 
+  // Progress tracking
+  const { moduleStatuses, missingFields, canProceed, presentationBlocker } = useModuleProgress(
+    estimation,
+    id || '',
+    5
+  );
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <ModuleHeader 
@@ -317,6 +327,15 @@ export default function Module5Strategie() {
         subtitle="Timeline et pitch de closing"
         backPath={`/estimation/${id}/4`}
       />
+
+      {/* Barre de progression */}
+      {id && (
+        <ModuleProgressBar
+          modules={moduleStatuses}
+          currentModule={5}
+          estimationId={id}
+        />
+      )}
 
       <div className="p-4 space-y-6">
         {/* Bandeau de verrouillage */}
@@ -327,6 +346,25 @@ export default function Module5Strategie() {
             onDuplicate={handleDuplicate}
             duplicating={duplicating}
           />
+        )}
+
+        {/* Alerte champs manquants */}
+        {missingFields.length > 0 && !isLocked && (
+          <MissingFieldsAlert
+            fields={missingFields}
+            moduleName="Stratégie & Pitch"
+            showMarkComplete={canProceed}
+            onMarkComplete={handleSave}
+          />
+        )}
+
+        {/* Blocage présentation si applicable */}
+        {!presentationBlocker.canPresent && presentationBlocker.message && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Impossible de présenter</AlertTitle>
+            <AlertDescription>{presentationBlocker.message}</AlertDescription>
+          </Alert>
         )}
 
         {/* Alerte critères d'achat manquants */}
