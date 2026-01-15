@@ -52,7 +52,7 @@ const GoogleMapComponent: React.FC<LocationPreviewProps & { apiKey: string }> = 
     initialMapState || {
       center: defaultCenter,
       zoom: 18,
-      mapType: "hybrid",
+      mapType: "satellite",
       markerPosition: defaultCenter,
     }
   );
