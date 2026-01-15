@@ -101,8 +101,9 @@ const Index = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     loadData();
-  }, []);
+  }, [user]);
 
   const loadData = async () => {
     setLoadingData(true);

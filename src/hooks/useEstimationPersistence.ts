@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { 
@@ -224,13 +225,20 @@ export function useEstimationPersistence() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getCurrentUser = useCallback(async (): Promise<User | null> => {
+    if (user) return user;
+    const { data, error: authError } = await supabase.auth.getUser();
+    if (authError) return null;
+    return data.user ?? null;
+  }, [user]);
+
   // Récupérer toutes les estimations du courtier
   const fetchEstimations = useCallback(async (): Promise<EstimationData[]> => {
-    console.log('📋 [fetchEstimations] Début, user:', user?.id, user?.email);
-    
-    if (!user) {
-      console.log('❌ [fetchEstimations] Pas d\'utilisateur connecté');
-      setError('Utilisateur non connecté');
+    const currentUser = await getCurrentUser();
+    console.log('📋 [fetchEstimations] Début, user:', currentUser?.id, currentUser?.email);
+
+    if (!currentUser) {
+      // Auth pas encore prête (ou session expirée) : ne pas vider la UI avec une erreur.
       return [];
     }
 
@@ -244,10 +252,10 @@ export function useEstimationPersistence() {
         .select('*')
         .order('updated_at', { ascending: false });
 
-      console.log('📊 [fetchEstimations] Réponse:', { 
-        count: data?.length, 
+      console.log('📊 [fetchEstimations] Réponse:', {
+        count: data?.length,
         error: fetchError?.message,
-        firstItem: data?.[0]?.id 
+        firstItem: data?.[0]?.id
       });
 
       if (fetchError) throw fetchError;
@@ -264,12 +272,12 @@ export function useEstimationPersistence() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   // Récupérer une estimation par ID
   const fetchEstimation = useCallback(async (id: string): Promise<EstimationData | null> => {
-    if (!user) {
-      setError('Utilisateur non connecté');
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return null;
     }
 
@@ -294,13 +302,14 @@ export function useEstimationPersistence() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   // Créer une nouvelle estimation
   const createEstimation = useCallback(async (
     data: Partial<EstimationData>
   ): Promise<EstimationData | null> => {
-    if (!user) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       setError('Utilisateur non connecté');
       toast.error('Veuillez vous connecter');
       return null;
@@ -310,8 +319,8 @@ export function useEstimationPersistence() {
     setError(null);
 
     try {
-      const insertData = estimationToInsert(data, user.id);
-      
+      const insertData = estimationToInsert(data, currentUser.id);
+
       const { data: created, error: createError } = await supabase
         .from('estimations')
         .insert([insertData] as any)
@@ -330,7 +339,7 @@ export function useEstimationPersistence() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   // Mettre à jour une estimation
   const updateEstimation = useCallback(async (
@@ -338,7 +347,8 @@ export function useEstimationPersistence() {
     data: Partial<EstimationData>,
     silent = false
   ): Promise<EstimationData | null> => {
-    if (!user) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       setError('Utilisateur non connecté');
       return null;
     }
@@ -370,11 +380,12 @@ export function useEstimationPersistence() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   // Supprimer une estimation
   const deleteEstimation = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       setError('Utilisateur non connecté');
       return false;
     }
@@ -400,7 +411,7 @@ export function useEstimationPersistence() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   // Dupliquer une estimation
   const duplicateEstimation = useCallback(async (id: string): Promise<EstimationData | null> => {
