@@ -171,13 +171,15 @@ interface AjustementPhases {
   phase3: number;
   recommandation: string;
   alerteCourtier: AlerteCourtier | null;
+  alertesSupplementaires: AlerteCourtier[];
 }
 
 export const getAjustementPhases = (
   niveauContrainte: number,
   tolerances: { venteLongue: boolean; venteRapide: boolean },
   flexibilite: string,
-  capitalVisibilite: CapitalVisibilite
+  capitalVisibilite: CapitalVisibilite,
+  identification: Identification | null
 ): AjustementPhases => {
   const ajustement: AjustementPhases = {
     phase0: 0,
@@ -185,10 +187,13 @@ export const getAjustementPhases = (
     phase2: 0,
     phase3: 0,
     recommandation: '',
-    alerteCourtier: null
+    alerteCourtier: null,
+    alertesSupplementaires: []
   };
 
-  // Alertes selon capital-visibilité
+  // ================================================
+  // ALERTE 1: Capital-visibilité critique
+  // ================================================
   if (capitalVisibilite.label === 'faible') {
     ajustement.alerteCourtier = {
       type: 'critical',
@@ -196,10 +201,109 @@ export const getAjustementPhases = (
       message: `Le bien a été surexposé. Une pause de ${capitalVisibilite.pauseRecalibrage} semaine(s) est intégrée + repositionnement prix nécessaire.`,
       actions: ['Proposer baisse de prix', 'Rafraîchir visuels', 'Attendre avant diffusion']
     };
-    return ajustement;
   }
 
-  if (niveauContrainte >= 4) {
+  // ================================================
+  // ALERTE 2: Historique échec diffusion (3+ mois)
+  // ================================================
+  const historique = identification?.historique;
+  if (historique?.dejaDiffuse && 
+      ['3-6mois', '6-12mois', 'plus12mois'].includes(historique.duree)) {
+    ajustement.alertesSupplementaires.push({
+      type: 'warning',
+      title: '⚠️ Historique diffusion défavorable',
+      message: `Bien déjà diffusé ${historique.duree.replace('-', ' à ')} — acheteurs actifs l'ont probablement vu.`,
+      actions: [
+        'Renouveler les visuels (photos, vidéo)',
+        'Repositionner le prix si nécessaire',
+        'Nouvelle approche marketing'
+      ]
+    });
+  }
+
+  // ================================================
+  // ALERTE 3: Projet achat en cours SANS coordination
+  // ================================================
+  const projetPostVente = identification?.projetPostVente;
+  if (projetPostVente?.nature === 'achat' && 
+      projetPostVente.avancement !== 'pas_commence' &&
+      projetPostVente.niveauCoordination === 'vente_seule') {
+    ajustement.alertesSupplementaires.push({
+      type: 'warning',
+      title: '🟠 Coordination non souhaitée',
+      message: 'Le vendeur a un projet achat mais ne souhaite pas notre accompagnement côté achat.',
+      actions: [
+        'Rester disponible pour coordonner si besoin',
+        'S\'assurer que le timing est réaliste'
+      ]
+    });
+  }
+
+  // ================================================
+  // ALERTE 4: Timing serré (vente + achat < 3 mois)
+  // ================================================
+  if (projetPostVente?.nature === 'achat' && 
+      projetPostVente.dateCible) {
+    const dateCible = new Date(projetPostVente.dateCible);
+    const maintenant = new Date();
+    const moisRestants = (dateCible.getTime() - maintenant.getTime()) / (1000 * 60 * 60 * 24 * 30);
+    
+    if (moisRestants < 3 && moisRestants > 0) {
+      ajustement.alertesSupplementaires.push({
+        type: 'critical',
+        title: '⚡ Timing très serré',
+        message: `Moins de ${Math.ceil(moisRestants)} mois pour vendre ET acheter — risque de stress élevé.`,
+        actions: [
+          'Valider si le vendeur accepte une solution transitoire',
+          'Envisager pont bancaire si non vendu à temps',
+          'Accélérer la stratégie de diffusion'
+        ]
+      });
+    }
+  }
+
+  // ================================================
+  // ALERTE 5: Pas de tolérance au décalage + contrainte forte
+  // ================================================
+  if (projetPostVente?.accepteDecalage === 'non' && niveauContrainte >= 3) {
+    ajustement.alertesSupplementaires.push({
+      type: 'critical',
+      title: '🔴 Aucune flexibilité',
+      message: 'Le vendeur ne peut pas décaler son projet achat — pression maximum sur la vente.',
+      actions: [
+        'S\'assurer que le prix est réaliste',
+        'Prévoir plan B (location transitoire, famille)',
+        'Communiquer les risques clairement'
+      ]
+    });
+  }
+
+  // ================================================
+  // ALERTE 6: Confidentialité demandée mais bien déjà exposé
+  // ================================================
+  if (identification?.contexte?.confidentialite === 'confidentielle' && 
+      historique?.dejaDiffuse && 
+      historique.typeDiffusion !== 'discrete') {
+    ajustement.alertesSupplementaires.push({
+      type: 'info',
+      title: 'ℹ️ Confidentialité tardive',
+      message: 'Le vendeur souhaite une diffusion confidentielle mais le bien a déjà été exposé publiquement.',
+      actions: [
+        'Expliquer les limites de la confidentialité',
+        'Suggérer off-market avec nouveau positionnement'
+      ]
+    });
+  }
+
+  // ================================================
+  // ALERTE 7: Prix attendu irréaliste (si renseigné)
+  // ================================================
+  // Note: Cette alerte devrait être calculée ailleurs avec les données de preEstimation
+
+  // ================================================
+  // AJUSTEMENTS PHASES selon contrainte
+  // ================================================
+  if (niveauContrainte >= 4 && !ajustement.alerteCourtier) {
     // Contrainte FORTE ou CRITIQUE
     if (flexibilite === 'faible') {
       ajustement.phase1 = -2;
@@ -216,37 +320,43 @@ export const getAjustementPhases = (
     } else {
       ajustement.phase1 = -1;
       ajustement.recommandation = 'Phases raccourcies conseillées';
-      ajustement.alerteCourtier = {
-        type: 'warning',
-        title: '🟡 Contrainte élevée',
-        message: 'Projet achat avancé — rester vigilant sur le timing.',
-        actions: ['Suivre l\'avancement achat', 'Préparer accélération si besoin']
-      };
+      if (!ajustement.alerteCourtier) {
+        ajustement.alerteCourtier = {
+          type: 'warning',
+          title: '🟡 Contrainte élevée',
+          message: 'Projet achat avancé — rester vigilant sur le timing.',
+          actions: ['Suivre l\'avancement achat', 'Préparer accélération si besoin']
+        };
+      }
     }
   } else if (niveauContrainte === 3) {
     if (tolerances.venteRapide) {
       ajustement.phase1 = -1;
       ajustement.recommandation = 'Accélération possible si besoin';
     }
-    ajustement.alerteCourtier = {
-      type: 'warning',
-      title: '🟡 Offre déposée côté achat',
-      message: 'L\'offre peut être acceptée à tout moment — rester agile.',
-      actions: ['Suivre négociation achat', 'Préparer diffusion accélérée']
-    };
+    if (!ajustement.alerteCourtier) {
+      ajustement.alerteCourtier = {
+        type: 'warning',
+        title: '🟡 Offre déposée côté achat',
+        message: 'L\'offre peut être acceptée à tout moment — rester agile.',
+        actions: ['Suivre négociation achat', 'Préparer diffusion accélérée']
+      };
+    }
   } else if (niveauContrainte === 2) {
-    ajustement.alerteCourtier = {
-      type: 'info',
-      title: 'ℹ️ Bien identifié côté achat',
-      message: 'Le vendeur a un bien en vue — surveiller l\'évolution.',
-      actions: ['Proposer coordination GARY']
-    };
+    if (!ajustement.alerteCourtier) {
+      ajustement.alerteCourtier = {
+        type: 'info',
+        title: 'ℹ️ Bien identifié côté achat',
+        message: 'Le vendeur a un bien en vue — surveiller l\'évolution.',
+        actions: ['Proposer coordination GARY']
+      };
+    }
   } else if (niveauContrainte === 1) {
     if (tolerances.venteLongue) {
       ajustement.phase1 = 1;
       ajustement.recommandation = 'Off-market prolongé conseillé — plus de temps pour le meilleur prix';
     }
-  } else if (niveauContrainte === 0 && tolerances.venteLongue) {
+  } else if (niveauContrainte === 0 && tolerances.venteLongue && !ajustement.alerteCourtier) {
     ajustement.phase1 = 2;
     ajustement.recommandation = 'Aucune contrainte — phase off-market étendue pour maximiser le prix';
     ajustement.alerteCourtier = {
@@ -835,7 +945,7 @@ export const useStrategieLogic = (
       venteRapide: identification?.projetPostVente?.toleranceVenteRapide || false
     };
     const flexibilite = identification?.projetPostVente?.flexibilite || 'moyenne';
-    return getAjustementPhases(niveauContrainte, tolerances, flexibilite, capitalVisibilite);
+    return getAjustementPhases(niveauContrainte, tolerances, flexibilite, capitalVisibilite, identification);
   }, [niveauContrainte, identification, capitalVisibilite]);
   
   const isMaison = caracteristiques?.typeBien === 'maison';

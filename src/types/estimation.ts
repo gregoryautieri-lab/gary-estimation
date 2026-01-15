@@ -413,7 +413,9 @@ export interface PreEstimation {
   
   // Rendement
   loyerMensuel: string;
-  tauxCapitalisation: number; // Défaut: 2.5
+  valeurLocativeEstimee?: string; // Valeur locative annuelle estimée (si pas de loyer mensuel)
+  tauxCapitalisation: number; // Défaut: 3.5%
+  tauxChargesLocatives?: number; // Défaut: 10% (déduction charges)
   
   // Gage
   valeurGage?: string;
@@ -922,7 +924,9 @@ export const defaultPreEstimation: PreEstimation = {
   prixM2Amenagement: '',
   annexes: [],
   loyerMensuel: '',
-  tauxCapitalisation: 2.5,
+  valeurLocativeEstimee: '',
+  tauxCapitalisation: 3.5,
+  tauxChargesLocatives: 10,
   valeurGage: '',
   tauxGage: 80,
   prixEntre: '',

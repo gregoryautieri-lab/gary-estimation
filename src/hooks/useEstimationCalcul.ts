@@ -112,7 +112,12 @@ export function useEstimationCalcul(
     
     // ============================================
     // APPARTEMENT - Surface pondérée GARY
-    // Coefficients : Habitable 100%, Balcon 50%, Terrasse 30%, Jardin 20%
+    // Coefficients officiels GARY:
+    // - Habitable: 100%
+    // - Sous-sol (cave incluse dans PPE): 50%
+    // - Balcon: 50%
+    // - Terrasse: 33%
+    // - Jardin: 10%
     // ============================================
     const surfacePPE = parseNum(carac.surfacePPE);
     const surfaceNonHab = parseNum(carac.surfaceNonHabitable);
@@ -123,11 +128,13 @@ export function useEstimationCalcul(
     // Surface habitable = PPE - non habitable (caves, etc.)
     const surfaceHabitable = surfacePPE - surfaceNonHab;
     
-    // Surface pondérée GARY (balcon 50%, terrasse 30%, jardin 20%)
+    // Surface pondérée GARY complète
+    // Sous-sol pondéré à 50% (surfaceNonHab représente le sous-sol/cave)
     const surfacePonderee = surfaceHabitable + 
+      (surfaceNonHab * 0.5) +  // Sous-sol/Cave à 50%
       (surfaceBalcon * 0.5) + 
-      (surfaceTerrasse * 0.3) + 
-      (surfaceJardin * 0.2);
+      (surfaceTerrasse * 0.33) + 
+      (surfaceJardin * 0.1);
     
     // ============================================
     // MAISON - Cubage SIA amélioré
@@ -220,29 +227,50 @@ export function useEstimationCalcul(
     const totalVenaleArrondi = arrondir5000(totalVenale);
     
     // ============================================
-    // VALEUR DE RENDEMENT
+    // VALEUR DE RENDEMENT (Loyer capitalisé)
+    // Formule: (Loyer mensuel net × 12) / Taux de capitalisation
+    // Si pas de loyer renseigné mais valeur locative estimée, on l'utilise
     // ============================================
-    const loyerBrut = parseNum(preEst.loyerMensuel);
-    const loyerNet = loyerBrut * 0.9; // 10% charges
+    const loyerMensuelSaisi = parseNum(preEst.loyerMensuel);
+    const valeurLocativeEstimee = parseNum(preEst.valeurLocativeEstimee);
+    
+    // Utiliser le loyer saisi ou estimer depuis la valeur locative
+    const loyerBrut = loyerMensuelSaisi > 0 
+      ? loyerMensuelSaisi 
+      : (valeurLocativeEstimee > 0 ? valeurLocativeEstimee / 12 : 0);
+    
+    // Charges déduites (10% par défaut ou personnalisé)
+    const tauxCharges = parseNum(preEst.tauxChargesLocatives) || 10;
+    const loyerNet = loyerBrut * (1 - tauxCharges / 100);
     const loyerAnnuel = loyerNet * 12;
-    // tauxCapitalisation est maintenant directement en % (ex: 2.5 pour 2.5%)
-    const tauxCapi = (preEst.tauxCapitalisation || 2.5) / 100;
-    const valeurRendement = tauxCapi > 0 ? arrondir5000(loyerAnnuel / tauxCapi) : 0;
+    
+    // Taux capitalisation (en % direct, ex: 3.5 pour 3.5%)
+    const tauxCapi = (preEst.tauxCapitalisation || 3.5) / 100;
+    const valeurRendement = tauxCapi > 0 && loyerAnnuel > 0 
+      ? arrondir5000(loyerAnnuel / tauxCapi) 
+      : 0;
     
     // ============================================
-    // VALEUR DE GAGE
+    // VALEUR DE GAGE (Formule bancaire suisse)
+    // Formule: (2 × Valeur vénale + Valeur de rendement) / 3
+    // Si pas de valeur rendement, utiliser uniquement vénale
     // ============================================
-    const valeurGage = (2 * totalVenale + valeurRendement) / 3;
+    const valeurGage = valeurRendement > 0 
+      ? (2 * totalVenale + valeurRendement) / 3
+      : totalVenale * 0.85; // Estimation prudente si pas de rendement
     const valeurGageArrondi = arrondir5000(valeurGage);
     
     // ============================================
-    // FOURCHETTE (±3%)
+    // FOURCHETTE (±3% autour de la valeur vénale)
     // ============================================
     const prixEntreCalcule = totalVenale > 0 ? arrondir5000(totalVenale * 0.97) : 0;
     const prixEtCalcule = totalVenale > 0 ? arrondir5000(totalVenale * 1.03) : 0;
     
     // ============================================
-    // PRIX MISE EN VENTE PAR TYPE
+    // PRIX MISE EN VENTE PAR TYPE DE DIFFUSION
+    // Off-market: +15% (négociation possible)
+    // Coming Soon: +10%
+    // Public: +6%
     // ============================================
     const pourcOffmarket = preEst.pourcOffmarket ?? 15;
     const pourcComingsoon = preEst.pourcComingsoon ?? 10;
