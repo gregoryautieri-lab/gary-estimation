@@ -15,8 +15,9 @@ import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckS
 import { supabase } from '@/integrations/supabase/client';
 
 // Composants stratégie
-import { CapitalGauge } from '@/components/strategie/CapitalGauge';
+import { CapitalGaugeAdvanced } from '@/components/strategie/CapitalGaugeAdvanced';
 import { PhaseCard } from '@/components/strategie/PhaseCard';
+import { TimelineGraph } from '@/components/strategie/TimelineGraph';
 import { CanalCard } from '@/components/strategie/CanalCard';
 import { AlerteCourtier } from '@/components/strategie/AlerteCourtier';
 import { LevierChip, LEVIERS_MARKETING } from '@/components/strategie/LevierChip';
@@ -283,10 +284,17 @@ export default function Module5Strategie() {
           />
         ))}
 
-        {/* Capital-Visibilité */}
+        {/* Capital-Visibilité Avancé */}
         <FormSection title="Capital-Visibilité" icon={<BarChart3 className="h-5 w-5" />}>
-          <CapitalGauge {...logic.capitalVisibilite} />
-          <p className="text-xs text-muted-foreground mt-2">{logic.capitalVisibilite.message}</p>
+          <CapitalGaugeAdvanced 
+            {...logic.capitalVisibilite} 
+            historiqueDiffusion={estimation?.identification?.historique ? {
+              dejaDiffuse: estimation.identification.historique.dejaDiffuse,
+              duree: estimation.identification.historique.duree,
+              typeDiffusion: estimation.identification.historique.typeDiffusion,
+              dateRetrait: estimation.identification.historique.dateRetrait
+            } : undefined}
+          />
         </FormSection>
 
         {/* Date de début */}
@@ -319,30 +327,43 @@ export default function Module5Strategie() {
           />
         </FormSection>
 
-        {/* Timeline Phases */}
-        <FormSection title="Phases de vente" icon={<Clock className="h-5 w-5" />}>
-          <ScrollArea className="w-full">
-            <div className="flex gap-3 pb-4">
-              {logic.phases.map((phase, idx) => (
-                <PhaseCard
-                  key={idx}
-                  nom={phase.nom}
-                  icon={phase.icon}
-                  duree={phase.duree}
-                  dateDebut={phase.dateDebut}
-                  dateFin={phase.dateFin}
-                  isActive={idx === 1}
-                  isFirst={idx === 0}
-                  editable={!strategie.dateVenteIdeale}
-                  onDureeChange={(delta) => {
-                    const keys: (keyof PhaseDurees)[] = ['phase0', 'phase1', 'phase2', 'phase3'];
-                    updatePhaseDuree(keys[idx], delta);
-                  }}
-                />
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+        {/* Timeline Graphique */}
+        <FormSection title="Timeline de vente" icon={<Clock className="h-5 w-5" />}>
+          <TimelineGraph
+            phases={logic.phases}
+            dateFinEstimee={logic.phases.length > 0 ? logic.phases[logic.phases.length - 1].dateFin : null}
+            isUrgent={logic.phasesCalculees.isUrgent}
+            pauseRecalibrage={logic.capitalVisibilite.pauseRecalibrage}
+            typeMiseEnVente={logic.typeMiseEnVente}
+          />
+          
+          {/* Phases Cards (scroll horizontal) */}
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Ajuster les durées :</p>
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-4">
+                {logic.phases.map((phase, idx) => (
+                  <PhaseCard
+                    key={idx}
+                    nom={phase.nom}
+                    icon={phase.icon}
+                    duree={phase.duree}
+                    dateDebut={phase.dateDebut}
+                    dateFin={phase.dateFin}
+                    isActive={idx === 1}
+                    isFirst={idx === 0}
+                    editable={!strategie.dateVenteIdeale}
+                    onDureeChange={(delta) => {
+                      const keys: (keyof PhaseDurees)[] = ['phase0', 'phase1', 'phase2', 'phase3'];
+                      updatePhaseDuree(keys[idx], delta);
+                    }}
+                  />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+          
           {strategie.dateVenteIdeale && (
             <p className="text-xs text-muted-foreground">
               💡 Durées calculées automatiquement. Effacez la date idéale pour éditer manuellement.
