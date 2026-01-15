@@ -11,7 +11,8 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { downloadEstimationPDF } from '@/utils/pdfExport';
 import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
 import { useLuxMode } from '@/hooks/useEstimationCalcul';
@@ -295,6 +296,17 @@ export default function Module5Strategie() {
     : logic.niveauContrainte >= 3 
       ? "Offre en cours côté achat — rester agile sur la vente"
       : undefined;
+  
+  // Vérifier si critères d'achat manquants
+  const projetPostVente = estimation?.identification?.projetPostVente;
+  const isAchatProject = projetPostVente?.nature === 'achat';
+  const criteresAchat = projetPostVente?.criteresAchat;
+  const needsCriteresAchat = isAchatProject && (
+    !criteresAchat || 
+    !criteresAchat.actif ||
+    criteresAchat.zones.length === 0 ||
+    criteresAchat.budgetMax === 0
+  );
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -314,6 +326,24 @@ export default function Module5Strategie() {
             onDuplicate={handleDuplicate}
             duplicating={duplicating}
           />
+        )}
+
+        {/* Alerte critères d'achat manquants */}
+        {needsCriteresAchat && (
+          <Alert variant="destructive" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-800 dark:text-yellow-200">Critères d'achat non renseignés</AlertTitle>
+            <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+              Ce client cherche à acheter mais les critères détaillés ne sont pas renseignés.
+              <Button 
+                variant="link" 
+                className="p-0 h-auto ml-1 text-yellow-800 dark:text-yellow-200 underline"
+                onClick={() => navigate(`/estimation/${id}/1`)}
+              >
+                Compléter dans Module 1
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Badge Ultra-Luxe si applicable */}

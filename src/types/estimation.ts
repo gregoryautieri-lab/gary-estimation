@@ -139,6 +139,35 @@ export interface Financier {
   impotFoncier?: string;
 }
 
+// Critères d'achat structurés (pour matching automatique)
+export interface CriteresAchat {
+  actif: boolean;                    // Le client cherche activement ?
+  zones: string[];                   // Communes recherchées (ex: ["Genève", "Carouge"])
+  typeRecherche: 'Appartement' | 'Maison' | 'Les deux' | '';
+  piecesMin: number;                 // Minimum de pièces (ex: 3.5)
+  surfaceMin?: number;               // Minimum m² (optionnel)
+  budgetMin: number;                 // Budget minimum (ex: 1000000)
+  budgetMax: number;                 // Budget maximum (ex: 1500000)
+  flexibiliteBudget?: number;        // % de flexibilité (ex: 10 = +/- 10%)
+  dateExpiration?: string;           // Jusqu'à quand valide (ISO date)
+  urgence?: 'haute' | 'moyenne' | 'basse';
+  commentaire?: string;              // Notes libres si besoin
+}
+
+export const defaultCriteresAchat: CriteresAchat = {
+  actif: true,
+  zones: [],
+  typeRecherche: '',
+  piecesMin: 0,
+  surfaceMin: undefined,
+  budgetMin: 0,
+  budgetMax: 0,
+  flexibiliteBudget: 10,
+  dateExpiration: '',
+  urgence: 'moyenne',
+  commentaire: ''
+};
+
 export interface ProjetPostVente {
   nature: string; // 'achat' | 'location' | 'depart' | 'autre' | 'non_concerne'
   natureDetail?: string;
@@ -153,6 +182,11 @@ export interface ProjetPostVente {
   toleranceInaction: boolean;
   toleranceRetrait: boolean;
   niveauCoordination: string; // 'legere' | 'active' | 'achat_souhaite' | 'achat_envisageable' | 'vente_seule'
+  
+  // NOUVEAU : Critères structurés pour matching
+  criteresAchat?: CriteresAchat;
+  
+  // DEPRECATED (garder pour compatibilité mais ne plus utiliser)
   budgetProjetSuivant?: string;
   regionRecherche?: string;
   criteresRecherche?: string;
@@ -787,6 +821,8 @@ export const defaultProjetPostVente: ProjetPostVente = {
   toleranceInaction: false,
   toleranceRetrait: false,
   niveauCoordination: '',
+  criteresAchat: undefined,
+  // DEPRECATED fields
   budgetProjetSuivant: '',
   regionRecherche: '',
   criteresRecherche: '',
