@@ -176,44 +176,79 @@ serve(async (req) => {
         }
       };
 
-      // Trouver le plus proche
+      // Helper pour vérifier si un lieu est en Suisse (via vicinity ou coordonnées)
+      // Coordonnées approximatives de la Suisse
+      const isInSwitzerland = (result: any): boolean => {
+        const lat = result.geometry?.location?.lat;
+        const lng = result.geometry?.location?.lng;
+        const vicinity = (result.vicinity || '').toLowerCase();
+        
+        // Exclure les villes françaises frontalières connues
+        const frenchCities = ['annemasse', 'saint-julien', 'gaillard', 'ambilly', 'ville-la-grand', 
+                              'ferney-voltaire', 'divonne', 'gex', 'saint-genis', 'thonon', 'evian',
+                              'annecy', 'bonneville', 'cluses', 'chamonix', 'megève'];
+        
+        for (const city of frenchCities) {
+          if (vicinity.includes(city) || (result.name || '').toLowerCase().includes(city)) {
+            return false;
+          }
+        }
+        
+        // Vérification par coordonnées (frontière ouest de la Suisse ~6.0°)
+        // La France est généralement à l'ouest (longitude plus basse) dans la région de Genève
+        // Mais c'est approximatif, donc on se fie surtout aux noms de villes
+        
+        return true;
+      };
+
+      // Trouver le plus proche EN SUISSE
       let busStop = null;
       let trainStation = null;
 
       if (busData.results && busData.results.length > 0) {
-        const closest = busData.results[0];
-        const distance = calculateDistance(
-          latitude, longitude,
-          closest.geometry.location.lat,
-          closest.geometry.location.lng
-        );
-        const travel = formatTravelTime(distance);
-        busStop = {
-          nom: closest.name,
-          distance: distance,
-          distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
-          temps: travel.temps,
-          mode: travel.mode,
-          placeId: closest.place_id
-        };
+        // Filtrer pour ne garder que les résultats suisses
+        const swissResults = busData.results.filter(isInSwitzerland);
+        const closest = swissResults[0] || busData.results[0]; // Fallback au premier si aucun suisse trouvé
+        
+        if (swissResults.length > 0) {
+          const distance = calculateDistance(
+            latitude, longitude,
+            closest.geometry.location.lat,
+            closest.geometry.location.lng
+          );
+          const travel = formatTravelTime(distance);
+          busStop = {
+            nom: closest.name,
+            distance: distance,
+            distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
+            temps: travel.temps,
+            mode: travel.mode,
+            placeId: closest.place_id
+          };
+        }
       }
 
       if (trainData.results && trainData.results.length > 0) {
-        const closest = trainData.results[0];
-        const distance = calculateDistance(
-          latitude, longitude,
-          closest.geometry.location.lat,
-          closest.geometry.location.lng
-        );
-        const travel = formatTravelTime(distance);
-        trainStation = {
-          nom: closest.name,
-          distance: distance,
-          distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
-          temps: travel.temps,
-          mode: travel.mode,
-          placeId: closest.place_id
-        };
+        // Filtrer pour ne garder que les résultats suisses
+        const swissResults = trainData.results.filter(isInSwitzerland);
+        
+        if (swissResults.length > 0) {
+          const closest = swissResults[0];
+          const distance = calculateDistance(
+            latitude, longitude,
+            closest.geometry.location.lat,
+            closest.geometry.location.lng
+          );
+          const travel = formatTravelTime(distance);
+          trainStation = {
+            nom: closest.name,
+            distance: distance,
+            distanceFormatted: distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`,
+            temps: travel.temps,
+            mode: travel.mode,
+            placeId: closest.place_id
+          };
+        }
       }
 
       return new Response(
@@ -227,7 +262,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid action. Use 'autocomplete' or 'details'" }),
+      JSON.stringify({ error: "Invalid action. Use 'autocomplete', 'details' or 'nearbyTransit'" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
