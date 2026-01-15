@@ -28,11 +28,6 @@ interface PresentationTimelineProps {
   };
   isLuxe?: boolean;
 }
-    label: string;
-    color: string;
-  };
-  isLuxe?: boolean;
-}
 
 const TYPE_LABELS: Record<TypeMiseEnVente, { label: string; icon: React.ReactNode; description: string }> = {
   offmarket: { 

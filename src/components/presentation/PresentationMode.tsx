@@ -33,13 +33,6 @@ interface PresentationModeProps {
   isLuxe?: boolean;
   onClose: () => void;
 }
-    value: number;
-    label: string;
-    color: string;
-  };
-  isLuxe?: boolean;
-  onClose: () => void;
-}
 
 type Section = 'photos' | 'map' | 'timeline' | 'price' | 'pitch';
 
