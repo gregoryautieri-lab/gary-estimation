@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
+import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationCalcul, formatPriceCHF } from '@/hooks/useEstimationCalcul';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { EstimationData, defaultPreEstimation, PreEstimation, TypeMiseEnVente, Comparable, LigneSupp, Annexe } from '@/types/estimation';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Plus, X, Flame, BarChart3, Landmark, Target, Rocket, CheckCircle2, Circle, Minus, Home, Building2, TreeDeciduous, Mountain, Warehouse, Map, ExternalLink, MapPin } from 'lucide-react';
@@ -259,6 +262,13 @@ export default function Module4PreEstimation() {
   const [preEst, setPreEst] = useState<PreEstimation>(defaultPreEstimation);
   const [saving, setSaving] = useState(false);
 
+  // Hook de progression
+  const { 
+    moduleStatuses, 
+    missingFields, 
+    canProceed 
+  } = useModuleProgress(estimation, id || '', 4);
+
   const loadEstimation = useCallback(async () => {
     if (!id) return;
     const data = await fetchEstimation(id);
@@ -424,6 +434,13 @@ export default function Module4PreEstimation() {
         title="Pré-estimation" 
         subtitle="Calcul de la valeur du bien"
         backPath={`/estimation/${id}/3`}
+      />
+
+      {/* Barre de progression */}
+      <ModuleProgressBar 
+        modules={moduleStatuses} 
+        currentModule={4} 
+        estimationId={id || ''} 
       />
 
       <div className="p-4 space-y-6">
@@ -1275,6 +1292,11 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </FormSection>
+        {/* Alerte champs manquants */}
+        <MissingFieldsAlert 
+          fields={missingFields} 
+          moduleName="Pré-estimation" 
+        />
       </div>
 
       {/* Footer actions */}

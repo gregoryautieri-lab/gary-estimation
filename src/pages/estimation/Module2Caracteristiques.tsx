@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
+import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
+import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useCadastreLookup } from '@/hooks/useCadastreLookup';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { useModuleProgress } from '@/hooks/useModuleProgress';
 import { EstimationData, defaultCaracteristiques, Caracteristiques, TypeBien } from '@/types/estimation';
 import { toast } from 'sonner';
 import { ChevronRight, ChevronDown, Home, Building2, Key, MapPin, Loader2, RefreshCw, Ruler, RotateCcw } from 'lucide-react';
@@ -204,6 +207,9 @@ export default function Module2Caracteristiques() {
   const [saving, setSaving] = useState(false);
   const [cadastreFetched, setCadastreFetched] = useState(false);
   const [cubageOpen, setCubageOpen] = useState(false);
+
+  // Hook de progression
+  const { moduleStatuses, missingFields } = useModuleProgress(estimation, id || '', 2);
 
   useEffect(() => {
     if (id) {
@@ -414,6 +420,9 @@ export default function Module2Caracteristiques() {
         subtitle="Fiche technique complète du bien"
         backPath={`/estimation/${id}/1`}
       />
+
+      {/* Barre de progression */}
+      <ModuleProgressBar modules={moduleStatuses} currentModule={2} estimationId={id || ''} />
 
       <div className="p-4 space-y-6">
         {/* Type de bien */}
