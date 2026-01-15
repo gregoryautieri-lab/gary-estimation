@@ -55,6 +55,16 @@ export interface MapState {
   markerPosition: { lat: number; lng: number };
 }
 
+export interface CadastreData {
+  numeroParcelle: string;
+  surfaceParcelle: number;
+  zone: string;
+  zoneDetail?: string;
+  commune: string;
+  canton: string;
+  source: 'sitg' | 'swisstopo' | 'asitvd' | 'unknown';
+}
+
 export interface Adresse {
   rue: string;
   numero?: string;
@@ -70,6 +80,7 @@ export interface Adresse {
   loading?: boolean;
   mapState?: MapState; // État de la carte Google Maps
   cadastreZoom?: number; // Niveau de zoom cadastre Swisstopo
+  cadastreData?: CadastreData; // Données cadastre récupérées automatiquement
 }
 
 export interface Contexte {

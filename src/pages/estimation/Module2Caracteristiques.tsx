@@ -210,6 +210,33 @@ export default function Module2Caracteristiques() {
     }
   }, [id]);
 
+  // Pré-remplir depuis cadastreData récupéré par Module 1
+  useEffect(() => {
+    const cadastreData = estimation?.identification?.adresse?.cadastreData;
+    
+    if (cadastreData && !cadastreFetched && carac.typeBien === 'maison') {
+      let updated = false;
+      
+      if (cadastreData.numeroParcelle && !carac.numeroParcelle) {
+        setCarac(prev => ({ ...prev, numeroParcelle: cadastreData.numeroParcelle }));
+        updated = true;
+      }
+      if (cadastreData.surfaceParcelle && cadastreData.surfaceParcelle > 0 && !carac.surfaceTerrain) {
+        setCarac(prev => ({ ...prev, surfaceTerrain: cadastreData.surfaceParcelle.toString() }));
+        updated = true;
+      }
+      if (cadastreData.zone && !carac.zone) {
+        setCarac(prev => ({ ...prev, zone: cadastreData.zone }));
+        updated = true;
+      }
+      
+      if (updated) {
+        setCadastreFetched(true);
+        toast.success('Données cadastre pré-remplies depuis Module 1');
+      }
+    }
+  }, [estimation, carac.typeBien, cadastreFetched]);
+
   const loadEstimation = async () => {
     if (!id) return;
     const data = await fetchEstimation(id);
