@@ -24,8 +24,10 @@ import { LevierChip, LEVIERS_MARKETING } from '@/components/strategie/LevierChip
 import { RecapExpress } from '@/components/strategie/RecapExpress';
 import { PitchEditor } from '@/components/strategie/PitchEditor';
 import { EtapeChecklist, ETAPES_PROCHAINES } from '@/components/strategie/EtapeChecklist';
-import { Phase0Checklist } from '@/components/strategie/Phase0Checklist';
+import { Phase0ChecklistEnhanced, getDefaultPhase0Actions, Phase0Action } from '@/components/strategie/Phase0ChecklistEnhanced';
 import { DateVenteIdeale } from '@/components/strategie/DateVenteIdeale';
+import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
+import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { ContrainteBadge } from '@/components/strategie/ContrainteBadge';
 import { format, nextMonday } from 'date-fns';
 
@@ -59,6 +61,16 @@ export default function Module5Strategie() {
       setStrategie(strat);
       setCheckedPhase0Actions(strat.phase0Actions || []);
     }
+  };
+
+  // Hook de verrouillage
+  const { isLocked, lockMessage, duplicateAndNavigate, duplicating } = useEstimationLockEnhanced(
+    estimation?.statut
+  );
+
+  const handleDuplicate = async () => {
+    if (!id || !estimation) return;
+    await duplicateAndNavigate(id, estimation);
   };
 
   // Logique métier
@@ -241,6 +253,16 @@ export default function Module5Strategie() {
       />
 
       <div className="p-4 space-y-6">
+        {/* Bandeau de verrouillage */}
+        {isLocked && lockMessage && (
+          <LockBannerEnhanced
+            statut={estimation?.statut || 'brouillon'}
+            message={lockMessage}
+            onDuplicate={handleDuplicate}
+            duplicating={duplicating}
+          />
+        )}
+
         {/* Récap Express */}
         <RecapExpress
           adresse={adresse}
@@ -316,14 +338,15 @@ export default function Module5Strategie() {
           />
         </FormSection>
 
-        {/* Actions Phase 0 */}
+        {/* Actions Phase 0 - Checklist améliorée avec progression */}
         <FormSection title="Préparation (Phase 0)" icon={<Settings2 className="h-5 w-5" />}>
-          <Phase0Checklist
+          <Phase0ChecklistEnhanced
             actions={phase0ActionsWithState}
             customActions={customPhase0Actions}
             onToggleAction={togglePhase0Action}
             onAddCustomAction={(a) => setCustomPhase0Actions(prev => [...prev, a])}
             onRemoveCustomAction={(a) => setCustomPhase0Actions(prev => prev.filter(x => x !== a))}
+            disabled={isLocked}
           />
         </FormSection>
 
