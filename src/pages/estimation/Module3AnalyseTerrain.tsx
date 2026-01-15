@@ -31,44 +31,7 @@ const piecesEtat = [
   { key: 'etatElectricite', label: 'Électricité', icon: '⚡' },
 ] as const;
 
-const pointsFortsOptions = [
-  { value: 'lumineux', label: '☀️ Lumineux' },
-  { value: 'vue_degagee', label: '🗝️ Vue dégagée' },
-  { value: 'calme', label: '😌 Calme' },
-  { value: 'cuisine_equipee', label: '🍳 Cuisine équipée' },
-  { value: 'sdb_moderne', label: '🚿 SDB moderne' },
-  { value: 'beaux_volumes', label: '🪵 Beaux volumes' },
-  { value: 'exterieur', label: '🌳 Extérieur' },
-  { value: 'parking', label: '🚗 Parking' },
-  { value: 'bon_etat', label: '🏠 Bon état général' },
-  { value: 'emplacement', label: '📍 Emplacement' },
-  { value: 'transports', label: '🚆 Transports' },
-  { value: 'ecoles', label: '🏫 Écoles proches' },
-  { value: 'parquet', label: '🪵 Parquet massif' },
-  { value: 'cheminee', label: '🔥 Cheminée' },
-  { value: 'dressing', label: '👔 Dressing' },
-  { value: 'faibles_charges', label: '💰 Faibles charges' },
-  { value: 'pas_vis_a_vis', label: '👁️ Pas de vis-à-vis' },
-];
-
-const pointsFaiblesOptions = [
-  { value: 'vis_a_vis', label: '👁️ Vis-à-vis' },
-  { value: 'travaux', label: '🔨 Travaux à prévoir' },
-  { value: 'pas_parking', label: '🚗 Pas de parking' },
-  { value: 'petites_surfaces', label: '📐 Petites surfaces' },
-  { value: 'sombre', label: '🌑 Sombre' },
-  { value: 'bruyant', label: '📢 Bruyant' },
-  { value: 'vetuste', label: '🏚️ Vétuste' },
-  { value: 'charges_elevees', label: '💰 Charges élevées' },
-  { value: 'electricite', label: '🔌 Électricité à refaire' },
-  { value: 'fenetres_anciennes', label: '🪟 Fenêtres anciennes' },
-  { value: 'mal_isole', label: '❄️ Mal isolé' },
-  { value: 'mauvais_emplacement', label: '📍 Emplacement' },
-  { value: 'copro_vieillissante', label: '🏢 Copro vieillissante' },
-  { value: 'manque_rangements', label: '📦 Manque rangements' },
-  { value: 'sans_ascenseur', label: '🪜 Sans ascenseur' },
-];
-
+// Options nuisances uniquement (les points forts/faibles sont maintenant dans PointChipsGrid)
 const nuisancesOptions = [
   { value: 'route', label: 'Route passante', icon: '🚗' },
   { value: 'train', label: 'Voie ferrée', icon: '🚂' },
@@ -174,6 +137,11 @@ export default function Module3AnalyseTerrain() {
     navigate(`/estimation/${id}/photos`);
   };
 
+  const handleDuplicate = async () => {
+    if (!id || !estimation) return;
+    await duplicateAndNavigate(id, estimation);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -198,6 +166,16 @@ export default function Module3AnalyseTerrain() {
       />
 
       <div className="p-4 space-y-6">
+        {/* Bandeau de verrouillage */}
+        {isLocked && lockMessage && (
+          <LockBannerEnhanced
+            statut={estimation?.statut || 'brouillon'}
+            message={lockMessage}
+            onDuplicate={handleDuplicate}
+            duplicating={duplicating}
+          />
+        )}
+
         {/* État pièce par pièce */}
         <FormSection title="État pièce par pièce">
           <div className="space-y-4">
@@ -266,58 +244,32 @@ export default function Module3AnalyseTerrain() {
           />
         </FormSection>
 
-        {/* Points forts */}
+        {/* Points forts - Nouveau composant avec chips emoji */}
         <FormSection title="Points forts">
-          <div className="flex flex-wrap gap-2">
-            {pointsFortsOptions.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => toggleArrayItem('pointsForts', value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  analyse.pointsForts?.includes(value)
-                    ? 'bg-green-500 text-white'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <FormRow label="Autre point fort">
-            <Textarea
-              value={analyse.pointFortCustom || ''}
-              onChange={(e) => updateField('pointFortCustom', e.target.value)}
-              placeholder="Ajoutez un point fort personnalisé..."
-              rows={2}
-            />
-          </FormRow>
+          <PointChipsGrid
+            type="fort"
+            options={POINTS_FORTS_OPTIONS}
+            selected={analyse.pointsForts || []}
+            customItems={customPointsForts}
+            onToggle={(value) => toggleArrayItem('pointsForts', value)}
+            onAddCustom={(value) => setCustomPointsForts(prev => [...prev, value])}
+            onRemoveCustom={(value) => setCustomPointsForts(prev => prev.filter(v => v !== value))}
+            disabled={isLocked}
+          />
         </FormSection>
 
-        {/* Points faibles */}
+        {/* Points faibles - Nouveau composant avec chips emoji */}
         <FormSection title="Points faibles">
-          <div className="flex flex-wrap gap-2">
-            {pointsFaiblesOptions.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => toggleArrayItem('pointsFaibles', value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  analyse.pointsFaibles?.includes(value)
-                    ? 'bg-red-500 text-white'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <FormRow label="Autre point faible">
-            <Textarea
-              value={analyse.pointFaibleCustom || ''}
-              onChange={(e) => updateField('pointFaibleCustom', e.target.value)}
-              placeholder="Ajoutez un point faible personnalisé..."
-              rows={2}
-            />
-          </FormRow>
+          <PointChipsGrid
+            type="faible"
+            options={POINTS_FAIBLES_OPTIONS}
+            selected={analyse.pointsFaibles || []}
+            customItems={customPointsFaibles}
+            onToggle={(value) => toggleArrayItem('pointsFaibles', value)}
+            onAddCustom={(value) => setCustomPointsFaibles(prev => [...prev, value])}
+            onRemoveCustom={(value) => setCustomPointsFaibles(prev => prev.filter(v => v !== value))}
+            disabled={isLocked}
+          />
         </FormSection>
 
         {/* Nuisances */}
