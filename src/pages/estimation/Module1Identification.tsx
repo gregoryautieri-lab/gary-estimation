@@ -26,6 +26,7 @@ import { defaultIdentification, defaultEstimation } from '@/types/estimation';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { LocationPreview } from '@/components/maps/LocationPreview';
 import { CadastreMap } from '@/components/maps/CadastreMap';
+import { ProximitesEditor } from '@/components/gary/ProximitesEditor';
 
 // Options pour les selects
 const MOTIFS_VENTE = [
@@ -420,6 +421,18 @@ const Module1Identification = () => {
               }}
             />
           </div>
+        </FormSection>
+
+        {/* Proximités */}
+        <FormSection icon="📍" title="Proximités">
+          <p className="text-sm text-muted-foreground mb-4">
+            Points d'intérêt à proximité du bien — renseignez les informations pertinentes.
+          </p>
+          <ProximitesEditor
+            proximites={identification.proximites}
+            onChange={(proximites) => setIdentification(prev => ({ ...prev, proximites }))}
+            disabled={isLocked}
+          />
         </FormSection>
 
         {/* Contexte */}
