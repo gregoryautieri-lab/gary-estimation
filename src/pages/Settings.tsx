@@ -28,6 +28,7 @@ import {
   Sun,
   Crown,
   Users,
+  Edit2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -87,35 +88,39 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-6 pb-12">
-        <div className="flex items-center justify-between mb-6">
-          <GaryLogo />
+      {/* Header - Design épuré */}
+      <div className="bg-gradient-to-br from-primary/90 to-primary p-4 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">G</span>
+            </div>
+            <span className="text-white/90 font-medium text-sm">GARY</span>
+          </div>
           <ThemeToggle />
         </div>
-        <h1 className="text-2xl font-bold">Paramètres</h1>
+        <h1 className="text-xl font-semibold text-white">Paramètres</h1>
       </div>
 
-      {/* Profile Card */}
-      <div className="px-4 -mt-6">
-        <Card className="shadow-lg">
+      {/* Profile Card - Plus compact */}
+      <div className="px-4 -mt-3">
+        <Card className="shadow-md border-0">
           <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12 ring-2 ring-primary/20">
                 <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h2 className="font-bold text-lg">
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-base truncate">
                   {profile.full_name || "Courtier GARY"}
                 </h2>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Éditer
+              <Button variant="ghost" size="sm" className="shrink-0">
+                <Edit2 className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>

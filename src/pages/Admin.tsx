@@ -233,80 +233,82 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-6 pb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+      {/* Header - Design épuré */}
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 pb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="text-primary-foreground hover:bg-white/10"
+              className="text-white/80 hover:bg-white/10 h-8 w-8"
               onClick={() => navigate("/settings")}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <GaryLogo />
+            <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xs">G</span>
+            </div>
           </div>
           <ThemeToggle />
         </div>
-        <div className="flex items-center gap-3">
-          <Shield className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Administration</h1>
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-amber-400" />
+          <h1 className="text-lg font-semibold text-white">Administration</h1>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-2xl font-bold">{users.length}</p>
-              <p className="text-xs text-muted-foreground">Utilisateurs</p>
+      <div className="p-4 space-y-3">
+        {/* Stats Cards - Plus compact */}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-3 text-center">
+              <Users className="h-4 w-4 mx-auto mb-0.5 text-slate-500" />
+              <p className="text-xl font-semibold">{users.length}</p>
+              <p className="text-[10px] text-muted-foreground">Utilisateurs</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Crown className="h-5 w-5 mx-auto mb-1 text-amber-500" />
-              <p className="text-2xl font-bold">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-3 text-center">
+              <Crown className="h-4 w-4 mx-auto mb-0.5 text-amber-500" />
+              <p className="text-xl font-semibold">
                 {users.filter((u) => u.roles.includes("admin")).length}
               </p>
-              <p className="text-xs text-muted-foreground">Admins</p>
+              <p className="text-[10px] text-muted-foreground">Admins</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Briefcase className="h-5 w-5 mx-auto mb-1 text-emerald-500" />
-              <p className="text-2xl font-bold">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-3 text-center">
+              <Briefcase className="h-4 w-4 mx-auto mb-0.5 text-emerald-500" />
+              <p className="text-xl font-semibold">
                 {users.filter((u) => u.roles.includes("courtier")).length}
               </p>
-              <p className="text-xs text-muted-foreground">Courtiers</p>
+              <p className="text-[10px] text-muted-foreground">Courtiers</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Users Management */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2 pt-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
                 Gestion des utilisateurs
               </CardTitle>
-              <Button size="sm" variant="outline" onClick={loadUsers}>
-                <RefreshCw className="h-4 w-4" />
+              <Button size="sm" variant="ghost" onClick={loadUsers} className="h-7 w-7 p-0">
+                <RefreshCw className="h-3.5 w-3.5" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 pt-0">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un utilisateur..."
+                placeholder="Rechercher..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-8 h-8 text-sm"
               />
             </div>
 
@@ -407,28 +409,23 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* Roles Legend */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Légende des rôles</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(ROLE_LABELS).map(([role, info]) => {
-              const Icon = info.icon;
-              return (
-                <div key={role} className="flex items-center gap-3">
-                  <Badge className={`${info.color} text-white`}>
-                    <Icon className="h-3 w-3 mr-1" />
-                    {info.label}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {role === "admin" && "Accès complet à toutes les estimations et paramètres"}
-                    {role === "back_office" && "Consultation de toutes les estimations"}
-                    {role === "courtier" && "Gestion de ses propres estimations"}
-                  </span>
-                </div>
-              );
-            })}
+        {/* Roles Legend - Plus discret */}
+        <Card className="border-0 shadow-sm bg-muted/30">
+          <CardContent className="py-3 px-4">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Légende</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ROLE_LABELS).map(([role, info]) => {
+                const Icon = info.icon;
+                return (
+                  <div key={role} className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-xs py-0 h-5 border-muted-foreground/30">
+                      <Icon className="h-2.5 w-2.5 mr-1" />
+                      {info.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
