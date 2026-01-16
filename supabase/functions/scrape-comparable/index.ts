@@ -16,25 +16,50 @@ interface ScrapedData {
   images?: string[];
 }
 
-// Extraction patterns pour les portails immobiliers suisses
+// Extraction patterns améliorés pour les portails immobiliers suisses
 const EXTRACTION_PATTERNS = {
   immoscout: {
-    prix: /CHF\s*([\d']+)/i,
-    surface: /(\d+)\s*m²/i,
-    pieces: /(\d+(?:\.\d+)?)\s*(?:pièces?|pi[eè]ces?|Zimmer)/i,
-    adresse: /(?:Adresse|Standort|Ort)[:\s]*([^<\n]+)/i,
+    // Capture prix avec apostrophes suisses: 1'890'000 ou 1890000
+    prix: [
+      /CHF\s*([\d'',.\s]+)/gi,
+      /prix[:\s]*(?:CHF\s*)?([\d'',.\s]+)/gi,
+      /([\d'',.\s]{6,})\s*(?:CHF|Fr\.)/gi,
+    ],
+    surface: [
+      /surface\s*(?:habitable)?[:\s]*(\d+)\s*m[²2]/gi,
+      /(\d+)\s*m[²2]\s*(?:habitable|surface)/gi,
+      /(\d+)\s*m[²2]/gi,
+    ],
+    pieces: [
+      /(\d+(?:[.,]\d+)?)\s*(?:pièces?|pi[eè]ces?|Zimmer|rooms?)/gi,
+    ],
   },
   homegate: {
-    prix: /CHF\s*([\d']+)/i,
-    surface: /(\d+)\s*m²/i,
-    pieces: /(\d+(?:\.\d+)?)\s*(?:pièces?|pi[eè]ces?|rooms?)/i,
-    adresse: /(?:Adresse|Location)[:\s]*([^<\n]+)/i,
+    prix: [
+      /CHF\s*([\d'',.\s]+)/gi,
+      /prix[:\s]*(?:CHF\s*)?([\d'',.\s]+)/gi,
+      /([\d'',.\s]{6,})\s*(?:CHF|Fr\.)/gi,
+    ],
+    surface: [
+      /surface\s*(?:habitable)?[:\s]*(\d+)\s*m[²2]/gi,
+      /(\d+)\s*m[²2]\s*(?:habitable|surface)/gi,
+      /(\d+)\s*m[²2]/gi,
+    ],
+    pieces: [
+      /(\d+(?:[.,]\d+)?)\s*(?:pièces?|pi[eè]ces?|rooms?)/gi,
+    ],
   },
   generic: {
-    prix: /(?:CHF|Fr\.?)\s*([\d'.,]+)/i,
-    surface: /(\d+)\s*m[²2]/i,
-    pieces: /(\d+(?:[.,]\d+)?)\s*(?:pièces?|pi[eè]ces?|Zimmer|rooms?)/i,
-    adresse: /(?:\d{4})\s+([A-Za-zÀ-ÿ\s-]+)/,
+    prix: [
+      /CHF\s*([\d'',.\s]+)/gi,
+      /(?:prix|price)[:\s]*(?:CHF\s*)?([\d'',.\s]+)/gi,
+    ],
+    surface: [
+      /(\d+)\s*m[²2]/gi,
+    ],
+    pieces: [
+      /(\d+(?:[.,]\d+)?)\s*(?:pièces?|pi[eè]ces?|Zimmer|rooms?)/gi,
+    ],
   }
 };
 
@@ -56,34 +81,89 @@ function getPatterns(source: string) {
 }
 
 function cleanPrice(priceStr: string): string {
-  // Nettoyer le prix: "1'250'000" -> "1250000"
-  return priceStr.replace(/['\s.,]/g, '');
+  // Nettoyer: "1'890'000" ou "1 890 000" ou "1,890,000" -> "1890000"
+  const cleaned = priceStr.replace(/['',.\s]/g, '');
+  // Vérifier que c'est un nombre valide et réaliste (> 10000 pour l'immobilier)
+  const num = parseInt(cleaned, 10);
+  if (isNaN(num) || num < 10000) return '';
+  return cleaned;
 }
 
-function extractDataFromMarkdown(markdown: string, source: string): Partial<ScrapedData> {
+function extractBestMatch(text: string, patterns: RegExp[]): string | null {
+  for (const pattern of patterns) {
+    // Reset lastIndex for global patterns
+    pattern.lastIndex = 0;
+    const matches = [...text.matchAll(new RegExp(pattern.source, pattern.flags))];
+    for (const match of matches) {
+      if (match[1]) {
+        return match[1].trim();
+      }
+    }
+  }
+  return null;
+}
+
+function extractImages(markdown: string, html: string): string[] {
+  const images: string[] = [];
+  
+  // Extract from markdown ![alt](url)
+  const mdPattern = /!\[[^\]]*\]\(([^)]+)\)/g;
+  let match;
+  while ((match = mdPattern.exec(markdown)) !== null) {
+    const url = match[1];
+    if (url && !url.includes('data:') && !url.includes('placeholder')) {
+      images.push(url);
+    }
+  }
+  
+  // Extract from HTML if available
+  if (html) {
+    const htmlPattern = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    while ((match = htmlPattern.exec(html)) !== null) {
+      const url = match[1];
+      if (url && !url.includes('data:') && !url.includes('placeholder') && !images.includes(url)) {
+        images.push(url);
+      }
+    }
+  }
+  
+  // Filter to keep only relevant property images (exclude icons, logos, etc.)
+  return images.filter(url => {
+    const isLargeImage = !url.includes('icon') && !url.includes('logo') && !url.includes('avatar');
+    const hasImageExtension = /\.(jpg|jpeg|png|webp)/i.test(url) || url.includes('image') || url.includes('photo');
+    return isLargeImage && (hasImageExtension || url.includes('cdn') || url.includes('static'));
+  }).slice(0, 10); // Limit to 10 images
+}
+
+function extractDataFromMarkdown(markdown: string, source: string, html?: string): Partial<ScrapedData> {
   const patterns = getPatterns(source);
   const data: Partial<ScrapedData> = { source };
   
-  // Extraire le prix
-  const prixMatch = markdown.match(patterns.prix);
-  if (prixMatch) {
-    data.prix = cleanPrice(prixMatch[1]);
+  // Extraire le prix - essayer plusieurs patterns
+  const prixRaw = extractBestMatch(markdown, patterns.prix);
+  if (prixRaw) {
+    const cleaned = cleanPrice(prixRaw);
+    if (cleaned) {
+      data.prix = cleaned;
+    }
   }
   
   // Extraire la surface
-  const surfaceMatch = markdown.match(patterns.surface);
-  if (surfaceMatch) {
-    data.surface = surfaceMatch[1];
+  const surfaceRaw = extractBestMatch(markdown, patterns.surface);
+  if (surfaceRaw) {
+    const surfaceNum = parseInt(surfaceRaw.replace(/\D/g, ''), 10);
+    if (!isNaN(surfaceNum) && surfaceNum > 10 && surfaceNum < 10000) {
+      data.surface = surfaceNum.toString();
+    }
   }
   
   // Extraire le nombre de pièces
-  const piecesMatch = markdown.match(patterns.pieces);
-  if (piecesMatch) {
-    data.nombrePieces = piecesMatch[1].replace(',', '.');
+  const piecesRaw = extractBestMatch(markdown, patterns.pieces);
+  if (piecesRaw) {
+    data.nombrePieces = piecesRaw.replace(',', '.');
   }
   
-  // Extraire l'adresse (plus complexe)
-  // Chercher un pattern NPA + Localité
+  // Extraire l'adresse (NPA + localité)
   const adresseMatch = markdown.match(/(\d{4})\s+([A-Za-zÀ-ÿ\s-]+?)(?:\n|,|$)/);
   if (adresseMatch) {
     data.adresse = `${adresseMatch[1]} ${adresseMatch[2].trim()}`;
@@ -105,6 +185,9 @@ function extractDataFromMarkdown(markdown: string, source: string): Partial<Scra
   } else if (/terrain|bauland|land/i.test(markdown)) {
     data.typeBien = 'terrain';
   }
+  
+  // Extraire les images
+  data.images = extractImages(markdown, html || '');
   
   return data;
 }
@@ -142,7 +225,7 @@ serve(async (req) => {
     const source = detectSource(url);
     console.log('Scraping URL:', url, 'Source:', source);
 
-    // Appeler Firecrawl pour scraper la page
+    // Appeler Firecrawl pour scraper la page (avec HTML pour les images)
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -151,9 +234,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: url,
-        formats: ['markdown'],
+        formats: ['markdown', 'html'],
         onlyMainContent: true,
-        waitFor: 3000, // Attendre le JS
+        waitFor: 3000,
       }),
     });
 
@@ -172,9 +255,10 @@ serve(async (req) => {
       );
     }
 
-    // Extraire les données du markdown
+    // Extraire les données du markdown et HTML
     const markdown = firecrawlData.data?.markdown || '';
-    const extractedData = extractDataFromMarkdown(markdown, source);
+    const html = firecrawlData.data?.html || '';
+    const extractedData = extractDataFromMarkdown(markdown, source, html);
 
     // Récupérer les métadonnées
     const metadata = firecrawlData.data?.metadata || {};
@@ -187,6 +271,7 @@ serve(async (req) => {
       nombrePieces: extractedData.nombrePieces || '',
       typeBien: extractedData.typeBien || '',
       description: metadata.description || '',
+      images: extractedData.images || [],
     };
 
     console.log('Extracted data:', result);
@@ -196,7 +281,7 @@ serve(async (req) => {
         success: true, 
         data: result,
         raw: {
-          markdown: markdown.substring(0, 2000), // Limiter pour debug
+          markdownPreview: markdown.substring(0, 500),
           metadata
         }
       }),
