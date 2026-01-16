@@ -970,6 +970,431 @@ async function renderMethodologyPage(ctx: PDFContext): Promise<void> {
 }
 
 // ============================================
+// PAGE ANNEXE TECHNIQUE 1/2
+// ============================================
+async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
+  const { doc, estimation, pageWidth, pageHeight } = ctx;
+  const helpers = createHelpers();
+  const { formatPrice, ico, val } = helpers;
+
+  // Données
+  const vendeur = estimation.identification as any || {};
+  const bien = estimation.identification as any || {};
+  const carac = estimation.caracteristiques as any || {};
+  const isAppartement = carac.typeBien === 'appartement';
+  const isMaison = carac.typeBien === 'maison';
+
+  // Helper pour afficher une valeur ou tiret
+  const annexeVal = (v: any, suffix: string = ''): string => {
+    if (v === undefined || v === null || v === '') return '-';
+    return v + suffix;
+  };
+
+  // Nouvelle page
+  doc.addPage();
+
+  // Header
+  doc.setFillColor(26, 46, 53);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GARY', 20, 25);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Annexe Technique (1/2)', pageWidth - 20, 25, { align: 'right' });
+
+  let yPos = 50;
+
+  // === SECTION CONTACT VENDEUR ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CONTACT VENDEUR', 20, yPos);
+  yPos += 10;
+
+  // Grid 3 colonnes
+  const colWidth = (pageWidth - 60) / 3;
+
+  // Nom
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, colWidth, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('NOM', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  const nomComplet = [vendeur.vendeurNom, vendeur.vendeurPrenom].filter(Boolean).join(' ') || estimation.vendeurNom || '-';
+  doc.text(annexeVal(nomComplet), 25, yPos + 15);
+
+  // Téléphone
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + colWidth, yPos, colWidth, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TELEPHONE', 35 + colWidth, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(vendeur.vendeurTelephone || estimation.vendeurTelephone), 35 + colWidth, yPos + 15);
+
+  // Email
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(40 + 2 * colWidth, yPos, colWidth, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('EMAIL', 45 + 2 * colWidth, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(vendeur.vendeurEmail || estimation.vendeurEmail), 45 + 2 * colWidth, yPos + 15);
+
+  yPos += 30;
+
+  // === SECTION ADRESSE CADASTRE ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ADRESSE & CADASTRE', 20, yPos);
+  yPos += 10;
+
+  // Grid 4 colonnes
+  const col4Width = (pageWidth - 70) / 4;
+
+  // Adresse complète
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, pageWidth - 40, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('ADRESSE', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(bien.adresse || estimation.adresse), 25, yPos + 15);
+
+  yPos += 25;
+
+  // EGID, Parcelle, Zone, Niveaux
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('EGID', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.egid), 25, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('N PARCELLE', 35 + col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.numeroParcelle), 35 + col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('ZONE', 45 + 2 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.zone), 45 + 2 * col4Width, yPos + 15);
+
+  if (isMaison) {
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(50 + 3 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('NIVEAUX', 55 + 3 * col4Width, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(annexeVal(carac.nombreNiveaux), 55 + 3 * col4Width, yPos + 15);
+  }
+
+  yPos += 30;
+
+  // === SECTION CONFIGURATION ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CONFIGURATION', 20, yPos);
+  yPos += 10;
+
+  // Grid 4 colonnes: Pièces, Chambres, SDB, WC
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('PIECES', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.nombrePieces), 25, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CHAMBRES', 35 + col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.nombreChambres), 35 + col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('SALLES DE BAIN', 45 + 2 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.nombreSDB), 45 + 2 * col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(50 + 3 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('WC SEPARES', 55 + 3 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.nombreWC), 55 + 3 * col4Width, yPos + 15);
+
+  yPos += 30;
+
+  // === SECTION ÉTAGE (appartement) ===
+  if (isAppartement) {
+    doc.setFontSize(9);
+    doc.setTextColor(255, 69, 57);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ETAGE & IMMEUBLE', 20, yPos);
+    yPos += 10;
+
+    // Format étage
+    const formatEtage = (val: any): string => {
+      if (val === undefined || val === '') return '-';
+      if (val == 0) return 'RDC';
+      if (val == -1) return 'Sous-sol';
+      if (val === 'rez-inf') return 'Rez-inferieur';
+      if (val === 'rez-sup') return 'Rez-superieur';
+      return val + 'e';
+    };
+
+    let etageText = formatEtage(carac.etage);
+    if (carac.etageHaut) etageText += ' au ' + formatEtage(carac.etageHaut);
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ETAGE', 25, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(etageText, 25, yPos + 15);
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ETAGES IMMEUBLE', 35 + col4Width, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(annexeVal(carac.nombreEtagesImmeuble), 35 + col4Width, yPos + 15);
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ASCENSEUR', 45 + 2 * col4Width, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    const ascenseurText = carac.ascenseur === true ? 'Oui' : (carac.ascenseur === false ? 'Non' : '-');
+    doc.text(ascenseurText, 45 + 2 * col4Width, yPos + 15);
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(50 + 3 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('DERNIER ETAGE', 55 + 3 * col4Width, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(carac.dernierEtage ? 'Oui' : 'Non', 55 + 3 * col4Width, yPos + 15);
+
+    yPos += 30;
+  }
+
+  // === SECTION EXPOSITION & VUE ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EXPOSITION & VUE', 20, yPos);
+  yPos += 10;
+
+  const col2Width = (pageWidth - 50) / 2;
+
+  const expositionText = (carac.exposition || []).length > 0 ? carac.exposition.join(', ') : '-';
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, col2Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('EXPOSITION', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(expositionText, 25, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + col2Width, yPos, col2Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('VUE', 35 + col2Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.vue), 35 + col2Width, yPos + 15);
+
+  yPos += 30;
+
+  // === SECTION ÉNERGIE & CHARGES ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ENERGIE & CHARGES', 20, yPos);
+  yPos += 10;
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CECB', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.cecb), 25, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('VITRAGE', 35 + col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.vitrage), 35 + col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CHAUFFAGE', 45 + 2 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.chauffage), 45 + 2 * col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(50 + 3 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CHARGES/MOIS', 55 + 3 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.chargesMensuelles, ' CHF'), 55 + 3 * col4Width, yPos + 15);
+
+  yPos += 30;
+
+  // === SECTION ANNEXES & STATIONNEMENT ===
+  doc.setFontSize(9);
+  doc.setTextColor(255, 69, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ANNEXES & STATIONNEMENT', 20, yPos);
+  yPos += 10;
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('PARKING INT.', 25, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.parkingInterieur), 25, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('PARKING EXT.', 35 + col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.parkingExterieur), 35 + col4Width, yPos + 15);
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('BOX', 45 + 2 * col4Width, yPos + 8);
+  doc.setFontSize(9);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(annexeVal(carac.box), 45 + 2 * col4Width, yPos + 15);
+
+  if (isAppartement) {
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(50 + 3 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CAVE', 55 + 3 * col4Width, yPos + 8);
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    const caveText = carac.cave === true ? 'Oui' : (carac.cave === false ? 'Non' : '-');
+    doc.text(caveText, 55 + 3 * col4Width, yPos + 15);
+  }
+}
+
+// ============================================
 // FONCTION PRINCIPALE : Génère le PDF
 // ============================================
 export async function generateEstimationPDF({
@@ -1009,6 +1434,11 @@ export async function generateEstimationPDF({
   // PAGE 2 : MÉTHODOLOGIE D'ESTIMATION (modulaire)
   // ========================================
   await renderMethodologyPage(ctx);
+
+  // ========================================
+  // PAGE 3 : ANNEXE TECHNIQUE 1/2 (modulaire)
+  // ========================================
+  await renderAnnexeTechnique1(ctx);
 
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
