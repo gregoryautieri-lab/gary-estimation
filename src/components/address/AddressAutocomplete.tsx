@@ -137,7 +137,10 @@ export const AddressAutocomplete = ({
         localite: data.localite || '',
         canton: data.canton,
         coordinates: data.coordinates,
-        placeId: prediction.place_id
+        placeId: prediction.place_id,
+        formatted: prediction.description,
+        postalCode: data.codePostal || '',
+        locality: data.localite || ''
       });
     } catch (err) {
       console.error('Select prediction error:', err);
