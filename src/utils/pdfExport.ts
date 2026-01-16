@@ -1368,7 +1368,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   const parkIntValue = carac.parkingInterieur !== undefined && carac.parkingInterieur !== null && carac.parkingInterieur !== ''
     ? String(carac.parkingInterieur)
     : '0';
-  doc.text(parkIntValue, 25, yPos + 15);
+  doc.text("TEST_0", 25, yPos + 15); // TEST DEBUG (valeur en dur)
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1383,7 +1383,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   const parkExtValue = carac.parkingExterieur !== undefined && carac.parkingExterieur !== null && carac.parkingExterieur !== ''
     ? String(carac.parkingExterieur)
     : '0';
-  doc.text(parkExtValue, 35 + col4Width, yPos + 15);
+  doc.text("TEST_4", 35 + col4Width, yPos + 15); // TEST DEBUG (valeur en dur)
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1398,7 +1398,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   const boxValue = carac.box !== undefined && carac.box !== null && carac.box !== ''
     ? String(carac.box)
     : '0';
-  doc.text(boxValue, 45 + 2 * col4Width, yPos + 15);
+  doc.text("TEST_1", 45 + 2 * col4Width, yPos + 15); // TEST DEBUG (valeur en dur)
 
   if (isAppartement) {
     doc.setFillColor(248, 250, 252);
