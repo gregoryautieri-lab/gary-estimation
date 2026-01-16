@@ -188,16 +188,38 @@ export function ComparableImport({
     }
   };
 
+  /**
+   * Extrait le code postal suisse (4 chiffres) et la localité d'une adresse
+   * Ex: "1218 Le Grand-Saconnex" → { codePostal: "1218", localite: "Le Grand-Saconnex" }
+   */
+  const extractPostalCodeAndCity = (address: string): { codePostal: string; localite: string } | null => {
+    if (!address) return null;
+    
+    // Pattern suisse: 4 chiffres suivis d'une localité
+    const match = address.match(/(\d{4})\s+([A-Za-zÀ-ÿ\-\s]+)/);
+    if (match) {
+      return {
+        codePostal: match[1],
+        localite: match[2].trim(),
+      };
+    }
+    return null;
+  };
+
   // Importer depuis URL (avec ou sans données scrapées)
   const handleImportUrl = async () => {
     const source = scrapedData?.source || detectSourceFromUrl(url.trim());
     
-    // Géocoder l'adresse si disponible
+    // Géocoder au centre de la commune (pas l'adresse exacte qui est approximative)
     let coordinates: { lat: number; lng: number } | undefined;
     if (scrapedData?.adresse) {
-      const geocoded = await geocodeAddress(scrapedData.adresse);
-      if (geocoded) {
-        coordinates = geocoded;
+      const extracted = extractPostalCodeAndCity(scrapedData.adresse);
+      if (extracted) {
+        // Géocoder uniquement le code postal + localité pour avoir le centre de la commune
+        const geocoded = await geocodeAddress(`${extracted.codePostal} ${extracted.localite}`);
+        if (geocoded) {
+          coordinates = geocoded;
+        }
       }
     }
 
@@ -209,7 +231,7 @@ export function ComparableImport({
     if (coordinates && currentCoordinates) {
       const distance = getDistanceFromReference(currentCoordinates, coordinates);
       if (distance !== null) {
-        commentaire += ` • ${formatDistance(distance)} du bien`;
+        commentaire += ` • ~${formatDistance(distance)} du bien`;
       }
     }
 
