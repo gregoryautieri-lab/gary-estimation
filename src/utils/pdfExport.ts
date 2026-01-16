@@ -277,45 +277,59 @@ export async function generateEstimationPDF({
   doc.setTextColor(255, 255, 255);
   safeText(doc, "sur mesure", marginLeft, 42);
   
-  // === STATS GARY (partie droite) ===
+  // === STATS GARY (coin supérieur droit, verticales) ===
   const statsRightX = pageWidth - marginRight;
-  const statsTopY = 20;
+  const statsTopY = 18;
+  const statLineHeight = 14;
   
-  // Stats principales (4 colonnes alignées à droite)
+  // Stats principales en colonne verticale à droite
   const mainStats = [
     { value: GARY_STATS.vues2025, label: "VUES EN 2025" },
     { value: GARY_STATS.communaute, label: "COMMUNAUTE" },
-    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS)\nGOOGLE` },
+    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS) GOOGLE` },
     { value: `${GARY_STATS.delaiMoyenMois}`, label: "MOIS EN MOYENNE" }
   ];
   
-  const statSpacing = 28;
   mainStats.forEach((stat, idx) => {
-    const xPos = statsRightX - (mainStats.length - idx) * statSpacing;
-    doc.setFontSize(14);
+    const yLine = statsTopY + (idx * statLineHeight);
+    
+    // Valeur en gros à droite
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    safeText(doc, stat.value, xPos, statsTopY, { align: "center" });
-    doc.setFontSize(5);
+    safeText(doc, stat.value, statsRightX, yLine, { align: "right" });
+    
+    // Label en petit à gauche de la valeur
+    doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(150, 150, 150);
-    const labelLines = stat.label.split("\n");
-    labelLines.forEach((line, lineIdx) => {
-      safeText(doc, line, xPos, statsTopY + 5 + (lineIdx * 4), { align: "center" });
-    });
+    doc.setTextColor(180, 180, 180);
+    safeText(doc, stat.label, statsRightX - 25, yLine, { align: "right" });
   });
   
-  // Stats réseaux sociaux (en dessous)
+  // === RÉSEAUX SOCIAUX (sous les stats, avec icônes simulées) ===
+  const socialY = statsTopY + (mainStats.length * statLineHeight) + 8;
   const socialStats = [
-    { value: "33K", color: "#E1306C" }, // Instagram rose
-    { value: "3.4K", color: "#0077B5" }, // LinkedIn bleu
-    { value: "4.6K", color: "#1DA1F2" }  // Twitter bleu
+    { value: "33K", icon: "IG", color: [225, 48, 108] },   // Instagram
+    { value: "3.4K", icon: "in", color: [0, 119, 181] },   // LinkedIn
+    { value: "4.6K", icon: "TT", color: [0, 0, 0] }        // TikTok
   ];
   
-  const socialY = statsTopY + 18;
+  const socialSpacing = 22;
   socialStats.forEach((stat, idx) => {
-    const xPos = statsRightX - (socialStats.length - idx) * 20 - 10;
-    doc.setFontSize(10);
+    const xPos = statsRightX - (socialStats.length - 1 - idx) * socialSpacing;
+    
+    // Petit cercle coloré (icône simulée)
+    doc.setFillColor(stat.color[0], stat.color[1], stat.color[2]);
+    doc.circle(xPos - 8, socialY - 2, 3, "F");
+    
+    // Initiales de l'icône
+    doc.setFontSize(5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    safeText(doc, stat.icon, xPos - 8, socialY - 1, { align: "center" });
+    
+    // Valeur
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     safeText(doc, stat.value, xPos, socialY, { align: "center" });
