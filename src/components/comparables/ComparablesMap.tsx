@@ -4,6 +4,7 @@ import { useGoogleMapsKey } from "@/hooks/useGoogleMapsKey";
 import { Loader2, MapPin, CheckCircle2, Circle, Home } from "lucide-react";
 import { Comparable } from "@/types/estimation";
 import { formatPriceCHF } from "@/hooks/useEstimationCalcul";
+import { geocodeAddress as geocodeAddressViaEdge } from "@/lib/api/comparables";
 
 interface ComparablesMapProps {
   bienPrincipal: {
@@ -50,6 +51,18 @@ const MARKER_ICONS = {
   </svg>`,
 };
 
+/**
+ * Extrait le code postal suisse et la localité d'une adresse
+ */
+function extractPostalCodeAndCity(address: string): string | null {
+  if (!address) return null;
+  const match = address.match(/(\d{4})\s+([A-Za-zÀ-ÿ\-\s]+)/);
+  if (match) {
+    return `${match[1]} ${match[2].trim()}`;
+  }
+  return null;
+}
+
 // Composant interne avec Google Maps
 const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
   bienPrincipal,
@@ -64,41 +77,25 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
-  const geocoder = useRef<google.maps.Geocoder | null>(null);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [mapReady, setMapReady] = useState(false);
 
-  // Géocoder les adresses des comparables
-  const geocodeAddress = useCallback(async (address: string): Promise<{ lat: number; lng: number } | null> => {
-    if (!geocoder.current || !address) return null;
+  // Géocoder via edge function (utilise le code postal pour le centre de la commune)
+  const geocodeAddressFallback = useCallback(async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!address) return null;
     
-    try {
-      const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
-        geocoder.current!.geocode({ address: address + ", Suisse" }, (results, status) => {
-          if (status === "OK" && results) {
-            resolve(results);
-          } else {
-            reject(new Error(status));
-          }
-        });
-      });
-      
-      if (result[0]) {
-        return {
-          lat: result[0].geometry.location.lat(),
-          lng: result[0].geometry.location.lng(),
-        };
-      }
-    } catch (e) {
-      console.warn("Geocoding failed for:", address);
-    }
-    return null;
+    // Extraire code postal + localité pour géocoder au centre de la commune
+    const postalCity = extractPostalCodeAndCity(address);
+    const addressToGeocode = postalCity || address;
+    
+    console.log("Geocoding via edge function:", addressToGeocode);
+    const result = await geocodeAddressViaEdge(addressToGeocode);
+    return result;
   }, []);
 
   // Initialiser la carte
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-    geocoder.current = new google.maps.Geocoder();
     setMapReady(true);
   }, []);
 
@@ -117,11 +114,9 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
     }
   }, [markers, mapReady]);
 
-  // Préparer les marqueurs en utilisant les coordonnées stockées (priorité) ou géocoder si nécessaire
+  // Préparer les marqueurs en utilisant les coordonnées stockées (priorité) ou géocoder via edge function si nécessaire
   useEffect(() => {
     const prepareMarkers = async () => {
-      if (!geocoder.current) return;
-      
       console.log("Preparing markers...", { 
         vendus: comparablesVendus.length, 
         enVente: comparablesEnVente.length,
@@ -152,10 +147,10 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
         // Utiliser les coordonnées stockées si disponibles
         let position = comp.coordinates;
         
-        // Sinon essayer de géocoder (fallback)
+        // Sinon essayer de géocoder via edge function (fallback)
         if (!position) {
-          console.log("Geocoding vendu (fallback):", comp.adresse);
-          position = await geocodeAddress(comp.adresse) || undefined;
+          console.log("Geocoding vendu (fallback via edge):", comp.adresse);
+          position = await geocodeAddressFallback(comp.adresse) || undefined;
         }
         
         if (position) {
@@ -184,10 +179,10 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
         // Utiliser les coordonnées stockées si disponibles
         let position = comp.coordinates;
         
-        // Sinon essayer de géocoder (fallback)
+        // Sinon essayer de géocoder via edge function (fallback)
         if (!position) {
-          console.log("Geocoding enVente (fallback):", comp.adresse);
-          position = await geocodeAddress(comp.adresse) || undefined;
+          console.log("Geocoding enVente (fallback via edge):", comp.adresse);
+          position = await geocodeAddressFallback(comp.adresse) || undefined;
         }
         
         if (position) {
@@ -209,18 +204,8 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
       setMarkers(newMarkers);
     };
     
-    // Attendre que le geocoder soit initialisé
-    const checkAndPrepare = () => {
-      if (geocoder.current) {
-        prepareMarkers();
-      } else {
-        // Réessayer après un court délai si le geocoder n'est pas encore prêt
-        setTimeout(checkAndPrepare, 500);
-      }
-    };
-    
-    checkAndPrepare();
-  }, [bienPrincipal, comparablesVendus, comparablesEnVente, geocodeAddress]);
+    prepareMarkers();
+  }, [bienPrincipal, comparablesVendus, comparablesEnVente, geocodeAddressFallback]);
 
   const defaultCenter = bienPrincipal.coordinates || { lat: 46.2044, lng: 6.1432 };
 
@@ -325,29 +310,27 @@ const MapContent: React.FC<ComparablesMapProps & { apiKey: string }> = ({
         </GoogleMap>
       </div>
 
-      {/* Stats rapides */}
-      {markers.length > 1 && (
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-card border border-border rounded-lg p-2">
-            <p className="text-lg font-bold text-primary">
-              {markers.filter(m => m.type === 'principal').length}
-            </p>
-            <p className="text-xs text-muted-foreground">Estimé</p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-2">
-            <p className="text-lg font-bold text-green-500">
-              {markers.filter(m => m.type === 'vendu').length}
-            </p>
-            <p className="text-xs text-muted-foreground">Vendus</p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-2">
-            <p className="text-lg font-bold text-amber-500">
-              {markers.filter(m => m.type === 'enVente').length}
-            </p>
-            <p className="text-xs text-muted-foreground">En vente</p>
-          </div>
+      {/* Stats rapides - basées sur les données réelles, pas les markers géocodés */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="bg-card border border-border rounded-lg p-2">
+          <p className="text-lg font-bold text-primary">
+            {bienPrincipal.coordinates ? 1 : 0}
+          </p>
+          <p className="text-xs text-muted-foreground">Estimé</p>
         </div>
-      )}
+        <div className="bg-card border border-border rounded-lg p-2">
+          <p className="text-lg font-bold text-green-500">
+            {comparablesVendus.filter(c => c.adresse).length}
+          </p>
+          <p className="text-xs text-muted-foreground">Vendus</p>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-2">
+          <p className="text-lg font-bold text-amber-500">
+            {comparablesEnVente.filter(c => c.adresse).length}
+          </p>
+          <p className="text-xs text-muted-foreground">En vente</p>
+        </div>
+      </div>
     </div>
   );
 };
