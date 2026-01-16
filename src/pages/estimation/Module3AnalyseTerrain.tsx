@@ -117,7 +117,8 @@ export default function Module3AnalyseTerrain() {
     delay: 2000,
     onSave: async () => {
       if (!id || isLocked) return;
-      await updateEstimation(id, { analyseTerrain: analyse });
+      // IMPORTANT: silent=true pour éviter le scroll vers le haut (pas de loading state)
+      await updateEstimation(id, { analyseTerrain: analyse }, true);
     },
     enabled: !isLocked && !!id && !!estimation
   });
