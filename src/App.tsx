@@ -16,6 +16,7 @@ import ModulePhotos from "./pages/estimation/ModulePhotos";
 import Module4PreEstimation from "./pages/estimation/Module4PreEstimation";
 import Module5Strategie from "./pages/estimation/Module5Strategie";
 import PresentationPage from "./pages/estimation/PresentationPage";
+import EstimationExpress from "./pages/estimation/EstimationExpress";
 import HistoryView from "./pages/estimation/HistoryView";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -48,6 +49,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <EstimationsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estimation-express"
+          element={
+            <ProtectedRoute>
+              <EstimationExpress />
             </ProtectedRoute>
           }
         />

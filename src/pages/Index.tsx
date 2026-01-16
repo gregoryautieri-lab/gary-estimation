@@ -16,7 +16,8 @@ import {
   CheckCircle,
   ChevronRight,
   MapPin,
-  Calendar
+  Calendar,
+  Zap
 } from "lucide-react";
 import type { EstimationData } from '@/types/estimation';
 import { formatPriceCHF } from '@/hooks/useEstimationCalcul';
@@ -274,12 +275,12 @@ const Index = () => {
                 <span className="text-sm">Nouvelle estimation</span>
               </Button>
               <Button 
-                variant="outline" 
-                className="h-auto py-4 flex-col gap-2"
-                onClick={() => navigate('/estimations')}
+                variant="default" 
+                className="h-auto py-4 flex-col gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => navigate('/estimation-express')}
               >
-                <FileText className="h-5 w-5" />
-                <span className="text-sm">Voir mes estimations</span>
+                <Zap className="h-5 w-5" />
+                <span className="text-sm">Estimation Express</span>
               </Button>
             </div>
           </div>
