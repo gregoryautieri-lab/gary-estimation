@@ -4,11 +4,22 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 // ============================================
-// Utilitaire d'export PDF pour les estimations
+// Utilitaire d'export PDF pour les estimations GARY
+// Version 2.0 - Style "On pilote, vous décidez"
 // ============================================
 
 const GARY_RED = "#FA4238";
 const GARY_DARK = "#1a2e35";
+const GARY_SLOGAN = "On pilote, vous decidez.";
+
+// Chiffres de crédibilité GARY (à mettre à jour régulièrement)
+const GARY_STATS = {
+  vues2025: "6.6M+",
+  communaute: "40K+",
+  noteGoogle: "5.0",
+  nbAvis: 91,
+  delaiMoyenMois: 3.5
+};
 
 interface GeneratePDFOptions {
   estimation: EstimationData;
@@ -292,7 +303,121 @@ export async function generateEstimationPDF({
   safeText(doc, `Reference: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth / 2, yPos, { align: "center" });
 
   // ========================================
-  // PAGE 2 : À L'ATTENTION DE
+  // PAGE 2 : QUI EST GARY (Philosophie)
+  // ========================================
+  doc.addPage();
+  yPos = 25;
+
+  // Titre principal
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(GARY_DARK);
+  safeText(doc, "Qui est GARY", marginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  safeText(doc, "Une autre facon de penser la vente immobiliere", marginLeft, yPos);
+  yPos += 15;
+
+  // Texte philosophie
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  const philoIntro = sanitizeText("Vendre un bien, ce n'est pas publier une annonce. C'est une sequence de decisions qui engagent l'image du bien sur le marche. Chaque exposition laisse une trace. Chaque silence aussi.");
+  const philoLines = doc.splitTextToSize(philoIntro, contentWidth);
+  doc.text(philoLines, marginLeft, yPos);
+  yPos += philoLines.length * 5 + 8;
+
+  // Section "CE QUE NOUS CROYONS"
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(GARY_RED);
+  safeText(doc, "CE QUE NOUS CROYONS", marginLeft, yPos);
+  yPos += 7;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+
+  const croyances = [
+    "Une vente est une orchestration, pas une diffusion.",
+    "Chaque bien dispose d'un capital d'attention limite. Un bien trop expose perd son pouvoir d'attraction.",
+    "Le timing compte autant que le prix."
+  ];
+
+  croyances.forEach(c => {
+    const lines = doc.splitTextToSize(sanitizeText(c), contentWidth - 5);
+    doc.text(lines, marginLeft + 3, yPos);
+    yPos += lines.length * 4 + 3;
+  });
+  yPos += 5;
+
+  // Section "CE QUE NOUS FAISONS"
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(GARY_RED);
+  safeText(doc, "CE QUE NOUS FAISONS", marginLeft, yPos);
+  yPos += 7;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+
+  const actions = [
+    "Lire et interpreter les signaux du marche",
+    "Arbitrer entre exposition et retenue",
+    "Adapter le discours aux reactions observees",
+    "Proteger l'image du bien dans la duree",
+    "Securiser vos decisions a chaque etape"
+  ];
+
+  actions.forEach(a => {
+    doc.setFillColor(250, 66, 56);
+    doc.circle(marginLeft + 4, yPos - 1.5, 1.5, 'F');
+    safeText(doc, a, marginLeft + 10, yPos);
+    yPos += 5;
+  });
+  yPos += 8;
+
+  // Bloc slogan + stats
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 40, 3, 3, "F");
+
+  // Slogan centré
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(GARY_DARK);
+  safeText(doc, "Nous ne sommes pas des diffuseurs.", marginLeft + contentWidth / 2, yPos + 10, { align: "center" });
+  safeText(doc, "Nous sommes des pilotes.", marginLeft + contentWidth / 2, yPos + 18, { align: "center" });
+
+  // Stats en bas du bloc
+  const statsY = yPos + 30;
+  const statWidth = contentWidth / 5;
+  
+  const statsDisplay = [
+    { value: GARY_STATS.vues2025, label: "Vues 2025" },
+    { value: GARY_STATS.communaute, label: "Communaute" },
+    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} avis)` },
+    { value: `${GARY_STATS.delaiMoyenMois}`, label: "mois en moy." }
+  ];
+
+  statsDisplay.forEach((stat, idx) => {
+    const xPos = marginLeft + 15 + (idx * statWidth);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(GARY_RED);
+    safeText(doc, stat.value, xPos, statsY);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, stat.label, xPos, statsY + 5);
+  });
+
+  yPos += 50;
+
+  // ========================================
+  // PAGE 3 : À L'ATTENTION DE
   // ========================================
   doc.addPage();
   yPos = 35;
@@ -401,68 +526,151 @@ export async function generateEstimationPDF({
 
   yPos += 50 + SPACE.afterBlock;
 
-  // ========== AMÉLIORATION #1: Justification détaillée du prix ==========
+  // ========== LES 3 VALEURS : Vénale, Rendement, Gage ==========
   const preEst = estimation.preEstimation;
   const carac = estimation.caracteristiques;
   const typeBien = carac?.typeBien;
   const isAppart = typeBien?.toLowerCase().includes('appartement');
 
+  // Calcul des 3 valeurs
+  const valeurVenale = prixMax;
+  const loyerMensuelCalc = parseFloat(preEst?.loyerMensuel || "0");
+  const tauxCapitalisation = preEst?.tauxCapitalisation || 3.5;
+  const valeurRendement = loyerMensuelCalc > 0 ? Math.round((loyerMensuelCalc * 12) / (tauxCapitalisation / 100)) : 0;
+  const tauxGage = preEst?.tauxGage || 80;
+  const valeurGage = Math.round(valeurVenale * (tauxGage / 100));
+
+  // Afficher les 3 valeurs côte à côte
+  if (valeurVenale > 0) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, "Fourchette de valeur", marginLeft, yPos);
+    
+    // Afficher la fourchette à droite
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, `${formatPrix(prixMin)} -> ${formatPrix(prixMax)}`, pageWidth - marginRight, yPos, { align: "right" });
+    yPos += 12;
+
+    // Bloc gris avec les 3 valeurs
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginLeft, yPos, contentWidth, 28, 3, 3, "F");
+
+    const colWidth = contentWidth / 3;
+    const valeursY = yPos + 10;
+
+    // Valeur Vénale
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, "VENALE", marginLeft + colWidth / 2, valeursY - 3, { align: "center" });
+    doc.setFontSize(13);
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, formatPrix(valeurVenale), marginLeft + colWidth / 2, valeursY + 8, { align: "center" });
+
+    // Valeur Rendement
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, "RENDEMENT", marginLeft + colWidth + colWidth / 2, valeursY - 3, { align: "center" });
+    doc.setFontSize(13);
+    doc.setTextColor(GARY_DARK);
+    if (valeurRendement > 0) {
+      safeText(doc, formatPrix(valeurRendement), marginLeft + colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+    } else {
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      safeText(doc, "N/A", marginLeft + colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+    }
+
+    // Valeur Gage
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, "GAGE", marginLeft + 2 * colWidth + colWidth / 2, valeursY - 3, { align: "center" });
+    doc.setFontSize(13);
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, formatPrix(valeurGage), marginLeft + 2 * colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+
+    yPos += 35;
+
+    // Légende sous les valeurs
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120, 120, 120);
+    if (valeurRendement > 0) {
+      safeText(doc, `Base: Taux ${tauxCapitalisation}% - ${formatPrix(loyerMensuelCalc)}/mois`, marginLeft + colWidth + colWidth / 2, yPos - 2, { align: "center" });
+    }
+    safeText(doc, "Ref. bancaire", marginLeft + 2 * colWidth + colWidth / 2, yPos - 2, { align: "center" });
+    yPos += 8;
+  }
+
+  // ========== DÉTAIL DU CALCUL (tableau ligne par ligne) ==========
   if (preEst) {
     doc.setTextColor(GARY_DARK);
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("Détail de l'estimation", marginLeft, yPos);
-    yPos += 8;
+    safeText(doc, "DETAIL DU CALCUL", marginLeft, yPos);
+    yPos += 10;
+
+    // Tableau avec fond alternating
+    doc.setFontSize(9);
+    let rowIndex = 0;
+
+    const addCalcRow = (element: string, quantite: string, prixUnit: string, montant: string, isPositive: boolean = true) => {
+      // Fond alterné
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(marginLeft, yPos - 4, contentWidth, 8, "F");
+      }
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      safeText(doc, element, marginLeft + 3, yPos);
+      safeText(doc, quantite, marginLeft + 60, yPos);
+      safeText(doc, prixUnit, marginLeft + 95, yPos);
+      
+      doc.setFont("helvetica", "bold");
+      if (isPositive) {
+        doc.setTextColor(34, 100, 60);
+      } else {
+        doc.setTextColor(200, 50, 50);
+      }
+      safeText(doc, montant, pageWidth - marginRight - 5, yPos, { align: "right" });
+      
+      yPos += 8;
+      rowIndex++;
+    };
 
     // Si appartement : décomposition avec prix au m²
     if (isAppart) {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-
       const prixM2 = parseFloat(preEst.prixM2 || "0");
       const surface = parseFloat(carac?.surfacePPE || "0");
       
       if (prixM2 > 0 && surface > 0) {
         const valeurBase = prixM2 * surface;
-        
-        doc.text("Prix au m² marché:", marginLeft + 5, yPos);
-        doc.text(`${formatPrix(prixM2)} × ${surface} m²`, marginLeft + 85, yPos);
-        doc.setFont("helvetica", "bold");
-        doc.text(`= ${formatPrix(valeurBase)}`, marginLeft + 145, yPos);
-        doc.setFont("helvetica", "normal");
-        yPos += 6;
-
-        // Vétusté
-        const tauxVetusteVal = preEst.tauxVetuste;
-        const tauxVetuste = typeof tauxVetusteVal === 'number' ? tauxVetusteVal : parseFloat(String(tauxVetusteVal || "0"));
-        if (tauxVetuste > 0) {
-          const reductionVetuste = valeurBase * (tauxVetuste / 100);
-          doc.text(`Travaux à prévoir (${tauxVetuste}%):`, marginLeft + 5, yPos);
-          doc.setTextColor(220, 38, 38);
-          doc.text(`- ${formatPrix(reductionVetuste)}`, marginLeft + 145, yPos);
-          doc.setTextColor(80, 80, 80);
-          yPos += 6;
-        }
+        addCalcRow("Surface ponderee", `${surface} m²`, `${formatPrix(prixM2)}`, formatPrix(valeurBase));
 
         // Parking intérieur
         const prixPlaceInt = parseFloat(preEst.prixPlaceInt || "0");
         if (prixPlaceInt > 0) {
-          doc.text("Place parking intérieure:", marginLeft + 5, yPos);
-          doc.setTextColor(34, 197, 94);
-          doc.text(`+ ${formatPrix(prixPlaceInt)}`, marginLeft + 145, yPos);
-          doc.setTextColor(80, 80, 80);
-          yPos += 6;
+          const nbPlacesInt = parseInt(carac?.parkingInterieur || "1");
+          addCalcRow("Places interieures", String(nbPlacesInt), `${formatPrix(prixPlaceInt)}`, formatPrix(prixPlaceInt * nbPlacesInt));
+        }
+
+        // Parking extérieur
+        const prixPlaceExt = parseFloat(preEst.prixPlaceExt || "0");
+        if (prixPlaceExt > 0) {
+          const nbPlacesExt = parseInt(carac?.parkingExterieur || "1");
+          addCalcRow("Places exterieures", String(nbPlacesExt), `${formatPrix(prixPlaceExt)}`, formatPrix(prixPlaceExt * nbPlacesExt));
         }
 
         // Cave
         const prixCave = parseFloat(preEst.prixCave || "0");
         if (prixCave > 0) {
-          doc.text("Cave:", marginLeft + 5, yPos);
-          doc.setTextColor(34, 197, 94);
-          doc.text(`+ ${formatPrix(prixCave)}`, marginLeft + 145, yPos);
-          doc.setTextColor(80, 80, 80);
-          yPos += 6;
+          addCalcRow("Cave", "1", `${formatPrix(prixCave)}`, formatPrix(prixCave));
         }
 
         // Lignes supplémentaires
@@ -470,36 +678,17 @@ export async function generateEstimationPDF({
         lignesSupp.forEach((ligne: { libelle?: string; prix?: string }) => {
           const prix = parseFloat(ligne.prix || "0");
           if (prix !== 0) {
-            doc.text(`${ligne.libelle || 'Ajustement'}:`, marginLeft + 5, yPos);
-            if (prix > 0) {
-              doc.setTextColor(34, 197, 94);
-              doc.text(`+ ${formatPrix(prix)}`, marginLeft + 145, yPos);
-            } else {
-              doc.setTextColor(220, 38, 38);
-              doc.text(`${formatPrix(prix)}`, marginLeft + 145, yPos);
-            }
-            doc.setTextColor(80, 80, 80);
-            yPos += 6;
+            addCalcRow(ligne.libelle || 'Ajustement', "-", "-", formatPrix(Math.abs(prix)), prix > 0);
           }
         });
 
-        // Ligne de séparation
-        yPos += 2;
-        doc.setDrawColor(200, 200, 200);
-        doc.line(marginLeft + 90, yPos, marginLeft + contentWidth, yPos);
-        yPos += 5;
-
-        // Total
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text("Valeur estimée:", marginLeft + 5, yPos);
-        doc.setTextColor(250, 66, 56);
-        const prixRecommande = parseFloat(preEst.prixRecommande || preEst.prixEt || "0");
-        doc.text(`${formatPrix(prixRecommande)}`, marginLeft + 145, yPos);
-        doc.setTextColor(80, 80, 80);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        yPos += 10;
+        // Vétusté (déduction)
+        const tauxVetusteVal = preEst.tauxVetuste;
+        const tauxVetuste = typeof tauxVetusteVal === 'number' ? tauxVetusteVal : parseFloat(String(tauxVetusteVal || "0"));
+        if (tauxVetuste > 0) {
+          const reductionVetuste = valeurBase * (tauxVetuste / 100);
+          addCalcRow(`Vetuste (${tauxVetuste}%)`, "-", "-", `-${formatPrix(reductionVetuste)}`, false);
+        }
       }
     }
 
@@ -1066,107 +1255,248 @@ export async function generateEstimationPDF({
     }
   }
 
-  // ========== CORRECTION #4: Timeline détaillée avec dates et prix ==========
+  // ========== TRAJECTOIRES DE VENTE (style GARY premium) ==========
   if (finalConfig.inclureTimeline && estimation.strategiePitch) {
-    if (yPos > 160) {
-      doc.addPage();
-      yPos = 20;
-    }
+    doc.addPage();
+    yPos = 25;
 
-    yPos = addSectionHeader(doc, "Strategie de mise en vente", yPos, marginLeft);
+    // Titre principal
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, "Trajectoires de vente", marginLeft, yPos);
+    yPos += 15;
 
     const strat = estimation.strategiePitch;
+    const historique = estimation.identification?.historique;
     
-    // Date de lancement
-    if (strat.dateDebut) {
+    // ========== CAPITAL-VISIBILITÉ (si bien déjà diffusé) ==========
+    if (historique?.dejaDiffuse) {
+      // Calculer le capital consommé (estimation basée sur durée)
+      const dureeLabels: Record<string, number> = {
+        "moins1mois": 10,
+        "1-3mois": 25,
+        "3-6mois": 50,
+        "6-12mois": 75,
+        "plus12mois": 90
+      };
+      const capitalConsomme = dureeLabels[historique.duree || "moins1mois"] || 20;
+      const capitalRestant = 100 - capitalConsomme;
+
+      // Encadré Capital-Visibilité
+      doc.setFillColor(254, 243, 199);
+      doc.roundedRect(marginLeft, yPos, contentWidth, 35, 3, 3, "F");
+
+      // Label
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(180, 83, 9);
+      safeText(doc, "CAPITAL-VISIBILITE", marginLeft + 10, yPos + 10);
+
+      // Jauge
+      const jaugeX = marginLeft + 90;
+      const jaugeWidth = 80;
+      const jaugeHeight = 8;
+      const jaugeY = yPos + 6;
+
+      // Fond gris
+      doc.setFillColor(229, 231, 235);
+      doc.roundedRect(jaugeX, jaugeY, jaugeWidth, jaugeHeight, 2, 2, "F");
+
+      // Portion consommée (rouge/orange)
+      if (capitalConsomme > 0) {
+        doc.setFillColor(239, 68, 68);
+        const consumedWidth = (capitalConsomme / 100) * jaugeWidth;
+        doc.roundedRect(jaugeX, jaugeY, consumedWidth, jaugeHeight, 2, 2, "F");
+      }
+
+      // Pourcentage
       doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(180, 83, 9);
+      safeText(doc, `${capitalConsomme}% consomme`, jaugeX + jaugeWidth + 8, yPos + 12);
+
+      // Message "Déjà diffusé"
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-      safeText(doc, `Lancement prevu: ${format(new Date(strat.dateDebut), "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
-      yPos += 10;
+      doc.setTextColor(120, 113, 108);
+      safeText(doc, "Deja diffuse", marginLeft + 10, yPos + 22);
+
+      // Recommandation
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      if (capitalConsomme > 50) {
+        safeText(doc, "Recommandation: Pause commerciale + reinvention de l'objet", marginLeft + 10, yPos + 30);
+      } else {
+        safeText(doc, "Recommandation: Repositionnement strategique possible", marginLeft + 10, yPos + 30);
+      }
+
+      yPos += 42;
     }
 
-    // Récupérer les durées et pourcentages
+    // ========== PLANIFICATION PRÉVISIONNELLE ==========
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, "PLANIFICATION PREVISIONNELLE", marginLeft, yPos);
+    yPos += 10;
+
+    // Récupérer les durées et calculer les dates
     const durees = strat.phaseDurees || { phase0: 2, phase1: 2, phase2: 2, phase3: 4 };
+    const dateDebut = strat.dateDebut ? new Date(strat.dateDebut) : new Date();
+    
+    const datePhase0 = new Date(dateDebut);
+    const datePhase1 = new Date(dateDebut);
+    datePhase1.setDate(datePhase1.getDate() + (durees.phase0 || 2) * 7);
+    const datePhase2 = new Date(datePhase1);
+    datePhase2.setDate(datePhase2.getDate() + (durees.phase1 || 2) * 7);
+    const datePhase3 = new Date(datePhase2);
+    datePhase3.setDate(datePhase3.getDate() + (durees.phase2 || 2) * 7);
+
+    // Ligne de timeline visuelle
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginLeft, yPos, contentWidth, 25, 2, 2, "F");
+
+    const colWidth4 = contentWidth / 4;
+    const timelineY = yPos + 8;
+
+    const timelinePhases = [
+      { label: "Prepa.", date: format(datePhase0, "dd MMM", { locale: fr }), duree: `${durees.phase0 || 2} sem.` },
+      { label: "Off-market", date: format(datePhase1, "dd MMM", { locale: fr }), duree: `${durees.phase1 || 2} sem.` },
+      { label: "Coming soon", date: format(datePhase2, "dd MMM", { locale: fr }), duree: `${durees.phase2 || 2} sem.` },
+      { label: "Public", date: format(datePhase3, "dd MMM", { locale: fr }), duree: `~${durees.phase3 || 4} sem.` }
+    ];
+
+    timelinePhases.forEach((p, idx) => {
+      const xPos = marginLeft + 10 + (idx * colWidth4);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100, 100, 100);
+      safeText(doc, p.label, xPos, timelineY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(GARY_DARK);
+      doc.setFontSize(9);
+      safeText(doc, p.date, xPos, timelineY + 6);
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      safeText(doc, p.duree, xPos, timelineY + 12);
+    });
+
+    yPos += 32;
+
+    // Estimation vente
+    const dureeTotal = (durees.phase0 || 2) + (durees.phase1 || 2) + (durees.phase2 || 2) + (durees.phase3 || 4);
+    const dateVenteEstimee = new Date(dateDebut);
+    dateVenteEstimee.setDate(dateVenteEstimee.getDate() + dureeTotal * 7);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    safeText(doc, `Vente estimee : ${format(dateVenteEstimee, "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
+    yPos += 15;
+
+    // ========== 3 COLONNES : Off-Market / Coming Soon / Public ==========
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(GARY_DARK);
+    safeText(doc, "CHOISISSEZ VOTRE POINT DE DEPART", marginLeft, yPos);
+    yPos += 10;
+
     const prixBase = prixMax;
     const pourcOffmarket = estimation.preEstimation?.pourcOffmarket || 15;
     const pourcComingsoon = estimation.preEstimation?.pourcComingsoon || 10;
     const pourcPublic = estimation.preEstimation?.pourcPublic || 6;
 
-    // Tableau phases avec couleurs
-    const phases = [
-      { 
-        nom: "Phase 0 - Preparation", 
-        duree: durees.phase0, 
-        prix: null as number | null,
-        desc: "Photos, home staging, dossier",
-        bgColor: [243, 244, 246] as [number, number, number],
-        textColor: [75, 85, 99] as [number, number, number]
-      },
-      { 
-        nom: "Phase 1 - Off-Market", 
-        duree: durees.phase1, 
-        prix: prixBase > 0 ? prixBase * (1 + pourcOffmarket / 100) : null,
-        desc: `Prix premium (+${pourcOffmarket}%)`,
+    const colWidth3 = (contentWidth - 10) / 3;
+    const colonnes = [
+      {
+        titre: "Off-Market",
+        sousTitre: "POINT DE DEPART STRATEGIQUE",
+        objectif: "Tester la demande en toute discretion",
+        conditions: ["Cercle restreint d'acheteurs", "Aucune trace publique", "Retours confidentiels"],
+        prix: prixBase > 0 ? prixBase * (1 + pourcOffmarket / 100) : 0,
+        pourcentage: `Venale +${pourcOffmarket}%`,
         bgColor: [254, 226, 226] as [number, number, number],
-        textColor: [185, 28, 28] as [number, number, number]
+        headerColor: [185, 28, 28] as [number, number, number]
       },
-      { 
-        nom: "Phase 2 - Coming Soon", 
-        duree: durees.phase2, 
-        prix: prixBase > 0 ? prixBase * (1 + pourcComingsoon / 100) : null,
-        desc: `Prix attractif (+${pourcComingsoon}%)`,
+      {
+        titre: "Coming Soon",
+        sousTitre: "ACTIVABLE",
+        objectif: "Creer l'anticipation et la tension",
+        conditions: ["Communication maitrisee", "Liste d'attente", "Teasing cible"],
+        prix: prixBase > 0 ? prixBase * (1 + pourcComingsoon / 100) : 0,
+        pourcentage: `Venale +${pourcComingsoon}%`,
         bgColor: [254, 243, 199] as [number, number, number],
-        textColor: [180, 83, 9] as [number, number, number]
+        headerColor: [180, 83, 9] as [number, number, number]
       },
-      { 
-        nom: "Phase 3 - Public", 
-        duree: durees.phase3, 
-        prix: prixBase > 0 ? prixBase * (1 + pourcPublic / 100) : null,
-        desc: `Prix marche (+${pourcPublic}%)`,
+      {
+        titre: "Public",
+        sousTitre: "CONDITIONNEL",
+        objectif: "Maximiser l'exposition",
+        conditions: ["Diffusion large", "Portails immobiliers", "Visibilite maximale"],
+        prix: prixBase > 0 ? prixBase * (1 + pourcPublic / 100) : 0,
+        pourcentage: `Venale +${pourcPublic}%`,
         bgColor: [220, 252, 231] as [number, number, number],
-        textColor: [21, 128, 61] as [number, number, number]
+        headerColor: [21, 128, 61] as [number, number, number]
       }
     ];
 
-    phases.forEach((phase) => {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
+    colonnes.forEach((col, idx) => {
+      const xPos = marginLeft + (idx * (colWidth3 + 5));
+      const cardHeight = 70;
 
-      // Rectangle de fond coloré
-      doc.setFillColor(...phase.bgColor);
-      doc.roundedRect(marginLeft, yPos, contentWidth, 20, 2, 2, "F");
+      // Fond coloré
+      doc.setFillColor(...col.bgColor);
+      doc.roundedRect(xPos, yPos, colWidth3, cardHeight, 3, 3, "F");
 
-      yPos += 7;
-
-      // Nom phase
-      doc.setTextColor(...phase.textColor);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      safeText(doc, phase.nom, marginLeft + 5, yPos);
-
-      // Durée à droite
-      doc.setFont("helvetica", "normal");
+      // Header
+      let cardY = yPos + 8;
       doc.setFontSize(10);
-      safeText(doc, `${phase.duree} sem.`, pageWidth - marginRight - 20, yPos);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...col.headerColor);
+      safeText(doc, col.titre, xPos + 5, cardY);
+      cardY += 5;
 
-      yPos += 6;
-
-      // Description et prix
-      doc.setFontSize(9);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 100, 100);
-      let descLine = phase.desc;
-      if (phase.prix) {
-        descLine += ` -> ${formatPrix(phase.prix)}`;
-      }
-      safeText(doc, descLine, marginLeft + 5, yPos);
+      safeText(doc, col.sousTitre, xPos + 5, cardY);
+      cardY += 8;
 
-      yPos += 12;
+      // Objectif
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(60, 60, 60);
+      safeText(doc, "OBJECTIF", xPos + 5, cardY);
+      cardY += 5;
+      doc.setFont("helvetica", "normal");
+      const objLines = doc.splitTextToSize(col.objectif, colWidth3 - 10);
+      doc.text(objLines, xPos + 5, cardY);
+      cardY += objLines.length * 4 + 4;
+
+      // Prix en bas
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...col.headerColor);
+      if (col.prix > 0) {
+        safeText(doc, formatPrix(col.prix), xPos + 5, yPos + cardHeight - 12);
+      }
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      safeText(doc, col.pourcentage, xPos + 5, yPos + cardHeight - 6);
     });
 
-    yPos += 5;
+    yPos += 80;
+
+    // Note de bas
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120, 120, 120);
+    const noteText = "Un objectif de valeur n'est pas une promesse. Il depend des signaux du marche et du pilotage dans le temps.";
+    const noteLines = doc.splitTextToSize(noteText, contentWidth);
+    doc.text(noteLines, marginLeft, yPos);
+    yPos += noteLines.length * 4 + 10;
   }
 
   // ========== Pitch (si configuré) ==========
@@ -1630,9 +1960,11 @@ export async function generateEstimationPDF({
     doc.setTextColor(150, 150, 150);
     doc.text(`Page ${i}/${pageCount}`, pageWidth / 2, footerY + 1, { align: "center" });
     
-    // Footer droit: Contact (pas sur page de garde)
+    // Footer droit: Slogan GARY (pas sur page de garde)
     if (i > 1) {
-      doc.text("contact@gary-immobilier.ch", pageWidth - marginRight, footerY + 1, { align: "right" });
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100, 100, 100);
+      doc.text(GARY_SLOGAN, pageWidth - marginRight, footerY + 1, { align: "right" });
     }
     
     // Disclaimer (uniquement dernière page)
