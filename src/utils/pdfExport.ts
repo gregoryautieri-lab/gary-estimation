@@ -1065,7 +1065,16 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   // Grid 4 colonnes
   const col4Width = (pageWidth - 70) / 4;
 
-  // Adresse complète
+  // Adresse complète - FIX
+  const adresseText = (() => {
+    const raw = bien.adresse || estimation.adresse;
+    if (!raw) return '-';
+    if (typeof raw === 'string') return raw;
+    if (typeof raw === 'object') {
+      return raw.rue || raw.adresse || String(raw) || '-';
+    }
+    return '-';
+  })();
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(20, yPos, pageWidth - 40, 20, 2, 2, 'F');
   doc.setFontSize(7);
@@ -1075,10 +1084,6 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  const adresseRaw = bien.adresse || estimation.adresse;
-  const adresseText = typeof adresseRaw === 'object' 
-    ? (adresseRaw?.rue || adresseRaw?.adresse || '-')
-    : (adresseRaw || '-');
   doc.text(adresseText, 25, yPos + 15);
 
   yPos += 25;
@@ -1359,7 +1364,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.parkingInterieur), 25, yPos + 15);
+  doc.text(annexeVal(carac.parkingInterieur ?? 0), 25, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1370,7 +1375,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.parkingExterieur), 35 + col4Width, yPos + 15);
+  doc.text(annexeVal(carac.parkingExterieur ?? 0), 35 + col4Width, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1381,7 +1386,7 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.box), 45 + 2 * col4Width, yPos + 15);
+  doc.text(annexeVal(carac.box ?? 0), 45 + 2 * col4Width, yPos + 15);
 
   if (isAppartement) {
     doc.setFillColor(248, 250, 252);
