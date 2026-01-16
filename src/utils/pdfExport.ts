@@ -34,6 +34,36 @@ const formatPrix = (prix: number): string => {
   }).format(prix);
 };
 
+// Espacements standard pour cohérence
+const SPACE = {
+  afterSectionHeader: 10,
+  betweenItems: 6,
+  afterBlock: 12,
+  beforeNewSection: 18,
+  lineHeight: 5
+};
+
+// Affiche un header de section avec ligne décorative rouge
+function addSectionHeader(
+  doc: jsPDF,
+  title: string,
+  yPos: number,
+  marginLeft: number
+): number {
+  // Ligne décorative rouge
+  doc.setDrawColor(250, 66, 56); // GARY_RED
+  doc.setLineWidth(2);
+  doc.line(marginLeft, yPos, marginLeft + 30, yPos);
+  
+  // Titre section
+  doc.setTextColor(26, 46, 53); // GARY_DARK
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, marginLeft, yPos + 8);
+  
+  return yPos + 16;
+}
+
 // Charger et COMPRESSER une image depuis URL (max 800px, JPEG 70%)
 async function loadImageAsBase64(url: string, maxWidth: number = 800): Promise<string | null> {
   try {
@@ -303,26 +333,37 @@ export async function generateEstimationPDF({
   doc.addPage();
   yPos = 20;
 
-  // Titre section
-  doc.setTextColor(GARY_DARK);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Détail de l'estimation", marginLeft, yPos);
-  yPos += 12;
+  // Titre section avec style
+  yPos = addSectionHeader(doc, "Détail de l'estimation", yPos, marginLeft);
 
-  // ========== Encadré Prix ==========
-  doc.setFillColor(250, 66, 56);
-  doc.roundedRect(marginLeft, yPos, contentWidth, 32, 3, 3, "F");
+  // ========== Encadré Prix avec ombre ==========
+  // Ombre portée
+  doc.setFillColor(220, 220, 220);
+  doc.roundedRect(marginLeft + 2, yPos + 2, contentWidth, 40, 4, 4, "F");
 
+  // Fond rouge principal
+  doc.setFillColor(250, 66, 56); // GARY_RED
+  doc.roundedRect(marginLeft, yPos, contentWidth, 40, 4, 4, "F");
+
+  // Barre verticale blanche décorative
+  doc.setFillColor(255, 255, 255);
+  doc.rect(marginLeft + 8, yPos + 8, 4, 24, "F");
+
+  // Label
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
-  doc.text("FOURCHETTE DE PRIX RECOMMANDÉE", marginLeft + 10, yPos + 10);
-
-  doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text(prixText, marginLeft + 10, yPos + 24);
+  doc.text("FOURCHETTE DE PRIX RECOMMANDÉE", marginLeft + 20, yPos + 16);
 
-  yPos += 40;
+  // Prix
+  doc.setFontSize(26);
+  doc.setFont("helvetica", "bold");
+  const prixDisplayText = prixMin > 0 && prixMax > 0 
+    ? `${formatPrix(prixMin)} - ${formatPrix(prixMax)}`
+    : "Prix à déterminer";
+  doc.text(prixDisplayText, marginLeft + 20, yPos + 34);
+
+  yPos += 50 + SPACE.afterBlock;
 
   // ========== AMÉLIORATION #1: Justification détaillée du prix ==========
   const preEst = estimation.preEstimation;
@@ -495,42 +536,60 @@ export async function generateEstimationPDF({
     yPos += 5;
   }
 
-  // ========== Caractéristiques principales ==========
-  doc.setTextColor(GARY_DARK);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Caractéristiques du bien", marginLeft, yPos);
-  yPos += 8;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(80, 80, 80);
+  // ========== Caractéristiques en 2 colonnes avec fond ==========
+  yPos = addSectionHeader(doc, "Caractéristiques du bien", yPos, marginLeft);
 
   const caracInfo = estimation.caracteristiques;
   if (caracInfo) {
+    // Fond gris clair
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginLeft, yPos, contentWidth, 38, 3, 3, "F");
+    
+    const typeBienLabel = caracInfo.typeBien === 'appartement' ? 'Appartement' : 
+                          caracInfo.typeBien === 'maison' ? 'Maison' : 
+                          caracInfo.typeBien || '-';
+    
+    const surface = caracInfo.typeBien === 'appartement' 
+      ? caracInfo.surfacePPE 
+      : caracInfo.surfaceHabitableMaison;
+
     const caracteristiques = [
-      { label: "Type de bien", value: caracInfo.typeBien || "-" },
-      { label: "Surface habitable", value: `${caracInfo.surfacePPE || caracInfo.surfaceHabitableMaison || "-"} m²` },
+      { label: "Type de bien", value: typeBienLabel },
+      { label: "Surface habitable", value: surface ? `${surface} m²` : "-" },
       { label: "Pièces", value: caracInfo.nombrePieces || "-" },
       { label: "Chambres", value: caracInfo.nombreChambres || "-" },
       { label: "Salles de bain", value: caracInfo.nombreSDB || "-" },
       { label: "Étage", value: caracInfo.etage || "-" },
-      { label: "Année de construction", value: caracInfo.anneeConstruction || "-" },
+      { label: "Année", value: caracInfo.anneeConstruction || "-" },
       { label: "Style", value: caracInfo.styleArchitectural || "-" },
     ];
 
+    // Affichage 2 colonnes
+    const colWidth = contentWidth / 2;
+    const startY = yPos + 8;
+    
     caracteristiques.forEach((item, idx) => {
-      const col = idx % 2 === 0 ? marginLeft : marginLeft + contentWidth / 2;
-      if (idx % 2 === 0 && idx > 0) yPos += 7;
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const xPos = marginLeft + 10 + (col * colWidth);
+      const itemY = startY + (row * 7);
+      
+      // Label en gras gris
       doc.setFont("helvetica", "bold");
-      doc.text(`${item.label}:`, col, yPos);
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${item.label}:`, xPos, itemY);
+      
+      // Valeur en normal noir
       doc.setFont("helvetica", "normal");
-      doc.text(String(item.value), col + 45, yPos);
+      doc.setTextColor(26, 46, 53);
+      doc.text(String(item.value), xPos + 42, itemY);
     });
-    yPos += 15;
+    
+    yPos += 38 + SPACE.afterBlock;
   }
 
-  // ========== AMÉLIORATION #2: Contexte de vente ==========
+  // ========== Contexte de vente structuré ==========
   const contexte = estimation.identification?.contexte;
   if (contexte && (contexte.motifVente || contexte.horizon || contexte.prioriteVendeur)) {
     if (yPos > 220) {
@@ -538,70 +597,61 @@ export async function generateEstimationPDF({
       yPos = 20;
     }
 
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Contexte de vente", marginLeft, yPos);
-    yPos += 8;
+    yPos = addSectionHeader(doc, "Contexte de vente", yPos, marginLeft);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
+    // Fond gris clair
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginLeft, yPos, contentWidth, 24, 2, 2, "F");
+    
+    const motifsLabels: Record<string, string> = {
+      mutation: "Mutation professionnelle",
+      separation: "Séparation / Divorce",
+      succession: "Succession",
+      investissement: "Réalisation investissement",
+      agrandissement: "Recherche plus grand",
+      reduction: "Recherche plus petit",
+      retraite: "Départ à la retraite",
+      liquidites: "Besoin de liquidités",
+      autre: "Autre motif"
+    };
 
-    // Motif
-    if (contexte.motifVente) {
-      const motifsLabels: Record<string, string> = {
-        mutation: "Mutation professionnelle",
-        separation: "Séparation / Divorce",
-        succession: "Succession",
-        investissement: "Réalisation investissement",
-        agrandissement: "Recherche plus grand",
-        reduction: "Recherche plus petit",
-        retraite: "Départ à la retraite",
-        liquidites: "Besoin de liquidités",
-        autre: "Autre motif"
-      };
+    const horizonsLabels: Record<string, string> = {
+      urgent: "Urgent (< 3 mois)",
+      court: "Court terme (3-6 mois)",
+      moyen: "Moyen terme (6-12 mois)",
+      long: "Long terme (> 12 mois)",
+      flexible: "Flexible"
+    };
+
+    const prioriteLabels: Record<string, string> = {
+      prixMax: "Maximiser le prix",
+      rapidite: "Vendre rapidement",
+      equilibre: "Équilibre prix/délai"
+    };
+
+    const infos = [
+      { label: "Motif", value: contexte.motifVente ? motifsLabels[contexte.motifVente] || contexte.motifVente : "-" },
+      { label: "Horizon", value: contexte.horizon ? horizonsLabels[contexte.horizon] || contexte.horizon : "-" },
+      { label: "Priorité", value: contexte.prioriteVendeur ? prioriteLabels[contexte.prioriteVendeur] || contexte.prioriteVendeur : "-" },
+    ];
+    
+    const startY = yPos + 8;
+    infos.forEach((info, idx) => {
+      const xPos = marginLeft + 10 + (idx * (contentWidth / 3));
       
       doc.setFont("helvetica", "bold");
-      doc.text("Motif:", marginLeft, yPos);
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${info.label}:`, xPos, startY);
+      
       doc.setFont("helvetica", "normal");
-      doc.text(motifsLabels[contexte.motifVente] || contexte.motifVente, marginLeft + 22, yPos);
-      yPos += 6;
-    }
-
-    // Horizon
-    if (contexte.horizon) {
-      const horizonsLabels: Record<string, string> = {
-        urgent: "Urgent (< 3 mois)",
-        court: "Court terme (3-6 mois)",
-        moyen: "Moyen terme (6-12 mois)",
-        long: "Long terme (> 12 mois)",
-        flexible: "Flexible"
-      };
-
-      doc.setFont("helvetica", "bold");
-      doc.text("Horizon:", marginLeft, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.text(horizonsLabels[contexte.horizon] || contexte.horizon, marginLeft + 25, yPos);
-      yPos += 6;
-    }
-
-    // Priorité
-    if (contexte.prioriteVendeur) {
-      const prioriteLabels: Record<string, string> = {
-        prixMax: "Maximiser le prix de vente",
-        rapidite: "Vendre rapidement",
-        equilibre: "Équilibre prix / délai"
-      };
-
-      doc.setFont("helvetica", "bold");
-      doc.text("Priorité:", marginLeft, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.text(prioriteLabels[contexte.prioriteVendeur] || contexte.prioriteVendeur, marginLeft + 25, yPos);
-      yPos += 6;
-    }
-
-    yPos += 5;
+      doc.setFontSize(9);
+      doc.setTextColor(26, 46, 53);
+      const valueLines = doc.splitTextToSize(info.value, (contentWidth / 3) - 15);
+      doc.text(valueLines[0] || "-", xPos, startY + 6);
+    });
+    
+    yPos += 24 + SPACE.afterBlock;
   }
 
   // ========== Historique de diffusion ==========
@@ -730,27 +780,46 @@ export async function generateEstimationPDF({
     yPos += 8;
   }
 
-  // ========== Points forts ==========
+  // ========== Points forts avec style ==========
   const pointsForts = estimation.analyseTerrain?.pointsForts;
   if (pointsForts && pointsForts.length > 0) {
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Points forts", marginLeft, yPos);
-    yPos += 8;
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos = addSectionHeader(doc, "Points forts", yPos, marginLeft);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
 
-    pointsForts.forEach((point) => {
-      doc.text(`• ${point}`, marginLeft + 5, yPos);
-      yPos += 6;
-    });
-    yPos += 5;
+    // Afficher en 2 colonnes si plus de 4 points
+    if (pointsForts.length > 4) {
+      const colWidth = contentWidth / 2;
+      pointsForts.forEach((point, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const xPos = marginLeft + (col * colWidth);
+        const itemY = yPos + (row * SPACE.betweenItems);
+        
+        doc.setFillColor(34, 197, 94);
+        doc.circle(xPos + 3, itemY - 1.5, 1.5, 'F');
+        doc.text(point, xPos + 8, itemY);
+      });
+      yPos += Math.ceil(pointsForts.length / 2) * SPACE.betweenItems;
+    } else {
+      pointsForts.forEach((point) => {
+        doc.setFillColor(34, 197, 94);
+        doc.circle(marginLeft + 3, yPos - 1.5, 1.5, 'F');
+        doc.text(point, marginLeft + 8, yPos);
+        yPos += SPACE.betweenItems;
+      });
+    }
+    yPos += SPACE.afterBlock;
   }
 
-  // ========== AMÉLIORATION #3: Proximités et cadre de vie ==========
+  // ========== Proximités avec style ==========
   const proximites = estimation.identification?.proximites;
   if (proximites && Array.isArray(proximites) && proximites.length > 0) {
     if (yPos > 200) {
@@ -758,15 +827,7 @@ export async function generateEstimationPDF({
       yPos = 20;
     }
 
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Proximités", marginLeft, yPos);
-    yPos += 8;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
+    yPos = addSectionHeader(doc, "Proximités", yPos, marginLeft);
 
     // Grouper par type
     const transports = proximites.filter((p: { type: string }) => p.type?.includes('transport'));
@@ -774,19 +835,32 @@ export async function generateEstimationPDF({
     const commerces = proximites.filter((p: { type: string }) => p.type === 'commerce');
     const autres = proximites.filter((p: { type: string }) => !['transport_bus', 'transport_tram', 'ecole', 'commerce'].includes(p.type));
 
-    // Transports
-    if (transports.length > 0) {
+    const renderProxGroup = (items: Array<{ libelle?: string; distance?: string }>, label: string) => {
+      if (items.length === 0) return;
+      
       doc.setFont("helvetica", "bold");
-      doc.text("Transports:", marginLeft, yPos);
+      doc.setFontSize(10);
+      doc.setTextColor(26, 46, 53);
+      doc.text(label, marginLeft, yPos);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
       yPos += 5;
 
-      transports.slice(0, 3).forEach((transport: { libelle?: string; distance?: string }) => {
-        doc.text(`• ${transport.libelle || 'Transport'} - ${transport.distance || ''}`, marginLeft + 5, yPos);
-        yPos += 5;
+      items.slice(0, 3).forEach((item) => {
+        doc.setFillColor(100, 100, 100);
+        doc.circle(marginLeft + 5, yPos - 1, 1, 'F');
+        doc.text(`${item.libelle || '-'} - ${item.distance || ''}`, marginLeft + 10, yPos);
+        yPos += SPACE.lineHeight;
       });
-      yPos += 2;
-    }
+      yPos += 3;
+    };
+
+    renderProxGroup(transports, "Transports");
+    renderProxGroup(ecoles, "Ecoles");
+    renderProxGroup(commerces, "Commerces");
+    renderProxGroup(autres, "Autres");
+
+    yPos += SPACE.afterBlock;
 
     // Écoles
     if (ecoles.length > 0) {
@@ -963,11 +1037,7 @@ export async function generateEstimationPDF({
       yPos = 20;
     }
 
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Stratégie de mise en vente", marginLeft, yPos);
-    yPos += 10;
+    yPos = addSectionHeader(doc, "Stratégie de mise en vente", yPos, marginLeft);
 
     const strat = estimation.strategiePitch;
     
@@ -1071,11 +1141,7 @@ export async function generateEstimationPDF({
       yPos = 20;
     }
 
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Notre recommandation", marginLeft, yPos);
-    yPos += 10;
+    yPos = addSectionHeader(doc, "Notre recommandation", yPos, marginLeft);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -1087,7 +1153,7 @@ export async function generateEstimationPDF({
     yPos += lines.length * 5;
   }
 
-  // ========== Photos sélectionnées (8 max, compressées) ==========
+  // ========== Photos sélectionnées avec style ==========
   const allPhotos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
   const photosSelectionnees = selectionnerMeilleuresPhotos(allPhotos, 8);
   
@@ -1095,11 +1161,7 @@ export async function generateEstimationPDF({
     doc.addPage();
     yPos = 20;
 
-    doc.setTextColor(GARY_DARK);
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Sélection Photos (${photosSelectionnees.length}/${allPhotos.length})`, marginLeft, yPos);
-    yPos += 10;
+    yPos = addSectionHeader(doc, `Selection Photos (${photosSelectionnees.length}/${allPhotos.length})`, yPos, marginLeft);
 
     // Grouper les photos sélectionnées par catégorie
     const groupedPhotos = groupPhotosByCategory(photosSelectionnees);
@@ -1222,15 +1284,11 @@ export async function generateEstimationPDF({
     }
   }
 
-  // ========== Prochaines étapes ==========
+  // ========== Prochaines étapes avec style ==========
   doc.addPage();
   yPos = 25;
 
-  doc.setTextColor(GARY_DARK);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Prochaines étapes", marginLeft, yPos);
-  yPos += 12;
+  yPos = addSectionHeader(doc, "Prochaines étapes", yPos, marginLeft);
 
   // Encadré calendrier prévisionnel
   doc.setFillColor(239, 246, 255);
@@ -1333,16 +1391,11 @@ export async function generateEstimationPDF({
 
   yPos += 15;
 
-  // ========== Page contact courtier améliorée ==========
+  // ========== Page contact courtier avec style ==========
   doc.addPage();
   yPos = 30;
 
-  // Titre
-  doc.setTextColor(GARY_DARK);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Restons en contact", marginLeft, yPos);
-  yPos += 15;
+  yPos = addSectionHeader(doc, "Restons en contact", yPos, marginLeft);
 
   // Encadré courtier
   const encadreWidth = (contentWidth / 2) - 5;
