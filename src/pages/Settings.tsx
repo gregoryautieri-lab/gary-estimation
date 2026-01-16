@@ -37,6 +37,7 @@ import {
   Users,
   Edit2,
   RefreshCw,
+  BarChart3,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -262,7 +263,7 @@ export default function Settings() {
                 <Badge className="bg-amber-500 text-white text-xs ml-auto">Admin</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-1">
               <button 
                 className="flex items-center justify-between w-full py-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => navigate("/admin")}
@@ -272,6 +273,20 @@ export default function Settings() {
                   <div className="text-left">
                     <p className="font-medium">Gestion des utilisateurs</p>
                     <p className="text-sm text-muted-foreground">Rôles et permissions</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+              <Separator className="my-2" />
+              <button 
+                className="flex items-center justify-between w-full py-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg px-2 -mx-2 transition-colors"
+                onClick={() => navigate("/admin/analytics")}
+              >
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="h-5 w-5 text-amber-600" />
+                  <div className="text-left">
+                    <p className="font-medium">Analytics & KPIs</p>
+                    <p className="text-sm text-muted-foreground">Statistiques et performance</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
