@@ -236,8 +236,11 @@ export async function generateEstimationPDF({
   // ========================================
 
   // Photo de fond pleine page avec overlay gradient
-  const photos = (estimation.photos || []) as Photo[];
-  const coverPhoto = photos.find(p => p.favori) || photos[0];
+  const photosRaw = estimation.photos;
+  const photosArray: Photo[] = Array.isArray(photosRaw) 
+    ? photosRaw 
+    : (photosRaw && typeof photosRaw === 'object' ? Object.values(photosRaw) : []);
+  const coverPhoto = photosArray.find(p => p.favori) || photosArray[0];
   const coverPhotoUrl = coverPhoto?.storageUrl || coverPhoto?.dataUrl;
   
   if (coverPhotoUrl) {
