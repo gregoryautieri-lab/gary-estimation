@@ -476,6 +476,9 @@ export default function Module2Caracteristiques() {
                       value={carac.surfacePPE}
                       onChange={(e) => updateField('surfacePPE', e.target.value)}
                       placeholder="127"
+                      min={10}
+                      max={1000}
+                      step={1}
                     />
                   </FormRow>
 
@@ -485,6 +488,9 @@ export default function Module2Caracteristiques() {
                       value={carac.surfaceNonHabitable}
                       onChange={(e) => updateField('surfaceNonHabitable', e.target.value)}
                       placeholder="0"
+                      min={0}
+                      max={500}
+                      step={1}
                     />
                   </FormRow>
 
@@ -495,6 +501,9 @@ export default function Module2Caracteristiques() {
                         value={carac.surfaceBalcon}
                         onChange={(e) => updateField('surfaceBalcon', e.target.value)}
                         placeholder="12"
+                        min={0}
+                        max={200}
+                        step={1}
                       />
                     </FormRow>
                     <FormRow label="Terrasse (m²)" optional helper="Pondéré 33%">
@@ -503,6 +512,9 @@ export default function Module2Caracteristiques() {
                         value={carac.surfaceTerrasse}
                         onChange={(e) => updateField('surfaceTerrasse', e.target.value)}
                         placeholder="0"
+                        min={0}
+                        max={500}
+                        step={1}
                       />
                     </FormRow>
                   </div>
@@ -512,7 +524,10 @@ export default function Module2Caracteristiques() {
                       type="number"
                       value={carac.surfaceJardin}
                       onChange={(e) => updateField('surfaceJardin', e.target.value)}
-                      placeholder="-1"
+                      placeholder="0"
+                      min={0}
+                      max={2000}
+                      step={1}
                     />
                   </FormRow>
 
@@ -533,6 +548,9 @@ export default function Module2Caracteristiques() {
                         value={carac.surfaceHabitableMaison}
                         onChange={(e) => updateField('surfaceHabitableMaison', e.target.value)}
                         placeholder="Ex: 180"
+                        min={20}
+                        max={2000}
+                        step={1}
                       />
                     </FormRow>
                     <FormRow label="Surface utile (m²)">
@@ -541,6 +559,9 @@ export default function Module2Caracteristiques() {
                         value={carac.surfaceUtile}
                         onChange={(e) => updateField('surfaceUtile', e.target.value)}
                         placeholder="Ex: 220"
+                        min={20}
+                        max={3000}
+                        step={1}
                       />
                     </FormRow>
                   </div>
@@ -773,6 +794,9 @@ export default function Module2Caracteristiques() {
                     onChange={(e) => updateField('fondRenovation', e.target.value)}
                     placeholder="Ex: 50000"
                     className="pr-12"
+                    min={0}
+                    max={1000000}
+                    step={1000}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">CHF</span>
                 </div>
@@ -824,6 +848,9 @@ export default function Module2Caracteristiques() {
                     value={carac.surfaceTerrain}
                     onChange={(e) => updateField('surfaceTerrain', e.target.value)}
                     placeholder="Ex: 800"
+                    min={0}
+                    max={100000}
+                    step={1}
                   />
                 </FormRow>
               </div>
@@ -1069,6 +1096,9 @@ export default function Module2Caracteristiques() {
                     value={carac.anneeConstruction}
                     onChange={(e) => updateField('anneeConstruction', e.target.value)}
                     placeholder="2016"
+                    min={1800}
+                    max={2030}
+                    step={1}
                   />
                 </FormRow>
                 <FormRow label="Rénovation" optional>
@@ -1077,6 +1107,9 @@ export default function Module2Caracteristiques() {
                     value={carac.anneeRenovation}
                     onChange={(e) => updateField('anneeRenovation', e.target.value)}
                     placeholder="Année"
+                    min={1900}
+                    max={2030}
+                    step={1}
                   />
                 </FormRow>
               </div>
@@ -1148,6 +1181,9 @@ export default function Module2Caracteristiques() {
                     onChange={(e) => updateField('chargesMensuelles', e.target.value)}
                     placeholder="620"
                     className="pr-12"
+                    min={0}
+                    max={10000}
+                    step={10}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">CHF</span>
                 </div>
