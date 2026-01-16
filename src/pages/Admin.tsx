@@ -215,6 +215,14 @@ export default function Admin() {
 
     setInviting(true);
     try {
+      // Sauvegarder la session actuelle de l'admin
+      const { data: currentSession } = await supabase.auth.getSession();
+      const adminSession = currentSession?.session;
+      
+      if (!adminSession) {
+        throw new Error("Session admin non trouvée");
+      }
+
       // Créer l'utilisateur via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: inviteEmail,
@@ -232,23 +240,31 @@ export default function Admin() {
         throw new Error("Erreur lors de la création de l'utilisateur");
       }
 
+      const newUserId = authData.user.id;
+
+      // Restaurer immédiatement la session admin
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      });
+
+      // Attendre que le trigger s'exécute
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Le trigger handle_new_user crée automatiquement le profil et le rôle courtier
       // Si le rôle choisi est différent, on le met à jour
       if (inviteRole !== "courtier") {
-        // Attendre un peu que le trigger s'exécute
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         // Supprimer le rôle courtier par défaut
         await supabase
           .from("user_roles")
           .delete()
-          .eq("user_id", authData.user.id);
+          .eq("user_id", newUserId);
         
         // Ajouter le rôle choisi
         await supabase
           .from("user_roles")
           .insert({
-            user_id: authData.user.id,
+            user_id: newUserId,
             role: inviteRole,
           });
       }
@@ -257,7 +273,7 @@ export default function Admin() {
       await supabase
         .from("profiles")
         .update({ full_name: inviteFullName })
-        .eq("user_id", authData.user.id);
+        .eq("user_id", newUserId);
 
       toast.success(`Utilisateur ${inviteFullName} créé avec succès`);
       setShowInviteDialog(false);
