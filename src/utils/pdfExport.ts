@@ -1364,7 +1364,11 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.parkingInterieur ?? 0), 25, yPos + 15);
+  // PARKING INTERIEUR
+  const parkIntValue = carac.parkingInterieur !== undefined && carac.parkingInterieur !== null && carac.parkingInterieur !== ''
+    ? String(carac.parkingInterieur)
+    : '0';
+  doc.text(parkIntValue, 25, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1375,7 +1379,11 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.parkingExterieur ?? 0), 35 + col4Width, yPos + 15);
+  // PARKING EXTERIEUR
+  const parkExtValue = carac.parkingExterieur !== undefined && carac.parkingExterieur !== null && carac.parkingExterieur !== ''
+    ? String(carac.parkingExterieur)
+    : '0';
+  doc.text(parkExtValue, 35 + col4Width, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1386,7 +1394,11 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(carac.box ?? 0), 45 + 2 * col4Width, yPos + 15);
+  // BOX
+  const boxValue = carac.box !== undefined && carac.box !== null && carac.box !== ''
+    ? String(carac.box)
+    : '0';
+  doc.text(boxValue, 45 + 2 * col4Width, yPos + 15);
 
   if (isAppartement) {
     doc.setFillColor(248, 250, 252);
