@@ -20,6 +20,7 @@ import EstimationExpress from "./pages/estimation/EstimationExpress";
 import HistoryView from "./pages/estimation/HistoryView";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -73,6 +74,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute>
+              <AdminAnalytics />
             </ProtectedRoute>
           }
         />
