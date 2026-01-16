@@ -1348,6 +1348,23 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
 
   yPos += 30;
 
+  // TEST: forcer la section "ANNEXES & STATIONNEMENT" sur la page suivante
+  // (hypothèse: le bloc est actuellement trop bas et sort de la zone imprimable)
+  doc.addPage();
+
+  // Header (même style que le début de l'annexe)
+  doc.setFillColor(26, 46, 53);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GARY', 20, 25);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Annexe Technique (1/2)', pageWidth - 20, 25, { align: 'right' });
+
+  yPos = 70;
+
   // === SECTION ANNEXES & STATIONNEMENT ===
   doc.setFontSize(9);
   doc.setTextColor(255, 69, 57);
