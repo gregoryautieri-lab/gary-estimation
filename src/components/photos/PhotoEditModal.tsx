@@ -12,10 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { AlertTriangle, Star, Trash2, Sparkles } from 'lucide-react';
+import { AlertTriangle, Star, Trash2, Sparkles, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Photo, PhotoCategorie } from '@/types/estimation';
 import { PHOTO_CATEGORIES, getCategorieConfig, getTitreSuggestions } from '@/types/estimation';
+import { CategorySelector } from './CategorySelector';
 
 interface PhotoEditModalProps {
   photo: Photo | null;
@@ -23,6 +24,8 @@ interface PhotoEditModalProps {
   onOpenChange: (open: boolean) => void;
   onSave: (photo: Photo) => void;
   onDelete?: (photo: Photo) => void;
+  customCategories?: string[];
+  onAddCustomCategory?: (name: string) => void;
 }
 
 export function PhotoEditModal({ 
@@ -30,13 +33,16 @@ export function PhotoEditModal({
   open, 
   onOpenChange, 
   onSave,
-  onDelete 
+  onDelete,
+  customCategories = [],
+  onAddCustomCategory
 }: PhotoEditModalProps) {
   const [titre, setTitre] = useState('');
   const [description, setDescription] = useState('');
-  const [categorie, setCategorie] = useState<PhotoCategorie>('autre');
+  const [categorie, setCategorie] = useState<PhotoCategorie | string>('autre');
   const [defaut, setDefaut] = useState(false);
   const [favori, setFavori] = useState(false);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
 
   // Sync state with photo prop
   useEffect(() => {
@@ -49,20 +55,23 @@ export function PhotoEditModal({
     }
   }, [photo]);
 
-  // Suggestions de titres basées sur la catégorie
-  const suggestions = useMemo(() => getTitreSuggestions(categorie), [categorie]);
+  // Suggestions de titres basées sur la catégorie (seulement pour les catégories prédéfinies)
+  const suggestions = useMemo(() => {
+    const predefinedCat = PHOTO_CATEGORIES.find(c => c.value === categorie);
+    return predefinedCat ? getTitreSuggestions(predefinedCat.value) : [];
+  }, [categorie]);
 
   if (!photo) return null;
 
   const imageUrl = photo.storageUrl || photo.dataUrl;
-  const currentCatConfig = getCategorieConfig(categorie);
+  const currentCatConfig = PHOTO_CATEGORIES.find(c => c.value === categorie);
 
   const handleSave = () => {
     onSave({
       ...photo,
       titre: titre.trim() || undefined,
       description: description.trim() || undefined,
-      categorie,
+      categorie: categorie as PhotoCategorie,
       defaut,
       favori
     });
@@ -151,24 +160,28 @@ export function PhotoEditModal({
             </p>
           </div>
 
-          {/* Catégorie */}
+          {/* Catégorie - Nouveau bouton qui ouvre le drawer */}
           <div className="space-y-2">
             <Label>Catégorie</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {PHOTO_CATEGORIES.map((cat) => (
-                <Badge
-                  key={cat.value}
-                  variant={categorie === cat.value ? 'default' : 'outline'}
-                  className={cn(
-                    'cursor-pointer text-xs transition-all',
-                    categorie === cat.value && 'ring-2 ring-primary ring-offset-1'
-                  )}
-                  onClick={() => setCategorie(cat.value)}
-                >
-                  {cat.emoji} {cat.label}
-                </Badge>
-              ))}
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 h-12"
+              onClick={() => setShowCategorySelector(true)}
+            >
+              <span className="text-xl">{currentCatConfig?.emoji || '🏷️'}</span>
+              <span className="font-medium">{currentCatConfig?.label || categorie}</span>
+              <FolderOpen className="h-4 w-4 ml-auto text-muted-foreground" />
+            </Button>
+            
+            <CategorySelector
+              open={showCategorySelector}
+              onOpenChange={setShowCategorySelector}
+              selected={categorie}
+              onSelect={(cat) => setCategorie(cat)}
+              customCategories={customCategories}
+              onAddCustomCategory={onAddCustomCategory}
+            />
           </div>
 
           {/* Toggles */}

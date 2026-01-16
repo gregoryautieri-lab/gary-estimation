@@ -32,6 +32,7 @@ export default function ModulePhotos() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(true);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   // Progress tracking - MUST be before any conditional returns
   const { moduleStatuses } = useModuleProgress(
@@ -147,15 +148,23 @@ export default function ModulePhotos() {
     scheduleSave();
   }, []);
 
-  // Changer catégorie
-  const handleCategorieChange = useCallback((photo: Photo, categorie: PhotoCategorie) => {
+  // Changer catégorie (supporte les catégories personnalisées)
+  const handleCategorieChange = useCallback((photo: Photo, categorie: PhotoCategorie | string) => {
     setPhotos(prev => ({
       ...prev,
       items: prev.items.map(p =>
-        p.id === photo.id ? { ...p, categorie } : p
+        p.id === photo.id ? { ...p, categorie: categorie as PhotoCategorie } : p
       )
     }));
     scheduleSave();
+  }, []);
+
+  // Ajouter une catégorie personnalisée
+  const handleAddCustomCategory = useCallback((name: string) => {
+    setCustomCategories(prev => {
+      if (prev.includes(name)) return prev;
+      return [...prev, name];
+    });
   }, []);
 
   // Sauvegarder
@@ -308,6 +317,8 @@ export default function ModulePhotos() {
             onToggleFavori={handleToggleFavori}
             onCategorieChange={handleCategorieChange}
             groupByCategory={groupByCategory}
+            customCategories={customCategories}
+            onAddCustomCategory={handleAddCustomCategory}
           />
         </FormSection>
 
