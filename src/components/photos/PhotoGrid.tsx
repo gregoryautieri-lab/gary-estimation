@@ -6,15 +6,18 @@ import { cn } from '@/lib/utils';
 import type { Photo, PhotoCategorie } from '@/types/estimation';
 import { PHOTO_CATEGORIES, getCategorieConfig } from '@/types/estimation';
 import { PhotoEditModal } from './PhotoEditModal';
+import { CategorySelector, CategoryBadge } from './CategorySelector';
 
 interface PhotoGridProps {
   photos: Photo[];
   onDelete: (photo: Photo) => void;
   onUpdate?: (photo: Photo) => void;
   onToggleFavori?: (photo: Photo) => void;
-  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie) => void;
+  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie | string) => void;
   readonly?: boolean;
   groupByCategory?: boolean;
+  customCategories?: string[];
+  onAddCustomCategory?: (name: string) => void;
 }
 
 export function PhotoGrid({ 
@@ -24,7 +27,9 @@ export function PhotoGrid({
   onToggleFavori,
   onCategorieChange,
   readonly,
-  groupByCategory = true
+  groupByCategory = true,
+  customCategories = [],
+  onAddCustomCategory
 }: PhotoGridProps) {
   const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
 
@@ -120,6 +125,8 @@ export function PhotoGrid({
                     onToggleFavori={onToggleFavori ? () => onToggleFavori(photo) : undefined}
                     onCategorieChange={onCategorieChange}
                     readonly={readonly}
+                    customCategories={customCategories}
+                    onAddCustomCategory={onAddCustomCategory}
                   />
                 ))}
               </div>
@@ -135,6 +142,8 @@ export function PhotoGrid({
         onOpenChange={(open) => !open && setEditingPhoto(null)}
         onSave={handlePhotoSave}
         onDelete={!readonly ? onDelete : undefined}
+        customCategories={customCategories}
+        onAddCustomCategory={onAddCustomCategory}
       />
     </>
   );
@@ -145,133 +154,129 @@ interface PhotoCardProps {
   onDelete: () => void;
   onEdit: () => void;
   onToggleFavori?: () => void;
-  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie) => void;
+  onCategorieChange?: (photo: Photo, categorie: PhotoCategorie | string) => void;
   readonly?: boolean;
+  customCategories?: string[];
+  onAddCustomCategory?: (name: string) => void;
 }
 
-function PhotoCard({ photo, onDelete, onEdit, onToggleFavori, onCategorieChange, readonly }: PhotoCardProps) {
-  const [showCategories, setShowCategories] = useState(false);
+function PhotoCard({ 
+  photo, 
+  onDelete, 
+  onEdit, 
+  onToggleFavori, 
+  onCategorieChange, 
+  readonly,
+  customCategories = [],
+  onAddCustomCategory
+}: PhotoCardProps) {
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
   const imageUrl = photo.storageUrl || photo.dataUrl;
   const categoryConfig = getCategorieConfig(photo.categorie);
 
   return (
-    <div className="relative group rounded-lg overflow-hidden bg-muted aspect-square">
-      {/* Image */}
-      {photo.uploading ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : (
-        <img
-          src={imageUrl}
-          alt={photo.titre || photo.nom}
-          className="w-full h-full object-cover cursor-pointer"
-          loading="lazy"
-          onClick={onEdit}
-        />
-      )}
-
-      {/* Overlay actions */}
-      {!readonly && !photo.uploading && (
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 gap-1">
-          {/* Éditer */}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-white hover:bg-white/20"
+    <>
+      <div className="relative group rounded-lg overflow-hidden bg-muted aspect-square">
+        {/* Image */}
+        {photo.uploading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <img
+            src={imageUrl}
+            alt={photo.titre || photo.nom}
+            className="w-full h-full object-cover cursor-pointer"
+            loading="lazy"
             onClick={onEdit}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          />
+        )}
 
-          {/* Favori */}
-          {onToggleFavori && (
+        {/* Overlay actions */}
+        {!readonly && !photo.uploading && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 gap-1">
+            {/* Éditer */}
             <Button
               type="button"
               size="icon"
               variant="ghost"
               className="h-7 w-7 text-white hover:bg-white/20"
-              onClick={onToggleFavori}
+              onClick={onEdit}
             >
-              {photo.favori ? (
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              ) : (
-                <StarOff className="h-4 w-4" />
-              )}
+              <Pencil className="h-4 w-4" />
             </Button>
-          )}
 
-          {/* Supprimer */}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-white hover:bg-red-500/50"
-            onClick={onDelete}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Indicateur favori */}
-      {photo.favori && (
-        <div className="absolute top-1.5 left-1.5">
-          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow" />
-        </div>
-      )}
-
-      {/* Indicateur défaut */}
-      {photo.defaut && (
-        <div className="absolute top-1.5 right-1.5">
-          <AlertTriangle className="h-4 w-4 text-destructive drop-shadow" />
-        </div>
-      )}
-
-      {/* Badge info bas */}
-      <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
-        <div className="flex items-center gap-1">
-          <Badge 
-            variant="secondary" 
-            className={cn(
-              "text-xs shrink-0",
-              !readonly && "cursor-pointer hover:bg-secondary/80"
+            {/* Favori */}
+            {onToggleFavori && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-white hover:bg-white/20"
+                onClick={onToggleFavori}
+              >
+                {photo.favori ? (
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ) : (
+                  <StarOff className="h-4 w-4" />
+                )}
+              </Button>
             )}
-            onClick={() => !readonly && onCategorieChange && setShowCategories(!showCategories)}
-          >
-            {categoryConfig.emoji}
-          </Badge>
-          {photo.titre && (
-            <span className="text-white text-xs truncate drop-shadow">
-              {photo.titre}
-            </span>
-          )}
+
+            {/* Supprimer */}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-white hover:bg-red-500/50"
+              onClick={onDelete}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Indicateur favori */}
+        {photo.favori && (
+          <div className="absolute top-1.5 left-1.5">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow" />
+          </div>
+        )}
+
+        {/* Indicateur défaut */}
+        {photo.defaut && (
+          <div className="absolute top-1.5 right-1.5">
+            <AlertTriangle className="h-4 w-4 text-destructive drop-shadow" />
+          </div>
+        )}
+
+        {/* Badge catégorie en bas - nouveau design lisible */}
+        <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="flex items-center gap-1.5">
+            <CategoryBadge
+              categorie={photo.categorie || 'autre'}
+              onClick={!readonly && onCategorieChange ? () => setShowCategorySelector(true) : undefined}
+            />
+            {photo.titre && (
+              <span className="text-white text-xs truncate drop-shadow font-medium">
+                {photo.titre}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Sélecteur catégorie rapide */}
-      {showCategories && !readonly && onCategorieChange && (
-        <div 
-          className="absolute inset-0 bg-black/85 p-2 flex flex-wrap content-center gap-1 z-10"
-          onClick={() => setShowCategories(false)}
-        >
-          {PHOTO_CATEGORIES.slice(0, 12).map(cat => (
-            <Badge
-              key={cat.value}
-              variant={cat.value === photo.categorie ? "default" : "outline"}
-              className="cursor-pointer text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCategorieChange(photo, cat.value);
-                setShowCategories(false);
-              }}
-            >
-              {cat.emoji}
-            </Badge>
-          ))}
-        </div>
+      {/* Drawer sélection catégorie */}
+      {onCategorieChange && (
+        <CategorySelector
+          open={showCategorySelector}
+          onOpenChange={setShowCategorySelector}
+          selected={photo.categorie || 'autre'}
+          onSelect={(cat) => onCategorieChange(photo, cat as PhotoCategorie)}
+          customCategories={customCategories}
+          onAddCustomCategory={onAddCustomCategory}
+        />
       )}
-    </div>
+    </>
   );
 }
