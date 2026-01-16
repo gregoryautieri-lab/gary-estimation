@@ -86,7 +86,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
               <ExternalLink className="h-4 w-4" />
             </a>
           )}
-          <button onClick={onDelete} className="text-destructive hover:text-destructive/80">
+          <button type="button" onClick={onDelete} className="text-destructive hover:text-destructive/80">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -696,7 +696,7 @@ export default function Module4PreEstimation() {
                       placeholder="Prix"
                       className="w-28 text-center"
                     />
-                    <button onClick={() => deleteLigneSupp(index)} className="text-destructive">
+                    <button type="button" onClick={() => deleteLigneSupp(index)} className="text-destructive">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -705,6 +705,7 @@ export default function Module4PreEstimation() {
               
               {/* Bouton ajouter ligne */}
               <button 
+                type="button"
                 onClick={addLigneSupp}
                 className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
@@ -899,7 +900,7 @@ export default function Module4PreEstimation() {
                         placeholder="Prix"
                         className="w-28 text-center"
                       />
-                      <button onClick={() => deleteAnnexe(index)} className="text-destructive">
+                      <button type="button" onClick={() => deleteAnnexe(index)} className="text-destructive">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -913,6 +914,7 @@ export default function Module4PreEstimation() {
                     .slice(0, 6)
                     .map(opt => (
                       <button
+                        type="button"
                         key={opt.id}
                         onClick={() => addAnnexe(opt.id)}
                         className="px-3 py-1.5 bg-muted rounded-full text-sm hover:bg-muted/80 flex items-center gap-1.5"
@@ -926,6 +928,7 @@ export default function Module4PreEstimation() {
 
                 {/* Bouton ajouter annexe libre */}
                 <button 
+                  type="button"
                   onClick={() => addAnnexe()}
                   className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                 >
@@ -1277,6 +1280,7 @@ export default function Module4PreEstimation() {
               ))}
               
               <button 
+                type="button"
                 onClick={addComparableVendu}
                 className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
@@ -1318,6 +1322,7 @@ export default function Module4PreEstimation() {
               ))}
               
               <button 
+                type="button"
                 onClick={addComparableEnVente}
                 className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
