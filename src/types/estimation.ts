@@ -335,6 +335,25 @@ export interface Proximite {
   tempsMarche?: string;
 }
 
+// Transports publics détaillés (pour PDF)
+export interface TransportArret {
+  nom: string;
+  distance: string;
+  tempsMarche: string;
+  mode: 'bus' | 'tram' | 'bus_tram';
+}
+
+export interface TransportGare {
+  nom: string;
+  distance: string;
+  tempsMarche: string;
+}
+
+export interface Transports {
+  arret?: TransportArret;
+  gare?: TransportGare;
+}
+
 export interface Financier {
   dateAchat: string;
   prixAchat: string;
@@ -407,6 +426,7 @@ export interface Identification {
   contexte: Contexte;
   historique: Historique;
   proximites: Proximite[];
+  transports?: Transports; // Transports publics détaillés
   financier: Financier;
   projetPostVente: ProjetPostVente;
   courtierAssigne?: string; // ID du courtier GARY
@@ -520,6 +540,9 @@ export interface Caracteristiques {
   fitness: boolean;
   buanderie: string;
   autresAnnexes: string;
+  
+  // Annexes luxe appartement (piscine_int, hammam, sauna, jacuzzi, etc.)
+  annexesAppart: string[];
   
   // Espaces maison
   espacesMaison: string[];
@@ -724,6 +747,8 @@ export interface Comparable {
   prix: string;
   prixM2?: string;
   surface: string;
+  surfaceParcelle?: string; // Pour maisons - surface terrain
+  typeMaison?: string; // individuelle, mitoyenne, jumelle
   dateVente?: string;
   dureeEnVente?: string;
   commentaire: string;
@@ -1232,6 +1257,7 @@ export const defaultCaracteristiques: Caracteristiques = {
   fitness: false,
   buanderie: '',
   autresAnnexes: '',
+  annexesAppart: [],
   espacesMaison: [],
   nuisances: [],
   nuisanceDetail: '',
