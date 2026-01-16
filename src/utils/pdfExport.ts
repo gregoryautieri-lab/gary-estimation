@@ -1459,15 +1459,18 @@ async function renderAnnexeTechnique2(ctx: PDFContext): Promise<void> {
   doc.text('ÉTAT DU BIEN', marginLeft, yPos);
   yPos += 10;
 
+  // Champs réels de AnalyseTerrain - État pièce par pièce
   const etatsLabels: Record<string, string> = {
-    'etatGeneral': 'État général',
     'etatCuisine': 'Cuisine',
     'etatSDB': 'Salles de bain',
     'etatSols': 'Sols',
-    'etatPeinture': 'Peinture',
-    'etatFenetres': 'Fenêtres',
-    'etatToiture': 'Toiture',
-    'etatFacade': 'Façade'
+    'etatMurs': 'Murs / Peinture',
+    'etatMenuiseries': 'Menuiseries',
+    'etatElectricite': 'Électricité',
+    'etatPlomberie': 'Plomberie',
+    'etatIsolation': 'Isolation',
+    'etatFacade': 'Façade',
+    'etatToiture': 'Toiture'
   };
 
   const gridCols = 2;
