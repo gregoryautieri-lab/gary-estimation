@@ -455,18 +455,42 @@ export default function EstimationOverview() {
             <CardTitle className="text-base">Accès aux modules</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              {moduleStatuses.map((mod) => (
-                <Button
-                  key={mod.route}
-                  variant="outline"
-                  onClick={() => navigate(mod.route)}
-                  className="h-14 flex flex-col items-center justify-center gap-1"
-                >
-                  <span className="text-lg">{mod.moduleNumber === '📸' ? '📸' : `${mod.moduleNumber}️⃣`}</span>
-                  <span className="text-xs truncate max-w-full">{mod.name}</span>
-                </Button>
-              ))}
+            <div className="grid grid-cols-3 gap-3">
+              {moduleStatuses.map((mod) => {
+                const moduleIcons: Record<string, string> = {
+                  '1': '👤',
+                  '2': '🏠',
+                  '3': '🔍',
+                  '4': '💰',
+                  '5': '📋',
+                  '📸': '📸'
+                };
+                const icon = moduleIcons[mod.moduleNumber] || '📄';
+                const isComplete = mod.status === 'complete';
+                const isPartial = mod.status === 'partial';
+                
+                return (
+                  <Button
+                    key={mod.route}
+                    variant="outline"
+                    onClick={() => navigate(mod.route)}
+                    className={`h-20 flex flex-col items-center justify-center gap-1.5 relative ${
+                      isComplete ? 'border-green-500/50 bg-green-50 dark:bg-green-950/20' : 
+                      isPartial ? 'border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20' : ''
+                    }`}
+                  >
+                    {isComplete && (
+                      <div className="absolute top-1 right-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      </div>
+                    )}
+                    <span className="text-2xl">{icon}</span>
+                    <span className="text-xs font-medium text-center leading-tight px-1">
+                      {mod.name}
+                    </span>
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
