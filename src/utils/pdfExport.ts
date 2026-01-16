@@ -1372,12 +1372,6 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.text('ANNEXES & STATIONNEMENT', 20, yPos);
   yPos += 10;
 
-  // === DEBUG PARKINGS - DÉBUT ===
-  console.log('=== DEBUG PARKINGS - DÉBUT ===');
-  console.log('yPos AVANT parkings:', yPos);
-  console.log('col4Width:', col4Width);
-  console.log('pageWidth:', pageWidth);
-
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(20, yPos, col4Width, 20, 2, 2, 'F');
   doc.setFontSize(7);
@@ -1387,12 +1381,10 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  // PARKING INTERIEUR
   const parkIntValue = carac.parkingInterieur !== undefined && carac.parkingInterieur !== null && carac.parkingInterieur !== ''
     ? String(carac.parkingInterieur)
     : '0';
-  doc.text("TEST_0", 25, yPos + 15); // TEST DEBUG (valeur en dur)
-  console.log('doc.text() PARKING INT appelé - valeur:', parkIntValue, '- position X:', 25, '- position Y:', yPos + 15);
+  doc.text(parkIntValue, 25, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(30 + col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1403,12 +1395,10 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  // PARKING EXTERIEUR
   const parkExtValue = carac.parkingExterieur !== undefined && carac.parkingExterieur !== null && carac.parkingExterieur !== ''
     ? String(carac.parkingExterieur)
     : '0';
-  doc.text("TEST_4", 35 + col4Width, yPos + 15); // TEST DEBUG (valeur en dur)
-  console.log('doc.text() PARKING EXT appelé - valeur:', parkExtValue, '- position X:', 35 + col4Width, '- position Y:', yPos + 15);
+  doc.text(parkExtValue, 35 + col4Width, yPos + 15);
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(40 + 2 * col4Width, yPos, col4Width, 20, 2, 2, 'F');
@@ -1419,13 +1409,10 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  // BOX
   const boxValue = carac.box !== undefined && carac.box !== null && carac.box !== ''
     ? String(carac.box)
     : '0';
-  doc.text("TEST_1", 45 + 2 * col4Width, yPos + 15); // TEST DEBUG (valeur en dur)
-  console.log('doc.text() BOX appelé - valeur:', boxValue, '- position X:', 45 + 2 * col4Width, '- position Y:', yPos + 15);
-  console.log('=== DEBUG PARKINGS - FIN ===')
+  doc.text(boxValue, 45 + 2 * col4Width, yPos + 15)
 
   if (isAppartement) {
     doc.setFillColor(248, 250, 252);
