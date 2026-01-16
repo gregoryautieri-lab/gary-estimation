@@ -275,8 +275,8 @@ export async function generateEstimationPDF({
 
   doc.setFontSize(10);
   sections.forEach(section => {
-    doc.setTextColor(34, 197, 94);
-    doc.text("✓", marginLeft + 3, yPos);
+    doc.setFillColor(34, 197, 94);
+    doc.circle(marginLeft + 4, yPos - 1.5, 1.5, 'F');
     doc.setTextColor(GARY_DARK);
     doc.text(section, marginLeft + 10, yPos);
     yPos += 7;
@@ -1112,11 +1112,11 @@ export async function generateEstimationPDF({
 
       const catConfig = getCategorieConfig(group.category);
       
-      // Header de catégorie
+      // Header de catégorie (sans emoji pour compatibilité PDF)
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(GARY_DARK);
-      doc.text(`${catConfig.emoji} ${catConfig.label}`, marginLeft, yPos);
+      doc.text(catConfig.label, marginLeft, yPos);
       yPos += 8;
 
       // Dimensions photo constantes
@@ -1256,15 +1256,22 @@ export async function generateEstimationPDF({
     : new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000);
 
   const etapesCalendrier = [
-    { date: format(today, "dd.MM.yyyy"), label: "Remise de l'estimation", statut: "✓" },
-    { date: format(datePresentation, "dd.MM.yyyy"), label: "Présentation du mandat et signature", statut: "→" },
-    { date: format(dateLancement, "dd.MM.yyyy"), label: "Lancement de la mise en vente", statut: "○" }
+    { date: format(today, "dd.MM.yyyy"), label: "Remise de l'estimation", statut: "OK", done: true },
+    { date: format(datePresentation, "dd.MM.yyyy"), label: "Presentation du mandat et signature", statut: ">", done: false },
+    { date: format(dateLancement, "dd.MM.yyyy"), label: "Lancement de la mise en vente", statut: "o", done: false }
   ];
 
   etapesCalendrier.forEach(etape => {
-    doc.setFont("helvetica", "bold");
-    doc.text(etape.statut, marginLeft + 12, yPos);
+    // Indicateur visuel (cercle coloré)
+    if (etape.done) {
+      doc.setFillColor(34, 197, 94);
+      doc.circle(marginLeft + 14, yPos - 1.5, 2.5, 'F');
+    } else {
+      doc.setDrawColor(150, 150, 150);
+      doc.circle(marginLeft + 14, yPos - 1.5, 2.5);
+    }
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
     doc.text(etape.date, marginLeft + 22, yPos);
     doc.text(etape.label, marginLeft + 50, yPos);
     yPos += 6;
