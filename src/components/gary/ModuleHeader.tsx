@@ -1,16 +1,17 @@
-import { ChevronLeft, LayoutDashboard } from 'lucide-react';
+import { ChevronLeft, LayoutDashboard, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { NetworkStatusBadge } from './NetworkStatusBadge';
 
 interface ModuleHeaderProps {
-  moduleNumber: number;
+  moduleNumber: number | string;
   title: string;
   subtitle?: string;
   backPath?: string;
   onBack?: () => void;
   showSyncIndicator?: boolean;
   showOverviewButton?: boolean;
+  isSaving?: boolean;
 }
 
 export const ModuleHeader = ({ 
@@ -20,7 +21,8 @@ export const ModuleHeader = ({
   backPath,
   onBack,
   showSyncIndicator = true,
-  showOverviewButton = true
+  showOverviewButton = true,
+  isSaving = false
 }: ModuleHeaderProps) => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -51,6 +53,12 @@ export const ModuleHeader = ({
             <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
               MODULE {moduleNumber}
             </span>
+            {isSaving && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Sauvegarde...
+              </span>
+            )}
           </div>
           <h1 className="text-lg font-bold text-foreground truncate">{title}</h1>
           {subtitle && (

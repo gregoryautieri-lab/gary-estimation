@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -8,6 +8,7 @@ import { CourtierSelector } from '@/components/gary/CourtierSelector';
 import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
 import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
 import { useModuleProgress } from '@/hooks/useModuleProgress';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -196,6 +197,25 @@ const Module1Identification = () => {
     1
   );
 
+  // Autosave pour éviter perte de données
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 2000,
+    onSave: async () => {
+      if (!id || isLocked) return;
+      const dataToSave = {
+        identification,
+        vendeurNom: identification.vendeur.nom,
+        vendeurEmail: identification.vendeur.email,
+        vendeurTelephone: identification.vendeur.telephone,
+        adresse: identification.adresse.rue,
+        codePostal: identification.adresse.codePostal,
+        localite: identification.adresse.localite
+      };
+      await updateEstimation(id, dataToSave);
+    },
+    enabled: !isLocked && !!id && !!estimation
+  });
+
   useEffect(() => {
     if (id && id !== 'new') {
       loadEstimation();
@@ -269,6 +289,7 @@ const Module1Identification = () => {
             cadastreData
           }
         }));
+        scheduleSave();
         
         // Toast de succès avec infos
         const infos: string[] = [];
@@ -325,6 +346,7 @@ const Module1Identification = () => {
         [field]: value
       }
     }));
+    scheduleSave();
   };
 
   // Toggle pour les tableaux (portails, raisons échec, etc.)
@@ -346,6 +368,7 @@ const Module1Identification = () => {
         }
       };
     });
+    scheduleSave();
   };
 
   const handleSave = async (goNext = false) => {
@@ -400,6 +423,7 @@ const Module1Identification = () => {
         title="Identification"
         subtitle="Vendeur, bien et contexte"
         backPath="/estimations"
+        isSaving={autoSaving}
       />
 
       {/* Barre de progression */}
@@ -435,10 +459,13 @@ const Module1Identification = () => {
         <FormSection icon="👤" title="Courtier en charge">
           <CourtierSelector
             value={identification.courtierAssigne || ''}
-            onChange={(courtierId) => setIdentification(prev => ({
-              ...prev,
-              courtierAssigne: courtierId
-            }))}
+            onChange={(courtierId) => {
+              setIdentification(prev => ({
+                ...prev,
+                courtierAssigne: courtierId
+              }));
+              scheduleSave();
+            }}
             disabled={isLocked}
           />
         </FormSection>
@@ -504,6 +531,7 @@ const Module1Identification = () => {
                     placeId: details.placeId
                   }
                 }));
+                scheduleSave();
               }}
             />
           </FormRow>
@@ -574,6 +602,7 @@ const Module1Identification = () => {
                     mapState
                   }
                 }));
+                scheduleSave();
               }}
             />
           </div>
@@ -591,6 +620,7 @@ const Module1Identification = () => {
                     cadastreZoom: zoom
                   }
                 }));
+                scheduleSave();
               }}
             />
           </div>
@@ -604,7 +634,10 @@ const Module1Identification = () => {
           <ProximitesEditor
             proximites={identification.proximites}
             coordinates={identification.adresse.coordinates}
-            onChange={(proximites) => setIdentification(prev => ({ ...prev, proximites }))}
+            onChange={(proximites) => {
+              setIdentification(prev => ({ ...prev, proximites }));
+              scheduleSave();
+            }}
             disabled={isLocked}
           />
         </FormSection>

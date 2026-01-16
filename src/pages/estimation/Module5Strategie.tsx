@@ -6,6 +6,7 @@ import { FormSection } from '@/components/gary/FormSection';
 import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
 import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
 import { useModuleProgress } from '@/hooks/useModuleProgress';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -114,8 +115,24 @@ export default function Module5Strategie() {
     5
   );
 
+  // Autosave pour éviter perte de données
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 2000,
+    onSave: async () => {
+      if (!id || isLocked) return;
+      await updateEstimation(id, { 
+        strategiePitch: { 
+          ...strategie, 
+          phase0Actions: [...checkedPhase0Actions, ...customPhase0Actions] 
+        } 
+      });
+    },
+    enabled: !isLocked && !!id && !!estimation
+  });
+
   const updateField = <K extends keyof StrategiePitch>(field: K, value: StrategiePitch[K]) => {
     setStrategie(prev => ({ ...prev, [field]: value }));
+    scheduleSave();
   };
 
   const updatePhaseDuree = (phaseKey: keyof PhaseDurees, delta: number) => {
@@ -158,6 +175,7 @@ export default function Module5Strategie() {
         ? prev.filter(a => a !== actionId)
         : [...prev, actionId]
     );
+    scheduleSave();
   };
 
   // Génération du pitch via IA avec fallback rule-based
@@ -325,6 +343,7 @@ export default function Module5Strategie() {
         title="Stratégie" 
         subtitle="Timeline et pitch de closing"
         backPath={`/estimation/${id}/4`}
+        isSaving={autoSaving}
       />
 
       {/* Barre de progression */}
