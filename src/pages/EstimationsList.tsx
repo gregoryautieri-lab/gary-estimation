@@ -17,7 +17,9 @@ import {
   ArrowUpDown,
   Check,
   X,
-  TrendingUp
+  TrendingUp,
+  Trash2,
+  Archive
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,6 +37,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import type { EstimationData, EstimationStatus } from '@/types/estimation';
 import { STATUS_CONFIG } from '@/types/estimation';
 import { formatPriceCHF } from '@/hooks/useEstimationCalcul';
@@ -87,10 +100,12 @@ interface EstimationCardProps {
   priority: PriorityScore;
   onClick: () => void;
   onStatusChange: (newStatus: string) => void;
+  onDelete: () => void;
+  onArchive: () => void;
   isUpdating: boolean;
 }
 
-const EstimationCard = ({ estimation, priority, onClick, onStatusChange, isUpdating }: EstimationCardProps) => {
+const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelete, onArchive, isUpdating }: EstimationCardProps) => {
   const [editingStatus, setEditingStatus] = useState(false);
   const statusConfig = getStatusLabel(estimation.statut);
   const colorConfig = statusColorMap[estimation.statut] || statusColorMap.brouillon;
@@ -100,6 +115,9 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, isUpdat
   const date = estimation.updatedAt 
     ? new Date(estimation.updatedAt).toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' })
     : '';
+
+  const isBrouillon = estimation.statut === 'brouillon';
+  const isArchived = estimation.statut === 'archive';
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -114,95 +132,161 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, isUpdat
   };
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-card border border-border rounded-xl p-4 text-left transition-all hover:border-primary/50 active:scale-[0.98]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        {/* Priority indicator */}
-        <PriorityIndicator priority={priority} className="mt-1.5" />
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {editingStatus ? (
-              <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
-                {quickStatusOptions.map((key) => {
-                  const cfg = getStatusLabel(key);
-                  const clr = statusColorMap[key] || statusColorMap.brouillon;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => handleStatusSelect(key)}
-                      className={`text-xs font-medium px-2 py-0.5 rounded transition-all ${clr.bgClass} ${clr.color} ${
-                        estimation.statut === key ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      {cfg.label}
-                    </button>
-                  );
-                })}
-                <button 
-                  onClick={() => setEditingStatus(false)}
-                  className="p-1 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleStatusClick}
-                disabled={isUpdating}
-                className={`text-xs font-medium px-2 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${colorConfig.bgClass} ${colorConfig.color}`}
+    <div className="w-full bg-card border border-border rounded-xl p-4 text-left transition-all hover:border-primary/50 flex items-start gap-3">
+      {/* Priority indicator */}
+      <PriorityIndicator priority={priority} className="mt-1.5 shrink-0" />
+      
+      {/* Main content - clickable */}
+      <button
+        onClick={onClick}
+        className="flex-1 min-w-0 text-left"
+      >
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          {editingStatus ? (
+            <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+              {quickStatusOptions.map((key) => {
+                const cfg = getStatusLabel(key);
+                const clr = statusColorMap[key] || statusColorMap.brouillon;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleStatusSelect(key)}
+                    className={`text-xs font-medium px-2 py-0.5 rounded transition-all ${clr.bgClass} ${clr.color} ${
+                      estimation.statut === key ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {cfg.label}
+                  </button>
+                );
+              })}
+              <button 
+                onClick={() => setEditingStatus(false)}
+                className="p-1 text-muted-foreground hover:text-foreground"
               >
-                {isUpdating ? '...' : statusConfig.label}
+                <X className="h-3 w-3" />
               </button>
-            )}
-            {estimation.typeBien && (
-              <span className="text-xs text-muted-foreground capitalize">
-                {estimation.typeBien}
-              </span>
-            )}
-            {/* Priority badge */}
-            <PriorityBadge priority={priority} size="sm" />
-          </div>
-          <h3 className="font-semibold text-foreground truncate">{vendeur}</h3>
-          {(adresse || localite) && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
-              <MapPin className="h-3 w-3 shrink-0" />
-              {adresse}{adresse && localite ? ', ' : ''}{localite}
-            </p>
-          )}
-          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-            {date && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {date}
-              </span>
-            )}
-            {estimation.prixFinal && (
-              <span className="font-medium text-foreground">
-                {formatPriceCHF(estimation.prixFinal)}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {(estimation.statut === 'termine' || estimation.statut === 'mandat_signe') && (
-            <div onClick={e => e.stopPropagation()}>
-              <ExportPDFButton estimation={estimation} />
             </div>
+          ) : (
+            <button
+              onClick={handleStatusClick}
+              disabled={isUpdating}
+              className={`text-xs font-medium px-2 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${colorConfig.bgClass} ${colorConfig.color}`}
+            >
+              {isUpdating ? '...' : statusConfig.label}
+            </button>
           )}
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          {estimation.typeBien && (
+            <span className="text-xs text-muted-foreground capitalize">
+              {estimation.typeBien}
+            </span>
+          )}
+          {/* Priority badge */}
+          <PriorityBadge priority={priority} size="sm" />
         </div>
+        <h3 className="font-semibold text-foreground truncate">{vendeur}</h3>
+        {(adresse || localite) && (
+          <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
+            <MapPin className="h-3 w-3 shrink-0" />
+            {adresse}{adresse && localite ? ', ' : ''}{localite}
+          </p>
+        )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          {date && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {date}
+            </span>
+          )}
+          {estimation.prixFinal && (
+            <span className="font-medium text-foreground">
+              {formatPriceCHF(estimation.prixFinal)}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 shrink-0">
+        {(estimation.statut === 'termine' || estimation.statut === 'mandat_signe') && (
+          <div onClick={e => e.stopPropagation()}>
+            <ExportPDFButton estimation={estimation} />
+          </div>
+        )}
+        
+        {/* Delete button for brouillons */}
+        {isBrouillon && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                onClick={e => e.stopPropagation()}
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer ce brouillon ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible. Le brouillon "{vendeur}" sera définitivement supprimé.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        
+        {/* Archive button for non-brouillons (except already archived) */}
+        {!isBrouillon && !isArchived && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                onClick={e => e.stopPropagation()}
+                className="p-2 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                title="Archiver"
+              >
+                <Archive className="h-4 w-4" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Archiver cette estimation ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  L'estimation "{vendeur}" sera archivée. Vous pourrez toujours la consulter dans les archives.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onArchive}
+                  className="bg-amber-500 text-white hover:bg-amber-600"
+                >
+                  Archiver
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
       </div>
-    </button>
+    </div>
   );
 };
 
 const EstimationsList = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { fetchEstimations, createEstimation, updateEstimation, loading } = useEstimationPersistence();
+  const { fetchEstimations, createEstimation, updateEstimation, deleteEstimation, loading } = useEstimationPersistence();
   const [estimations, setEstimations] = useState<EstimationData[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
@@ -244,6 +328,17 @@ const EstimationsList = () => {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    const success = await deleteEstimation(id);
+    if (success) {
+      setEstimations(prev => prev.filter(e => e.id !== id));
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    await handleStatusChange(id, 'archive');
   };
 
   // Filtrage et tri
@@ -493,6 +588,8 @@ const EstimationsList = () => {
                     priority={priority}
                     onClick={() => navigate(`/estimation/${estimation.id}/overview`)}
                     onStatusChange={(status) => handleStatusChange(estimation.id, status)}
+                    onDelete={() => handleDelete(estimation.id)}
+                    onArchive={() => handleArchive(estimation.id)}
                     isUpdating={updatingId === estimation.id}
                   />
                 );
