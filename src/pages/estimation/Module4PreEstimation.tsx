@@ -25,6 +25,13 @@ import { ComparableImport } from '@/components/comparables/ComparableImport';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { getDistanceFromReference, formatDistance } from '@/lib/geoDistance';
 
+// Helper pour empêcher la soumission du formulaire sur Enter
+const preventEnterSubmit = (e: React.KeyboardEvent) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+  }
+};
+
 // ============================================
 // Composant Ligne Comparable
 // ============================================
@@ -119,6 +126,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
               type="number"
               value={data.prix}
               onChange={(e) => onUpdate({ ...data, prix: e.target.value })}
+              onKeyDown={preventEnterSubmit}
               placeholder="1350000"
               className="mt-1"
             />
@@ -129,6 +137,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
               type="number"
               value={data.surface}
               onChange={(e) => onUpdate({ ...data, surface: e.target.value })}
+              onKeyDown={preventEnterSubmit}
               placeholder="116"
               className="mt-1"
             />
@@ -146,6 +155,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
                 ...data, 
                 ...(isVendu ? { dateVente: e.target.value } : { dureeEnVente: e.target.value })
               })}
+              onKeyDown={preventEnterSubmit}
               placeholder={isVendu ? 'août 2024' : '45 jours'}
               className="mt-1"
             />
@@ -155,6 +165,7 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
             <Input
               value={data.commentaire}
               onChange={(e) => onUpdate({ ...data, commentaire: e.target.value })}
+              onKeyDown={preventEnterSubmit}
               placeholder={isVendu ? 'Vue dégagée' : 'Bien surévalué'}
               className="mt-1"
             />
@@ -531,6 +542,7 @@ export default function Module4PreEstimation() {
                     type="number"
                     value={preEst.prixM2}
                     onChange={(e) => updateField('prixM2', e.target.value)}
+                    onKeyDown={preventEnterSubmit}
                     placeholder="11900"
                     className="w-28 text-center"
                   />
@@ -596,6 +608,7 @@ export default function Module4PreEstimation() {
                       type="number"
                       value={preEst.prixPlaceInt}
                       onChange={(e) => updateField('prixPlaceInt', e.target.value)}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="30000"
                       className="w-28 text-center"
                     />
@@ -621,6 +634,7 @@ export default function Module4PreEstimation() {
                       type="number"
                       value={preEst.prixPlaceExt}
                       onChange={(e) => updateField('prixPlaceExt', e.target.value)}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="20000"
                       className="w-28 text-center"
                     />
@@ -646,6 +660,7 @@ export default function Module4PreEstimation() {
                       type="number"
                       value={preEst.prixBox}
                       onChange={(e) => updateField('prixBox', e.target.value)}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="40000"
                       className="w-28 text-center"
                     />
@@ -671,6 +686,7 @@ export default function Module4PreEstimation() {
                       type="number"
                       value={preEst.prixCave}
                       onChange={(e) => updateField('prixCave', e.target.value)}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="0"
                       className="w-28 text-center"
                     />
@@ -685,6 +701,7 @@ export default function Module4PreEstimation() {
                     <Input
                       value={ligne.libelle}
                       onChange={(e) => updateLigneSupp(index, { ...ligne, libelle: e.target.value })}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="Libellé"
                       className="flex-1"
                     />
@@ -693,6 +710,7 @@ export default function Module4PreEstimation() {
                       type="number"
                       value={ligne.prix}
                       onChange={(e) => updateLigneSupp(index, { ...ligne, prix: e.target.value })}
+                      onKeyDown={preventEnterSubmit}
                       placeholder="Prix"
                       className="w-28 text-center"
                     />
@@ -889,6 +907,7 @@ export default function Module4PreEstimation() {
                       <Input
                         value={annexe.libelle}
                         onChange={(e) => updateAnnexe(index, { ...annexe, libelle: e.target.value })}
+                        onKeyDown={preventEnterSubmit}
                         placeholder="Libellé"
                         className="flex-1"
                       />
@@ -897,6 +916,7 @@ export default function Module4PreEstimation() {
                         type="number"
                         value={annexe.prix}
                         onChange={(e) => updateAnnexe(index, { ...annexe, prix: e.target.value })}
+                        onKeyDown={preventEnterSubmit}
                         placeholder="Prix"
                         className="w-28 text-center"
                       />
