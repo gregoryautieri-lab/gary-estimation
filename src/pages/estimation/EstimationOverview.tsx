@@ -202,8 +202,8 @@ export default function EstimationOverview() {
           </Button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <TypeIcon className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-bold truncate">
+              <TypeIcon className="h-5 w-5 text-white" />
+              <h1 className="text-lg font-bold truncate text-white">
                 {typeBienLabel} {pieces && `${pieces}p`} 
                 {adresse?.localite && ` - ${adresse.localite}`}
               </h1>
