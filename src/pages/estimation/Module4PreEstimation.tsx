@@ -1290,7 +1290,7 @@ export default function Module4PreEstimation() {
               bienPrincipal={{
                 coordinates: estimation?.identification?.adresse?.coordinates || null,
                 adresse: estimation?.identification?.adresse?.rue 
-                  ? `${estimation.identification.adresse.rue}, ${estimation.identification.adresse.localite}`
+                  ? `${estimation.identification?.adresse?.rue || ''}, ${estimation.identification?.adresse?.localite || ''}`
                   : undefined,
                 prixEstime: calcul.prixMiseEnVente,
               }}

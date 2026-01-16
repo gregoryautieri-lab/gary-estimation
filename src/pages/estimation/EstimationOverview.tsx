@@ -232,8 +232,8 @@ export default function EstimationOverview() {
               <div className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="font-medium">{adresse.rue} {adresse.numero}</p>
-                  <p className="text-sm text-muted-foreground">{adresse.codePostal} {adresse.localite}</p>
+                  <p className="font-medium">{adresse?.rue || ''} {adresse?.numero || ''}</p>
+                  <p className="text-sm text-muted-foreground">{adresse?.codePostal || ''} {adresse?.localite || ''}</p>
                 </div>
               </div>
             )}

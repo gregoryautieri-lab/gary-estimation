@@ -191,23 +191,23 @@ export default function Module5Strategie() {
             nom: estimation.identification?.vendeur?.nom || 'Client',
             prenom: estimation.identification?.vendeur?.prenom || ''
           },
-          motifVente: estimation.identification?.contexte?.motifVente,
-          prioriteVendeur: estimation.identification?.contexte?.prioriteVendeur,
-          horizon: estimation.identification?.contexte?.horizon,
-          typeBien: estimation.caracteristiques?.typeBien || 'appartement',
-          pointsForts: estimation.analyseTerrain?.pointsForts || [],
-          pointsFaibles: estimation.analyseTerrain?.pointsFaibles || [],
-          prixEntre: estimation.preEstimation?.prixEntre,
-          prixEt: estimation.preEstimation?.prixEt,
+          motifVente: estimation?.identification?.contexte?.motifVente || '',
+          prioriteVendeur: estimation?.identification?.contexte?.prioriteVendeur || '',
+          horizon: estimation?.identification?.contexte?.horizon || '',
+          typeBien: estimation?.caracteristiques?.typeBien || 'appartement',
+          pointsForts: estimation?.analyseTerrain?.pointsForts || [],
+          pointsFaibles: estimation?.analyseTerrain?.pointsFaibles || [],
+          prixEntre: estimation?.preEstimation?.prixEntre || '',
+          prixEt: estimation?.preEstimation?.prixEt || '',
           capitalVisibilite: {
             label: logic.capitalVisibilite.label,
             pauseRecalibrage: logic.capitalVisibilite.pauseRecalibrage
           },
-          projetPostVente: estimation.identification?.projetPostVente ? {
-            nature: estimation.identification.projetPostVente.nature,
-            avancement: estimation.identification.projetPostVente.avancement,
-            niveauCoordination: estimation.identification.projetPostVente.niveauCoordination,
-            accepteDecalage: estimation.identification.projetPostVente.accepteDecalage
+          projetPostVente: estimation?.identification?.projetPostVente ? {
+            nature: estimation.identification?.projetPostVente?.nature || '',
+            avancement: estimation.identification?.projetPostVente?.avancement || '',
+            niveauCoordination: estimation.identification?.projetPostVente?.niveauCoordination || '',
+            accepteDecalage: estimation.identification?.projetPostVente?.accepteDecalage ?? false
           } : undefined,
           niveauContrainte: logic.niveauContrainte,
           dateDebutFormate: logic.dateDebutFormate,
@@ -468,10 +468,10 @@ export default function Module5Strategie() {
           <CapitalGaugeAdvanced 
             {...logic.capitalVisibilite} 
             historiqueDiffusion={estimation?.identification?.historique ? {
-              dejaDiffuse: estimation.identification.historique.dejaDiffuse,
-              duree: estimation.identification.historique.duree,
-              typeDiffusion: estimation.identification.historique.typeDiffusion,
-              dateRetrait: estimation.identification.historique.dateRetrait
+              dejaDiffuse: estimation.identification?.historique?.dejaDiffuse ?? false,
+              duree: estimation.identification?.historique?.duree || '',
+              typeDiffusion: estimation.identification?.historique?.typeDiffusion || '',
+              dateRetrait: estimation.identification?.historique?.dateRetrait || ''
             } : undefined}
           />
         </FormSection>
