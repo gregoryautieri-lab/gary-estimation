@@ -22,7 +22,8 @@ serve(async (req) => {
       );
     }
 
-    const { action, input, placeId, lat, lng } = await req.json();
+    const body = await req.json();
+    const { action, input, placeId, lat, lng, address } = body;
 
     if (action === "autocomplete") {
       // Google Places Autocomplete API
@@ -75,7 +76,7 @@ serve(async (req) => {
       // Parse address components
       const result = data.result;
       const components = result.address_components || [];
-      
+
       let rue = "";
       let numero = "";
       let codePostal = "";
@@ -108,7 +109,7 @@ serve(async (req) => {
           canton,
           coordinates: result.geometry?.location || null,
           placeId,
-          formattedAddress: result.formatted_address
+          formattedAddress: result.formatted_address,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -116,9 +117,8 @@ serve(async (req) => {
 
     if (action === "geocode") {
       // Geocoding API - convertir une adresse en coordonnées
-      const { address } = await req.json().catch(() => ({ address: input }));
-      const addressToGeocode = address || input;
-      
+      const addressToGeocode = (address ?? input) as string | undefined;
+
       if (!addressToGeocode) {
         return new Response(
           JSON.stringify({ success: false, error: "Address required" }),
@@ -145,14 +145,15 @@ serve(async (req) => {
 
       const location = data.results[0].geometry?.location;
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           location: { lat: location.lat, lng: location.lng },
-          formattedAddress: data.results[0].formatted_address
+          formattedAddress: data.results[0].formatted_address,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     if (action === "nearbyTransit") {
       // Recherche des transports à proximité (bus, tram, gare)
