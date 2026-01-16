@@ -82,25 +82,54 @@ export function CriteresAchatEditor({ value, onChange }: CriteresAchatEditorProp
     c.toLowerCase().includes(searchCommune.toLowerCase())
   );
   
-  // Format budget display
+  // Format budget display - sans arrondi
   const formatBudget = (val: number) => {
     if (!val) return '';
-    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+    if (val >= 1000000) {
+      // Afficher sans arrondi : 2900000 → "2.9M", 2850000 → "2.85M"
+      const millions = val / 1000000;
+      // Éviter les décimales inutiles : 2.00M → 2M, 2.50M → 2.5M
+      if (millions === Math.floor(millions)) {
+        return `${millions}M`;
+      }
+      // Garder jusqu'à 2 décimales sans arrondi
+      const rounded = Math.floor(millions * 100) / 100;
+      return `${rounded}M`;
+    }
+    if (val >= 1000) {
+      const thousands = val / 1000;
+      if (thousands === Math.floor(thousands)) {
+        return `${thousands}k`;
+      }
+      return `${Math.floor(thousands)}k`;
+    }
     return val.toString();
   };
   
   const parseBudget = (str: string): number => {
     if (!str) return 0;
-    const cleaned = str.replace(/[^0-9.kKmM]/g, '');
-    const lower = cleaned.toLowerCase();
+    const cleaned = str.replace(/[^0-9.,kKmM]/g, '');
+    // Remplacer virgule par point pour les décimales
+    const normalized = cleaned.replace(',', '.');
+    const lower = normalized.toLowerCase();
+    
     if (lower.includes('m')) {
-      return parseFloat(lower.replace('m', '')) * 1000000;
+      const num = parseFloat(lower.replace('m', ''));
+      return isNaN(num) ? 0 : Math.round(num * 1000000);
     }
     if (lower.includes('k')) {
-      return parseFloat(lower.replace('k', '')) * 1000;
+      const num = parseFloat(lower.replace('k', ''));
+      return isNaN(num) ? 0 : Math.round(num * 1000);
     }
-    return parseFloat(cleaned) || 0;
+    // Si c'est un nombre simple, vérifier si c'est en millions ou en CHF direct
+    const num = parseFloat(normalized);
+    if (isNaN(num)) return 0;
+    // Si le nombre est < 100, on suppose que c'est en millions (ex: 2.5 → 2500000)
+    // Sinon c'est le montant direct
+    if (num < 100) {
+      return Math.round(num * 1000000);
+    }
+    return Math.round(num);
   };
   
   const parseExpirationDate = (dateStr: string): Date | undefined => {
