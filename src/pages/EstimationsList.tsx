@@ -19,7 +19,9 @@ import {
   X,
   TrendingUp,
   Trash2,
-  Archive
+  Archive,
+  Presentation,
+  Download
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -102,10 +104,12 @@ interface EstimationCardProps {
   onStatusChange: (newStatus: string) => void;
   onDelete: () => void;
   onArchive: () => void;
+  onOpenPresentation: () => void;
+  onDownloadPDF: () => void;
   isUpdating: boolean;
 }
 
-const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelete, onArchive, isUpdating }: EstimationCardProps) => {
+const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelete, onArchive, onOpenPresentation, onDownloadPDF, isUpdating }: EstimationCardProps) => {
   const [editingStatus, setEditingStatus] = useState(false);
   const statusConfig = getStatusLabel(estimation.statut);
   const colorConfig = statusColorMap[estimation.statut] || statusColorMap.brouillon;
@@ -207,10 +211,26 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
-        {(estimation.statut === 'termine' || estimation.statut === 'mandat_signe') && (
-          <div onClick={e => e.stopPropagation()}>
-            <ExportPDFButton estimation={estimation} />
-          </div>
+        {/* Bouton Présentation - disponible dès qu'on a un prix */}
+        {estimation.prixFinal && (
+          <button
+            onClick={e => { e.stopPropagation(); onOpenPresentation(); }}
+            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            title="Ouvrir la présentation client"
+          >
+            <Presentation className="h-4 w-4" />
+          </button>
+        )}
+        
+        {/* Bouton PDF - disponible dès qu'on a un prix */}
+        {estimation.prixFinal && (
+          <button
+            onClick={e => { e.stopPropagation(); onDownloadPDF(); }}
+            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            title="Télécharger le PDF"
+          >
+            <Download className="h-4 w-4" />
+          </button>
         )}
         
         {/* Delete button for brouillons */}
@@ -590,6 +610,12 @@ const EstimationsList = () => {
                     onStatusChange={(status) => handleStatusChange(estimation.id, status)}
                     onDelete={() => handleDelete(estimation.id)}
                     onArchive={() => handleArchive(estimation.id)}
+                    onOpenPresentation={() => navigate(`/estimation/${estimation.id}/presentation`)}
+                    onDownloadPDF={() => {
+                      import('@/utils/pdfExport').then(({ generateEstimationPDF }) => {
+                        generateEstimationPDF({ estimation });
+                      });
+                    }}
                     isUpdating={updatingId === estimation.id}
                   />
                 );
