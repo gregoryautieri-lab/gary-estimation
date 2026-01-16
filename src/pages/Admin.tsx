@@ -48,6 +48,7 @@ import {
   Building2,
   RefreshCw,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -367,14 +368,24 @@ export default function Admin() {
           </Card>
         </div>
 
-        {/* Bouton Inviter */}
-        <Button 
-          onClick={() => setShowInviteDialog(true)}
-          className="w-full"
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Inviter un utilisateur
-        </Button>
+        {/* Boutons d'action */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            onClick={() => setShowInviteDialog(true)}
+            className="w-full"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Inviter
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin/analytics')}
+            className="w-full"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
+          </Button>
+        </div>
 
         {/* Users Management */}
         <Card className="border-0 shadow-sm">
