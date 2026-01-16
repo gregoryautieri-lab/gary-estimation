@@ -26,6 +26,80 @@ interface GeneratePDFOptions {
   config?: Partial<PDFConfig>;
 }
 
+// ============================================
+// CONTEXTE PDF PARTAGÉ
+// ============================================
+interface PDFContext {
+  doc: jsPDF;
+  estimation: EstimationData;
+  config: PDFConfig;
+  pageWidth: number;
+  pageHeight: number;
+  marginLeft: number;
+  marginRight: number;
+  contentWidth: number;
+}
+
+function createPDFContext(doc: jsPDF, estimation: EstimationData, config: PDFConfig): PDFContext {
+  return {
+    doc,
+    estimation,
+    config,
+    pageWidth: doc.internal.pageSize.getWidth(),
+    pageHeight: doc.internal.pageSize.getHeight(),
+    marginLeft: 20,
+    marginRight: 20,
+    contentWidth: doc.internal.pageSize.getWidth() - 40
+  };
+}
+
+function addFooter(doc: jsPDF, currentPage: number, totalPages: number, estimationId?: string) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const footerY = doc.internal.pageSize.getHeight() - 12;
+  
+  if (currentPage > 1) {
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(20, footerY - 3, pageWidth - 20, footerY - 3);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont("helvetica", "bold");
+    doc.text("GARY", 20, footerY + 1);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120, 120, 120);
+    doc.text("Courtiers Immobiliers", 32, footerY + 1);
+  }
+  
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`Page ${currentPage}/${totalPages}`, pageWidth / 2, footerY + 1, { align: "center" });
+  
+  if (currentPage > 1) {
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("On pilote, vous decidez.", pageWidth - 20, footerY + 1, { align: "right" });
+  }
+  
+  if (currentPage === totalPages) {
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "italic");
+    
+    const disclaimerText = "Estimation non contractuelle etablie selon les donnees fournies et l'etat apparent du bien. Validite : 3 mois. Document confidentiel.";
+    doc.text(disclaimerText, pageWidth / 2, footerY + 5, { align: "center" });
+  }
+}
+
+function addFootersToAllPages(doc: jsPDF, estimationId?: string) {
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    addFooter(doc, i, pageCount, estimationId);
+  }
+}
+
 const defaultConfig: PDFConfig = {
   inclurePhotos: true,
   inclureCarte: false,
@@ -206,34 +280,13 @@ function selectionnerMeilleuresPhotos(photos: Photo[], max: number): Photo[] {
   return selected;
 }
 
-// Génère le PDF de l'estimation
-export async function generateEstimationPDF({
-  estimation,
-  config = {},
-}: GeneratePDFOptions): Promise<jsPDF> {
-  const finalConfig = { ...defaultConfig, ...config };
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
-
+// ============================================
+// RENDER : COVER PAGE (Style Founex)
+// ============================================
+async function renderCoverPage(ctx: PDFContext): Promise<void> {
+  const { doc, estimation, pageWidth, pageHeight, marginLeft } = ctx;
+  const centerX = pageWidth / 2;
   let yPos = 0;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginLeft = 20;
-  const marginRight = 20;
-  const contentWidth = pageWidth - marginLeft - marginRight;
-
-  // Prix calculés une seule fois
-  const prixMin = estimation.prixMin || parseFloat(estimation.preEstimation?.prixEntre || "0") || 0;
-  const prixMax = estimation.prixMax || parseFloat(estimation.preEstimation?.prixEt || "0") || 0;
-  const prixText = `${formatPrix(prixMin)} - ${formatPrix(prixMax)}`;
-  const adresse = estimation.identification?.adresse;
-
-  // ========================================
-  // PAGE 1 : COUVERTURE PREMIUM (Style Founex)
-  // ========================================
 
   // Photo de fond pleine page avec overlay gradient
   const photosRaw = estimation.photos;
@@ -245,116 +298,70 @@ export async function generateEstimationPDF({
   
   if (coverPhotoUrl) {
     try {
-      // Ajouter l'image en fond (pleine page)
       doc.addImage(coverPhotoUrl, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      
-      // Overlay sombre semi-transparent (simulé avec rectangles colorés)
-      // On ne peut pas utiliser setGState, donc on utilise des couleurs sombres
       doc.setFillColor(20, 30, 35);
-      doc.rect(0, 0, pageWidth, 60, "F"); // Bande haute pour titre
-      doc.rect(0, pageHeight - 80, pageWidth, 80, "F"); // Bande basse pour infos
+      doc.rect(0, 0, pageWidth, 60, "F");
+      doc.rect(0, pageHeight - 80, pageWidth, 80, "F");
     } catch (e) {
-      // Fallback : fond sombre si erreur d'image
       doc.setFillColor(26, 46, 53);
       doc.rect(0, 0, pageWidth, pageHeight, "F");
     }
   } else {
-    // Pas de photo : fond sombre classique
     doc.setFillColor(26, 46, 53);
     doc.rect(0, 0, pageWidth, pageHeight, "F");
   }
 
   // === HEADER : Titre en 2 lignes (style Founex) ===
-  // Ligne 1 : "Votre stratégie de vente" - taille moyenne, en haut à gauche
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont("helvetica", "normal");
   safeText(doc, "Votre strategie de vente", marginLeft, 25);
   
-  // Ligne 2 : "sur mesure" - ÉNORME et BOLD
   doc.setFontSize(42);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
   safeText(doc, "sur mesure", marginLeft, 42);
   
-  // === STATS GARY (coin supérieur droit, verticales) ===
-  const statsRightX = pageWidth - marginRight;
+  // === STATS GARY (seulement 2 stats) ===
+  const statsRightX = pageWidth - ctx.marginRight;
   const statsTopY = 18;
   const statLineHeight = 14;
   
-  // Stats principales en colonne verticale à droite
   const mainStats = [
     { value: GARY_STATS.vues2025, label: "VUES EN 2025" },
-    { value: GARY_STATS.communaute, label: "COMMUNAUTE" },
-    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS) GOOGLE` },
-    { value: `${GARY_STATS.delaiMoyenMois}`, label: "MOIS EN MOYENNE" }
+    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS) GOOGLE` }
   ];
   
   mainStats.forEach((stat, idx) => {
     const yLine = statsTopY + (idx * statLineHeight);
     
-    // Valeur en gros à droite
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     safeText(doc, stat.value, statsRightX, yLine, { align: "right" });
     
-    // Label en petit à gauche de la valeur
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(180, 180, 180);
     safeText(doc, stat.label, statsRightX - 25, yLine, { align: "right" });
   });
-  
-  // === RÉSEAUX SOCIAUX (sous les stats, avec icônes simulées) ===
-  const socialY = statsTopY + (mainStats.length * statLineHeight) + 8;
-  const socialStats = [
-    { value: "33K", icon: "IG", color: [225, 48, 108] },   // Instagram
-    { value: "3.4K", icon: "in", color: [0, 119, 181] },   // LinkedIn
-    { value: "4.6K", icon: "TT", color: [0, 0, 0] }        // TikTok
-  ];
-  
-  const socialSpacing = 22;
-  socialStats.forEach((stat, idx) => {
-    const xPos = statsRightX - (socialStats.length - 1 - idx) * socialSpacing;
-    
-    // Petit cercle coloré (icône simulée)
-    doc.setFillColor(stat.color[0], stat.color[1], stat.color[2]);
-    doc.circle(xPos - 8, socialY - 2, 3, "F");
-    
-    // Initiales de l'icône
-    doc.setFontSize(5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    safeText(doc, stat.icon, xPos - 8, socialY - 1, { align: "center" });
-    
-    // Valeur
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    safeText(doc, stat.value, xPos, socialY, { align: "center" });
-  });
 
-  // === BADGE TYPE DE BIEN (centré sur la page) ===
-  const centerX = pageWidth / 2;
-  yPos = 100; // Position verticale au centre-haut
+  // === BADGE TYPE DE BIEN (centré) ===
+  yPos = 100;
   
   const caracCover = estimation.caracteristiques;
   const typeBienCover = caracCover?.typeBien || estimation.typeBien || "bien";
   const sousTypeCover = caracCover?.sousType || "";
   
-  // Construire le label avec letter-spacing et nettoyer les underscores
   const typeClean = typeBienCover.toUpperCase().replace(/_/g, " ");
   const sousTypeClean = sousTypeCover.toUpperCase().replace(/_/g, " ");
   
-  // Ajouter des espaces entre les lettres pour le style FOUNEX
   const addLetterSpacing = (text: string) => text.split("").join(" ");
   let badgeLabel = addLetterSpacing(typeClean);
   if (sousTypeClean) {
     badgeLabel += "  •  " + addLetterSpacing(sousTypeClean);
   }
   
-  // Badge centré avec fond semi-transparent
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   const badgeTextWidth = doc.getTextWidth(badgeLabel) * 0.35;
@@ -367,6 +374,7 @@ export async function generateEstimationPDF({
   safeText(doc, badgeLabel, centerX, yPos + 7, { align: "center" });
 
   // === ADRESSE DU BIEN (centrée, grande) ===
+  const adresse = estimation.identification?.adresse;
   yPos += 22;
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
@@ -397,30 +405,26 @@ export async function generateEstimationPDF({
     { value: `${surfaceHabCover}`, unit: "m²", label: "SURFACE" },
     { value: `${nbChambresCover}`, unit: "", label: "CHAMBRES" },
     { value: `${nbSdbCover}`, unit: "", label: "SDB" },
-    { value: `${surfaceExtCover}`, unit: "m²", label: "EXTÉRIEUR" }
+    { value: `${surfaceExtCover}`, unit: "m²", label: "EXTERIEUR" }
   ];
   
-  // Fond du tableau
   doc.setFillColor(30, 50, 60);
   doc.roundedRect(tableLeft, yPos, tableWidth, 30, 4, 4, "F");
   
   tableData.forEach((col, idx) => {
     const xPos = tableLeft + (idx * colWidthCover) + colWidthCover / 2;
     
-    // Valeur principale
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     const valueText = col.unit ? `${col.value} ${col.unit}` : col.value;
     safeText(doc, valueText, xPos, yPos + 13, { align: "center" });
     
-    // Label
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 150, 150);
     safeText(doc, col.label, xPos, yPos + 23, { align: "center" });
     
-    // Séparateur vertical (sauf dernier)
     if (idx < tableData.length - 1) {
       doc.setDrawColor(60, 80, 90);
       doc.setLineWidth(0.3);
@@ -428,7 +432,7 @@ export async function generateEstimationPDF({
     }
   });
 
-  // === POINTS FORTS (liste verticale avec puces rouges, style Founex) ===
+  // === POINTS FORTS (liste verticale avec puces rouges) ===
   yPos += 45;
   
   const pointsFortsCover = estimation.analyseTerrain?.pointsForts || [];
@@ -437,7 +441,6 @@ export async function generateEstimationPDF({
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     
-    // Afficher max 4 points forts en colonne centrée
     const displayPoints = pointsFortsCover.slice(0, 4);
     const lineHeight = 10;
     const listStartY = yPos;
@@ -445,23 +448,58 @@ export async function generateEstimationPDF({
     displayPoints.forEach((point, idx) => {
       const pointY = listStartY + (idx * lineHeight);
       
-      // Puce rouge carrée
       doc.setFillColor(250, 66, 56);
       doc.rect(centerX - 60, pointY - 3, 4, 4, "F");
       
-      // Texte du point fort
       doc.setTextColor(255, 255, 255);
       safeText(doc, point, centerX - 52, pointY);
     });
   }
+  
+  // Footer cover géré par addFootersToAllPages
+}
 
-  // === FOOTER COVER : Discret, juste page number ===
-  // Pas de prix sur la cover (style Founex)
-  const footerCoverY = pageHeight - 15;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(150, 150, 150);
-  safeText(doc, "Page 1/" + "X", centerX, footerCoverY, { align: "center" });
+// ============================================
+// FONCTION PRINCIPALE : Génère le PDF
+// ============================================
+export async function generateEstimationPDF({
+  estimation,
+  config = {},
+}: GeneratePDFOptions): Promise<jsPDF> {
+  const finalConfig = { ...defaultConfig, ...config };
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  // Créer contexte partagé
+  const ctx = createPDFContext(doc, estimation, finalConfig);
+  
+  // Variables locales pour compatibilité avec code existant
+  let yPos = 0;
+  const pageWidth = ctx.pageWidth;
+  const pageHeight = ctx.pageHeight;
+  const marginLeft = ctx.marginLeft;
+  const marginRight = ctx.marginRight;
+  const contentWidth = ctx.contentWidth;
+
+  // Prix calculés une seule fois
+  const prixMin = estimation.prixMin || parseFloat(estimation.preEstimation?.prixEntre || "0") || 0;
+  const prixMax = estimation.prixMax || parseFloat(estimation.preEstimation?.prixEt || "0") || 0;
+  const prixText = `${formatPrix(prixMin)} - ${formatPrix(prixMax)}`;
+  const adresse = estimation.identification?.adresse;
+
+  // ========================================
+  // PAGE 1 : COUVERTURE PREMIUM (modulaire)
+  // ========================================
+  await renderCoverPage(ctx);
+
+  // ========================================
+  // PAGE 2 : QUI EST GARY (Philosophie)
+  // ========================================
+  doc.addPage();
+  yPos = 25;
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
   // ========================================
