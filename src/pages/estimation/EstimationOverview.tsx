@@ -140,17 +140,17 @@ export default function EstimationOverview() {
     }
   };
   
-  // Statut badge
+  // Statut badge - adapté pour fond sombre du header
   const getStatutBadge = () => {
     const statut = estimation?.statut || 'brouillon';
-    const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-      brouillon: { label: 'Brouillon', variant: 'outline' },
-      en_cours: { label: 'En cours', variant: 'default' },
-      termine: { label: 'Terminé', variant: 'secondary' },
-      archive: { label: 'Archivé', variant: 'destructive' }
+    const config: Record<string, { label: string; className: string }> = {
+      brouillon: { label: 'Brouillon', className: 'bg-white/20 text-white border-white/30' },
+      en_cours: { label: 'En cours', className: 'bg-primary text-white' },
+      termine: { label: 'Terminé', className: 'bg-green-500 text-white' },
+      archive: { label: 'Archivé', className: 'bg-gray-500 text-white' }
     };
-    const { label, variant } = config[statut] || config.brouillon;
-    return <Badge variant={variant}>{label}</Badge>;
+    const { label, className } = config[statut] || config.brouillon;
+    return <Badge className={className}>{label}</Badge>;
   };
   
   // Alert icon
