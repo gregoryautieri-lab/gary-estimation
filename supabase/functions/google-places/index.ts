@@ -114,6 +114,46 @@ serve(async (req) => {
       );
     }
 
+    if (action === "geocode") {
+      // Geocoding API - convertir une adresse en coordonnées
+      const { address } = await req.json().catch(() => ({ address: input }));
+      const addressToGeocode = address || input;
+      
+      if (!addressToGeocode) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Address required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+      url.searchParams.set("address", addressToGeocode);
+      url.searchParams.set("key", GOOGLE_PLACES_API_KEY);
+      url.searchParams.set("region", "ch");
+      url.searchParams.set("language", "fr");
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (data.status !== "OK" || !data.results?.[0]) {
+        console.error("Google Geocoding API error:", data);
+        return new Response(
+          JSON.stringify({ success: false, error: `Geocoding failed: ${data.status}` }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const location = data.results[0].geometry?.location;
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          location: { lat: location.lat, lng: location.lng },
+          formattedAddress: data.results[0].formatted_address
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "nearbyTransit") {
       // Recherche des transports à proximité (bus, tram, gare)
       // lat/lng sont déjà parsés au début de la fonction
@@ -292,7 +332,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid action. Use 'autocomplete', 'details' or 'nearbyTransit'" }),
+      JSON.stringify({ error: "Invalid action. Use 'autocomplete', 'details', 'geocode' or 'nearbyTransit'" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
