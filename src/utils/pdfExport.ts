@@ -1153,137 +1153,6 @@ export async function generateEstimationPDF({
     yPos += lines.length * 5;
   }
 
-  // ========== Photos sélectionnées avec style ==========
-  const allPhotos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
-  const photosSelectionnees = selectionnerMeilleuresPhotos(allPhotos, 8);
-  
-  if (finalConfig.inclurePhotos && photosSelectionnees.length > 0) {
-    doc.addPage();
-    yPos = 20;
-
-    yPos = addSectionHeader(doc, `Selection Photos (${photosSelectionnees.length}/${allPhotos.length})`, yPos, marginLeft);
-
-    // Grouper les photos sélectionnées par catégorie
-    const groupedPhotos = groupPhotosByCategory(photosSelectionnees);
-    
-    for (const group of groupedPhotos) {
-      if (yPos > 220) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      const catConfig = getCategorieConfig(group.category);
-      
-      // Header de catégorie (sans emoji pour compatibilité PDF)
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(GARY_DARK);
-      doc.text(catConfig.label, marginLeft, yPos);
-      yPos += 8;
-
-      // Dimensions photo constantes
-      const imgWidth = (contentWidth / 2) - 5;
-      const imgHeight = 50;
-
-      // Afficher photos (2 par ligne)
-      let col = 0;
-      for (const photo of group.photos) {
-        if (col === 0 && yPos > 200) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        const xPos = col === 0 ? marginLeft : marginLeft + contentWidth / 2 + 5;
-
-        // Cadre photo avec fond gris clair
-        doc.setFillColor(245, 245, 245);
-        doc.setDrawColor(200, 200, 200);
-        doc.roundedRect(xPos, yPos, imgWidth, imgHeight, 2, 2, "FD");
-
-        // Essayer d'afficher l'image si URL disponible
-        const imageUrl = photo.storageUrl || photo.dataUrl;
-        if (imageUrl) {
-          try {
-            const base64 = await loadImageAsBase64(imageUrl);
-            if (base64) {
-              doc.addImage(base64, 'JPEG', xPos + 2, yPos + 2, imgWidth - 4, imgHeight - 4);
-            } else {
-              // Placeholder si chargement échoue
-              doc.setFontSize(8);
-              doc.setTextColor(150, 150, 150);
-              doc.text("Image", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
-            }
-          } catch {
-            // Placeholder si erreur
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text("Image", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
-          }
-        } else {
-          // Placeholder si pas d'URL
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text("Photo", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
-        }
-
-        // Badges en haut
-        if (photo.favori) {
-          doc.setFillColor(255, 215, 0);
-          doc.circle(xPos + imgWidth - 6, yPos + 6, 4, 'F');
-        }
-        if (photo.defaut) {
-          doc.setFillColor(239, 68, 68);
-          doc.circle(xPos + 6, yPos + 6, 4, 'F');
-        }
-
-        // Titre sous la photo
-        doc.setFontSize(9);
-        doc.setTextColor(GARY_DARK);
-        doc.setFont("helvetica", "bold");
-        const titre = photo.titre || `Photo ${group.photos.indexOf(photo) + 1}`;
-        const titreLines = doc.splitTextToSize(titre, imgWidth - 4);
-        doc.text(titreLines[0] || titre, xPos + 2, yPos + imgHeight + 5);
-
-        col = col === 0 ? 1 : 0;
-        if (col === 0) {
-          yPos += imgHeight + 12;
-        }
-      }
-
-      if (col === 1) {
-        yPos += imgHeight + 12;
-      }
-      yPos += 5;
-    }
-
-    // Résumé des défauts si présents
-    const defauts = allPhotos.filter(p => p.defaut);
-    if (defauts.length > 0) {
-      if (yPos > 230) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      doc.setFillColor(254, 226, 226);
-      doc.roundedRect(marginLeft, yPos, contentWidth, 8 + defauts.length * 6, 2, 2, "F");
-      
-      yPos += 6;
-      doc.setTextColor(185, 28, 28);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("Points d'attention relevés", marginLeft + 5, yPos);
-      yPos += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      defauts.forEach((photo) => {
-        doc.text(`• ${photo.titre || 'Défaut à signaler'}`, marginLeft + 8, yPos);
-        yPos += 5;
-      });
-      yPos += 5;
-    }
-  }
-
   // ========== Prochaines étapes avec style ==========
   doc.addPage();
   yPos = 25;
@@ -1473,6 +1342,225 @@ export async function generateEstimationPDF({
 
   const messageContactLines = doc.splitTextToSize(messageContact, contentWidth);
   doc.text(messageContactLines, marginLeft, yPos);
+
+  // ════════════════════════════════════════════════════════════
+  // ANNEXE PHOTOGRAPHIQUE (À LA FIN DU DOCUMENT - MAX 50 PHOTOS)
+  // ════════════════════════════════════════════════════════════
+  const allPhotos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
+  
+  if (finalConfig.inclurePhotos && allPhotos.length > 0) {
+    // Page de séparation ANNEXE PHOTOGRAPHIQUE
+    doc.addPage();
+    yPos = 80;
+    
+    // Titre "ANNEXE PHOTOGRAPHIQUE" centré
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(26, 46, 53); // GARY_DARK
+    doc.text("ANNEXE", pageWidth / 2, yPos, { align: "center" });
+    yPos += 16;
+    doc.text("PHOTOGRAPHIQUE", pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 25;
+    
+    // Ligne décorative rouge
+    doc.setDrawColor(250, 66, 56); // GARY_RED
+    doc.setLineWidth(3);
+    const lineWidth = 80;
+    doc.line(
+      pageWidth / 2 - lineWidth / 2,
+      yPos,
+      pageWidth / 2 + lineWidth / 2,
+      yPos
+    );
+    
+    yPos += 20;
+    
+    // Nombre total de photos
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    const photosCount = allPhotos.length;
+    const displayCount = Math.min(photosCount, 50);
+    doc.text(
+      `${displayCount} photo${displayCount > 1 ? 's' : ''} du bien`,
+      pageWidth / 2,
+      yPos,
+      { align: "center" }
+    );
+    
+    // Message si plus de 50 photos
+    if (photosCount > 50) {
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(239, 68, 68);
+      doc.text(
+        `(${photosCount} photos disponibles, affichage limité à 50 pour le PDF)`,
+        pageWidth / 2,
+        yPos,
+        { align: "center" }
+      );
+    }
+    
+    // Nouvelle page pour commencer les photos
+    doc.addPage();
+    yPos = 20;
+    
+    // Limiter à 50 photos maximum
+    const photosToDisplay = allPhotos.slice(0, 50);
+    
+    // Grouper par catégorie
+    const groupedPhotos = groupPhotosByCategory(photosToDisplay);
+    
+    // Dimensions constantes
+    const imgWidth = (contentWidth / 2) - 5;
+    const imgHeight = 60;
+    
+    // Compteur photos par page (max 4)
+    let photosOnCurrentPage = 0;
+    
+    for (const group of groupedPhotos) {
+      // Header catégorie (si nécessaire nouvelle page)
+      if (yPos > 220 || photosOnCurrentPage >= 4) {
+        doc.addPage();
+        yPos = 20;
+        photosOnCurrentPage = 0;
+      }
+      
+      // Titre catégorie (SANS EMOJI)
+      const catConfig = getCategorieConfig(group.category);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(26, 46, 53);
+      doc.text(catConfig.label, marginLeft, yPos);
+      yPos += 10;
+      
+      // Afficher photos de la catégorie
+      let col = 0;
+      
+      for (const photo of group.photos) {
+        // Nouvelle page si 4 photos déjà affichées
+        if (photosOnCurrentPage >= 4) {
+          doc.addPage();
+          yPos = 20;
+          photosOnCurrentPage = 0;
+          col = 0;
+        }
+        
+        const xPos = col === 0 ? marginLeft : marginLeft + contentWidth / 2 + 5;
+        
+        // Cadre photo avec fond gris clair
+        doc.setFillColor(245, 245, 245);
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(xPos, yPos, imgWidth, imgHeight, 3, 3, "FD");
+        
+        // Charger et afficher image
+        const imageUrl = photo.storageUrl || photo.dataUrl;
+        if (imageUrl) {
+          try {
+            const base64 = await loadImageAsBase64(imageUrl);
+            if (base64) {
+              doc.addImage(base64, 'JPEG', xPos + 2, yPos + 2, imgWidth - 4, imgHeight - 4);
+            } else {
+              // Placeholder si échec chargement
+              doc.setFontSize(9);
+              doc.setTextColor(150, 150, 150);
+              doc.text("Image non disponible", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+            }
+          } catch {
+            // Placeholder erreur
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Erreur chargement", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+          }
+        } else {
+          // Placeholder pas d'URL
+          doc.setFontSize(9);
+          doc.setTextColor(150, 150, 150);
+          doc.text("Photo", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+        }
+        
+        // Badges (cercles colorés)
+        if (photo.favori) {
+          doc.setFillColor(255, 215, 0); // Or
+          doc.circle(xPos + imgWidth - 8, yPos + 8, 5, 'F');
+          // Étoile
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "bold");
+          doc.text("*", xPos + imgWidth - 8, yPos + 10, { align: "center" });
+        }
+        if (photo.defaut) {
+          doc.setFillColor(239, 68, 68); // Rouge
+          doc.circle(xPos + 8, yPos + 8, 5, 'F');
+          // Point d'exclamation
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "bold");
+          doc.text("!", xPos + 8, yPos + 10, { align: "center" });
+        }
+        
+        // Titre photo (sous l'image)
+        doc.setFontSize(9);
+        doc.setTextColor(26, 46, 53);
+        doc.setFont("helvetica", "normal");
+        const titre = photo.titre || `Photo ${photosToDisplay.indexOf(photo) + 1}`;
+        const titreShort = titre.length > 35 ? titre.substring(0, 32) + '...' : titre;
+        doc.text(titreShort, xPos + 2, yPos + imgHeight + 6);
+        
+        // Passer à la colonne suivante ou nouvelle ligne
+        col = col === 0 ? 1 : 0;
+        photosOnCurrentPage++;
+        
+        if (col === 0) {
+          // On a rempli une ligne complète (2 photos)
+          yPos += imgHeight + 18;
+        }
+      }
+      
+      // Si on termine sur col=1, passer à la ligne
+      if (col === 1) {
+        yPos += imgHeight + 18;
+        col = 0;
+      }
+      
+      // Espacement entre catégories
+      yPos += 8;
+    }
+    
+    // Note finale si photos défauts présentes
+    const photosDefauts = photosToDisplay.filter(p => p.defaut);
+    if (photosDefauts.length > 0) {
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      yPos += 10;
+      
+      // Encadré rouge clair
+      const boxHeight = 16 + (photosDefauts.length * 6);
+      doc.setFillColor(254, 226, 226);
+      doc.roundedRect(marginLeft, yPos, contentWidth, boxHeight, 3, 3, "F");
+      
+      yPos += 10;
+      doc.setTextColor(185, 28, 28);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Points d'attention identifiés", marginLeft + 8, yPos);
+      yPos += 8;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      photosDefauts.forEach((photo) => {
+        const titre = photo.titre || "Point à noter";
+        doc.text(`• ${titre}`, marginLeft + 12, yPos);
+        yPos += 6;
+      });
+    }
+  }
 
   // ========== Pied de page enrichi ==========
   const pageCount = doc.getNumberOfPages();
