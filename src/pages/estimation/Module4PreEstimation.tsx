@@ -24,6 +24,8 @@ import { ComparablesMap } from '@/components/comparables/ComparablesMap';
 import { ComparableImport } from '@/components/comparables/ComparableImport';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { getDistanceFromReference, formatDistance } from '@/lib/geoDistance';
+import { RentabiliteCard } from '@/components/estimation/RentabiliteCard';
+import { calculateRentabilite } from '@/lib/rentabiliteCalculs';
 
 // Helper pour empêcher la soumission du formulaire sur Enter
 const preventEnterSubmit = (e: React.KeyboardEvent) => {
@@ -451,6 +453,25 @@ export default function Module4PreEstimation() {
   // Calculs détaillés pour affichage
   const deductionTravauxAppart = calcul.valeurSurfaceBrute - calcul.valeurSurface;
   const deductionTravauxMaison = calcul.cubage * (parseFloat(preEst.prixM3 || '0') - calcul.prixM3Ajuste);
+
+  // Calcul de rentabilité pour investisseurs
+  const identification = estimation?.identification;
+  const rentabilite = calculateRentabilite({
+    prixAchat: calcul.totalVenaleArrondi || parseFloat(preEst.prixRecommande || '0'),
+    loyerMensuel: parseFloat(preEst.loyerMensuel || '0'),
+    valeurLocative: parseFloat(preEst.valeurLocativeEstimee || '0'),
+    tauxCharges: preEst.tauxChargesLocatives || 15,
+    // Données financement depuis Module1
+    apportPersonnel: identification?.financier?.prixAchat 
+      ? parseFloat(identification.financier.prixAchat) * 0.25 
+      : undefined,
+    tauxHypotheque: identification?.financier?.tauxHypotheque 
+      ? parseFloat(identification.financier.tauxHypotheque) 
+      : undefined,
+    montantHypotheque: identification?.financier?.montantHypotheque 
+      ? parseFloat(identification.financier.montantHypotheque) 
+      : undefined
+  });
 
   if (loading) {
     return (
@@ -1104,6 +1125,13 @@ export default function Module4PreEstimation() {
             </div>
           </div>
         </FormSection>
+        )}
+
+        {/* ============================================ */}
+        {/* ANALYSE DE RENTABILITÉ (INVESTISSEURS) */}
+        {/* ============================================ */}
+        {(isAppartement || isMaison) && (
+          <RentabiliteCard result={rentabilite} />
         )}
 
         {/* ============================================ */}
