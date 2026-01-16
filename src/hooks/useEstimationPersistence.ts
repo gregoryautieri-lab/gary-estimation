@@ -353,7 +353,11 @@ export function useEstimationPersistence() {
       return null;
     }
 
-    setLoading(true);
+    // IMPORTANT UX: ne pas basculer l'app en mode "loading" pendant un autosave silencieux,
+    // sinon les pages qui affichent un skeleton sur `loading` remontent en haut.
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -378,7 +382,9 @@ export function useEstimationPersistence() {
       toast.error('Erreur lors de la sauvegarde');
       return null;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [getCurrentUser]);
 
