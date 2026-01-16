@@ -1226,6 +1226,9 @@ export default function Module4PreEstimation() {
                   type="vendu"
                   estimationId={id}
                   currentType={estimation?.caracteristiques?.typeBien as any}
+                  currentZone={estimation?.localite || estimation?.identification?.adresse?.localite}
+                  currentPrix={estimation?.prixFinal || undefined}
+                  currentCoordinates={estimation?.identification?.adresse?.coordinates}
                   onImport={(comp) => {
                     updateField('comparablesVendus', [...preEst.comparablesVendus, comp]);
                     toast.success('Comparable vendu importé');
@@ -1264,6 +1267,9 @@ export default function Module4PreEstimation() {
                   type="enVente"
                   estimationId={id}
                   currentType={estimation?.caracteristiques?.typeBien as any}
+                  currentZone={estimation?.localite || estimation?.identification?.adresse?.localite}
+                  currentPrix={estimation?.prixFinal || undefined}
+                  currentCoordinates={estimation?.identification?.adresse?.coordinates}
                   onImport={(comp) => {
                     updateField('comparablesEnVente', [...preEst.comparablesEnVente, comp]);
                     toast.success('Comparable en vente importé');
