@@ -335,42 +335,53 @@ export async function generateEstimationPDF({
     safeText(doc, stat.value, xPos, socialY, { align: "center" });
   });
 
-  // === BADGE TYPE DE BIEN ===
-  yPos = 55;
+  // === BADGE TYPE DE BIEN (centré sur la page) ===
+  const centerX = pageWidth / 2;
+  yPos = 100; // Position verticale au centre-haut
+  
   const caracCover = estimation.caracteristiques;
   const typeBienCover = caracCover?.typeBien || estimation.typeBien || "bien";
   const sousTypeCover = caracCover?.sousType || "";
   
-  // Construire le label du badge
-  let badgeLabel = typeBienCover.toUpperCase();
-  if (sousTypeCover) {
-    badgeLabel += ` • ${sousTypeCover.toUpperCase()}`;
+  // Construire le label avec letter-spacing et nettoyer les underscores
+  const typeClean = typeBienCover.toUpperCase().replace(/_/g, " ");
+  const sousTypeClean = sousTypeCover.toUpperCase().replace(/_/g, " ");
+  
+  // Ajouter des espaces entre les lettres pour le style FOUNEX
+  const addLetterSpacing = (text: string) => text.split("").join(" ");
+  let badgeLabel = addLetterSpacing(typeClean);
+  if (sousTypeClean) {
+    badgeLabel += "  •  " + addLetterSpacing(sousTypeClean);
   }
   
-  // Dessiner le badge
-  doc.setFillColor(50, 70, 80);
-  const badgeWidth = doc.getTextWidth(badgeLabel) * 0.35 + 12;
-  doc.roundedRect(marginLeft, yPos, badgeWidth, 8, 2, 2, "F");
-  doc.setFontSize(8);
+  // Badge centré avec fond semi-transparent
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  safeText(doc, badgeLabel, marginLeft + 6, yPos + 5.5);
-
-  // === ADRESSE DU BIEN ===
-  yPos += 18;
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  safeText(doc, adresse?.rue || "", marginLeft, yPos);
-  yPos += 10;
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "normal");
-  safeText(doc, `${adresse?.codePostal || ""} ${adresse?.localite || ""}`, marginLeft, yPos);
-
-  // === TABLEAU RÉSUMÉ DU BIEN ===
-  yPos += 20;
+  const badgeTextWidth = doc.getTextWidth(badgeLabel) * 0.35;
+  const badgePadding = 12;
+  const badgeWidth = badgeTextWidth + badgePadding * 2;
   
-  // Calculer les valeurs du résumé (structure plate)
+  doc.setFillColor(40, 60, 70);
+  doc.roundedRect(centerX - badgeWidth / 2, yPos, badgeWidth, 10, 3, 3, "F");
+  doc.setTextColor(255, 255, 255);
+  safeText(doc, badgeLabel, centerX, yPos + 7, { align: "center" });
+
+  // === ADRESSE DU BIEN (centrée, grande) ===
+  yPos += 22;
+  doc.setFontSize(28);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  safeText(doc, adresse?.rue || "", centerX, yPos, { align: "center" });
+  
+  yPos += 12;
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(200, 200, 200);
+  safeText(doc, `${adresse?.codePostal || ""} ${adresse?.localite || ""}`, centerX, yPos, { align: "center" });
+
+  // === TABLEAU RÉSUMÉ DU BIEN (centré) ===
+  yPos += 25;
+  
   const surfaceHabCover = parseFloat(caracCover?.surfaceHabitableMaison || caracCover?.surfacePPE || "0") || 0;
   const nbChambresCover = parseInt(caracCover?.nombreChambres || "0") || 0;
   const nbSdbCover = parseInt(caracCover?.nombreSDB || "0") || 0;
@@ -378,115 +389,79 @@ export async function generateEstimationPDF({
                           (parseFloat(caracCover?.surfaceTerrasse || "0") || 0) + 
                           (parseFloat(caracCover?.surfaceJardin || "0") || 0);
   
-  // Tableau avec 4 colonnes
-  const colWidthCover = contentWidth / 4;
+  const tableWidth = 160;
+  const tableLeft = centerX - tableWidth / 2;
+  const colWidthCover = tableWidth / 4;
+  
   const tableData = [
     { value: `${surfaceHabCover}`, unit: "m²", label: "SURFACE" },
     { value: `${nbChambresCover}`, unit: "", label: "CHAMBRES" },
     { value: `${nbSdbCover}`, unit: "", label: "SDB" },
-    { value: `${surfaceExtCover}`, unit: "m²", label: "EXTERIEUR" }
+    { value: `${surfaceExtCover}`, unit: "m²", label: "EXTÉRIEUR" }
   ];
   
   // Fond du tableau
-  doc.setFillColor(35, 55, 65);
-  doc.roundedRect(marginLeft, yPos, contentWidth, 28, 3, 3, "F");
+  doc.setFillColor(30, 50, 60);
+  doc.roundedRect(tableLeft, yPos, tableWidth, 30, 4, 4, "F");
   
   tableData.forEach((col, idx) => {
-    const xPos = marginLeft + (idx * colWidthCover) + colWidthCover / 2;
+    const xPos = tableLeft + (idx * colWidthCover) + colWidthCover / 2;
     
     // Valeur principale
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     const valueText = col.unit ? `${col.value} ${col.unit}` : col.value;
-    safeText(doc, valueText, xPos, yPos + 12, { align: "center" });
+    safeText(doc, valueText, xPos, yPos + 13, { align: "center" });
     
     // Label
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 150, 150);
-    safeText(doc, col.label, xPos, yPos + 22, { align: "center" });
+    safeText(doc, col.label, xPos, yPos + 23, { align: "center" });
     
     // Séparateur vertical (sauf dernier)
     if (idx < tableData.length - 1) {
       doc.setDrawColor(60, 80, 90);
       doc.setLineWidth(0.3);
-      doc.line(marginLeft + (idx + 1) * colWidthCover, yPos + 6, marginLeft + (idx + 1) * colWidthCover, yPos + 22);
+      doc.line(tableLeft + (idx + 1) * colWidthCover, yPos + 6, tableLeft + (idx + 1) * colWidthCover, yPos + 24);
     }
   });
 
-  // === POINTS FORTS (Chips) ===
-  yPos += 40;
+  // === POINTS FORTS (liste verticale avec puces rouges, style Founex) ===
+  yPos += 45;
   
   const pointsFortsCover = estimation.analyseTerrain?.pointsForts || [];
   
   if (pointsFortsCover.length > 0) {
-    let chipX = marginLeft;
-    const chipY = yPos;
-    const chipHeight = 8;
-    const chipPadding = 8;
-    const chipGap = 6;
-    let currentRow = 0;
-    const maxRowWidth = contentWidth;
-    
-    doc.setFontSize(8);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     
-    pointsFortsCover.slice(0, 8).forEach((point) => {
-      const chipWidth = doc.getTextWidth(point) * 0.35 + chipPadding * 2;
-      
-      // Nouvelle ligne si dépassement
-      if (chipX + chipWidth > marginLeft + maxRowWidth) {
-        chipX = marginLeft;
-        currentRow++;
-      }
-      
-      const currentY = chipY + (currentRow * (chipHeight + 4));
-      
-      // Fond du chip (rouge semi-transparent via couleur claire)
-      doc.setFillColor(80, 50, 50);
-      doc.roundedRect(chipX, currentY, chipWidth, chipHeight, 2, 2, "F");
-      
-      // Bordure du chip
-      doc.setDrawColor(250, 66, 56);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(chipX, currentY, chipWidth, chipHeight, 2, 2, "S");
-      
-      // Texte du chip
-      doc.setTextColor(250, 66, 56);
-      safeText(doc, point, chipX + chipPadding, currentY + 5.5);
-      
-      chipX += chipWidth + chipGap;
-    });
+    // Afficher max 4 points forts en colonne centrée
+    const displayPoints = pointsFortsCover.slice(0, 4);
+    const lineHeight = 10;
+    const listStartY = yPos;
     
-    yPos += (currentRow + 1) * (chipHeight + 4) + 10;
+    displayPoints.forEach((point, idx) => {
+      const pointY = listStartY + (idx * lineHeight);
+      
+      // Puce rouge carrée
+      doc.setFillColor(250, 66, 56);
+      doc.rect(centerX - 60, pointY - 3, 4, 4, "F");
+      
+      // Texte du point fort
+      doc.setTextColor(255, 255, 255);
+      safeText(doc, point, centerX - 52, pointY);
+    });
   }
 
-  // === FOOTER : Prix + Date ===
-  // Ligne de séparation
-  const footerY = pageHeight - 50;
-  doc.setDrawColor(60, 80, 90);
-  doc.setLineWidth(0.3);
-  doc.line(marginLeft, footerY, pageWidth - marginRight, footerY);
-  
-  // Prix affiché
-  doc.setTextColor(150, 150, 150);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  safeText(doc, "Estimation de prix", marginLeft, footerY + 12);
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  safeText(doc, prixText, marginLeft, footerY + 25);
-  
-  // Date et référence (à droite)
-  doc.setTextColor(150, 150, 150);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  safeText(doc, format(new Date(), "d MMMM yyyy", { locale: fr }), statsRightX, footerY + 12, { align: "right" });
+  // === FOOTER COVER : Discret, juste page number ===
+  // Pas de prix sur la cover (style Founex)
+  const footerCoverY = pageHeight - 15;
   doc.setFontSize(8);
-  safeText(doc, `Ref: ${estimation.id?.slice(0, 8) || "N/A"}`, statsRightX, footerY + 20, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(150, 150, 150);
+  safeText(doc, "Page 1/" + "X", centerX, footerCoverY, { align: "center" });
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
   // ========================================
