@@ -1430,6 +1430,182 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
 }
 
 // ============================================
+// PAGE ANNEXE TECHNIQUE 2/2
+// ============================================
+async function renderAnnexeTechnique2(ctx: PDFContext): Promise<void> {
+  const { doc, estimation } = ctx;
+  const { analyseTerrain: analyse, identification } = estimation;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginLeft = 20;
+  const contentWidth = pageWidth - 40;
+
+  doc.addPage();
+  let yPos = 20;
+
+  // Header page
+  doc.setFillColor(26, 46, 53);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ANNEXE TECHNIQUE (2/2)', marginLeft, 28);
+
+  yPos = 55;
+
+  // Section 1 : État du bien
+  doc.setFontSize(11);
+  doc.setTextColor(250, 66, 56);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ÉTAT DU BIEN', marginLeft, yPos);
+  yPos += 10;
+
+  const etatsLabels: Record<string, string> = {
+    'etatGeneral': 'État général',
+    'etatCuisine': 'Cuisine',
+    'etatSDB': 'Salles de bain',
+    'etatSols': 'Sols',
+    'etatPeinture': 'Peinture',
+    'etatFenetres': 'Fenêtres',
+    'etatToiture': 'Toiture',
+    'etatFacade': 'Façade'
+  };
+
+  const gridCols = 2;
+  const colWidth = (contentWidth - 10) / gridCols;
+  let gridX = marginLeft;
+  let gridY = yPos;
+  let colIndex = 0;
+
+  Object.entries(etatsLabels).forEach(([key, label]) => {
+    const analyseRecord = analyse as unknown as Record<string, unknown> | undefined;
+    const value = analyseRecord?.[key] || '—';
+    const note = typeof value === 'number' ? `${value}/5` : String(value);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, gridX, gridY);
+
+    doc.setFontSize(10);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(note, gridX + colWidth - 30, gridY);
+
+    colIndex++;
+    if (colIndex >= gridCols) {
+      colIndex = 0;
+      gridY += 8;
+      gridX = marginLeft;
+    } else {
+      gridX += colWidth + 10;
+    }
+  });
+
+  yPos = gridY + 15;
+
+  // Section 2 : Points forts
+  const pointsForts = analyse?.pointsForts as string[] | undefined;
+  if (pointsForts && pointsForts.length > 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(250, 66, 56);
+    doc.setFont('helvetica', 'bold');
+    doc.text('POINTS FORTS', marginLeft, yPos);
+    yPos += 10;
+
+    pointsForts.forEach((point: string) => {
+      doc.setFontSize(9);
+      doc.setTextColor(26, 46, 53);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(`• ${point}`, contentWidth - 10);
+      doc.text(lines, marginLeft + 5, yPos);
+      yPos += lines.length * 5 + 3;
+    });
+
+    yPos += 5;
+  }
+
+  // Section 3 : Points faibles
+  const pointsFaibles = analyse?.pointsFaibles as string[] | undefined;
+  if (pointsFaibles && pointsFaibles.length > 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(250, 66, 56);
+    doc.setFont('helvetica', 'bold');
+    doc.text("POINTS D'ATTENTION", marginLeft, yPos);
+    yPos += 10;
+
+    pointsFaibles.forEach((point: string) => {
+      doc.setFontSize(9);
+      doc.setTextColor(26, 46, 53);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(`• ${point}`, contentWidth - 10);
+      doc.text(lines, marginLeft + 5, yPos);
+      yPos += lines.length * 5 + 3;
+    });
+
+    yPos += 5;
+  }
+
+  // Section 4 : Nuisances
+  const nuisancesArray = analyse?.nuisances;
+  if (nuisancesArray && Array.isArray(nuisancesArray) && nuisancesArray.length > 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(250, 66, 56);
+    doc.setFont('helvetica', 'bold');
+    doc.text('NUISANCES IDENTIFIÉES', marginLeft, yPos);
+    yPos += 10;
+
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'normal');
+    const nuisancesText = nuisancesArray.join(', ');
+    const nuisancesLines = doc.splitTextToSize(nuisancesText, contentWidth);
+    doc.text(nuisancesLines, marginLeft, yPos);
+    yPos += nuisancesLines.length * 5 + 10;
+  }
+
+  // Section 5 : Objections anticipées
+  const objectionsText = analyse?.objectionsAcheteurs;
+  if (objectionsText) {
+    doc.setFontSize(11);
+    doc.setTextColor(250, 66, 56);
+    doc.setFont('helvetica', 'bold');
+    doc.text('OBJECTIONS ANTICIPÉES', marginLeft, yPos);
+    yPos += 10;
+
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'normal');
+    const objectionsLines = doc.splitTextToSize(String(objectionsText), contentWidth);
+    doc.text(objectionsLines, marginLeft, yPos);
+    yPos += objectionsLines.length * 5 + 10;
+  }
+
+  // Section 6 : Historique diffusion
+  const historique = identification?.historique;
+  if (historique?.dejaDiffuse && historique?.prixAffiche) {
+    doc.setFontSize(11);
+    doc.setTextColor(250, 66, 56);
+    doc.setFont('helvetica', 'bold');
+    doc.text('HISTORIQUE DE DIFFUSION', marginLeft, yPos);
+    yPos += 10;
+
+    doc.setFontSize(9);
+    doc.setTextColor(26, 46, 53);
+    doc.setFont('helvetica', 'normal');
+    
+    const historiqueDetails: string[] = [];
+    if (historique.duree) historiqueDetails.push(`Durée: ${historique.duree}`);
+    if (historique.prixAffiche) historiqueDetails.push(`Prix affiché: ${historique.prixAffiche} CHF`);
+    if (historique.portails?.length) historiqueDetails.push(`Portails: ${historique.portails.join(', ')}`);
+    if (historique.raisonEchec?.length) historiqueDetails.push(`Raisons: ${historique.raisonEchec.join(', ')}`);
+    
+    const historiqueText = historiqueDetails.join(' | ');
+    const historiqueLines = doc.splitTextToSize(historiqueText, contentWidth);
+    doc.text(historiqueLines, marginLeft, yPos);
+  }
+}
+
+// ============================================
 // FONCTION PRINCIPALE : Génère le PDF
 // ============================================
 export async function generateEstimationPDF({
@@ -1474,6 +1650,11 @@ export async function generateEstimationPDF({
   // PAGE 3 : ANNEXE TECHNIQUE 1/2 (modulaire)
   // ========================================
   await renderAnnexeTechnique1(ctx);
+
+  // ========================================
+  // PAGE 4 : ANNEXE TECHNIQUE 2/2 (modulaire)
+  // ========================================
+  await renderAnnexeTechnique2(ctx);
 
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
