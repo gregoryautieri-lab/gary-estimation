@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
@@ -11,11 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { useModuleProgress } from '@/hooks/useModuleProgress';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { EstimationData, defaultAnalyseTerrain, AnalyseTerrain } from '@/types/estimation';
 import { PointChipsGrid, POINTS_FORTS_OPTIONS, POINTS_FAIBLES_OPTIONS } from '@/components/gary/PointChipsGrid';
 import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { toast } from 'sonner';
-import { ChevronRight, Sun, Volume2, Maximize2, Star }from 'lucide-react';
+import { ChevronRight, Sun, Volume2, Maximize2, Star } from 'lucide-react';
 
 const etatOptions = [
   { value: '1', label: '1', description: 'À refaire' },
@@ -111,8 +112,19 @@ export default function Module3AnalyseTerrain() {
     }
   };
 
+  // Autosave pour éviter perte de données
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 2000,
+    onSave: async () => {
+      if (!id || isLocked) return;
+      await updateEstimation(id, { analyseTerrain: analyse });
+    },
+    enabled: !isLocked && !!id && !!estimation
+  });
+
   const updateField = <K extends keyof AnalyseTerrain>(field: K, value: AnalyseTerrain[K]) => {
     setAnalyse(prev => ({ ...prev, [field]: value }));
+    scheduleSave();
   };
 
   const toggleArrayItem = (field: 'pointsForts' | 'pointsFaibles' | 'nuisances', item: string) => {
@@ -169,6 +181,7 @@ export default function Module3AnalyseTerrain() {
         title="Analyse Terrain" 
         subtitle={estimation?.identification?.vendeur?.nom || 'Nouveau bien'}
         backPath={`/estimation/${id}/2`}
+        isSaving={autoSaving}
       />
 
       {/* Barre de progression */}

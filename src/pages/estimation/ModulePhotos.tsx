@@ -15,6 +15,7 @@ import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
 import { useModuleProgress } from '@/hooks/useModuleProgress';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { useAuth } from '@/hooks/useAuth';
 import type { EstimationData, Photo, Photos, PhotoCategorie } from '@/types/estimation';
 import { defaultPhotos } from '@/types/estimation';
@@ -132,6 +133,7 @@ export default function ModulePhotos() {
         p.id === updatedPhoto.id ? updatedPhoto : p
       )
     }));
+    scheduleSave();
   }, []);
 
   // Toggle favori
@@ -142,6 +144,7 @@ export default function ModulePhotos() {
         p.id === photo.id ? { ...p, favori: !p.favori } : p
       )
     }));
+    scheduleSave();
   }, []);
 
   // Changer catégorie
@@ -152,6 +155,7 @@ export default function ModulePhotos() {
         p.id === photo.id ? { ...p, categorie } : p
       )
     }));
+    scheduleSave();
   }, []);
 
   // Sauvegarder
@@ -161,6 +165,16 @@ export default function ModulePhotos() {
     await updateEstimation(id, { photos }, true);
     setSaving(false);
   }, [id, estimation, photos, updateEstimation]);
+
+  // Autosave pour éviter perte de données (délai plus long pour les photos)
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 3000,
+    onSave: async () => {
+      if (!id || !estimation) return;
+      await updateEstimation(id, { photos });
+    },
+    enabled: !!id && !!estimation && !loading
+  });
 
   // Navigation
   const handleNext = async () => {
@@ -172,16 +186,6 @@ export default function ModulePhotos() {
     await handleSave();
     navigate(`/estimation/${id}/3`);
   };
-
-  // Auto-save quand les photos changent
-  useEffect(() => {
-    if (!loading && estimation && photos.items.length > 0) {
-      const timer = setTimeout(() => {
-        handleSave();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [photos, loading]);
 
   if (loading) {
     return (
@@ -213,6 +217,7 @@ export default function ModulePhotos() {
         moduleNumber={4}
         title="Photos" 
         onBack={() => navigate('/estimations')}
+        isSaving={autoSaving}
       />
 
       {/* Barre de progression */}
