@@ -656,9 +656,13 @@ export function ComparableImport({
 
   const triggerButton = (
     <Button 
+      type="button"
       variant="outline" 
       size="sm"
-      onClick={() => setOpen(true)}
+      onClick={(e) => {
+        e.preventDefault();
+        setOpen(true);
+      }}
       className="gap-2"
     >
       <Link2 className="h-4 w-4" />
