@@ -271,17 +271,20 @@ export async function generateEstimationPDF({
     doc.rect(0, 0, pageWidth, pageHeight, "F");
   }
 
-  // === HEADER : Titre + Stats ===
-  yPos = 25;
+  // === HEADER : Titre en 2 lignes (style Founex) ===
+  yPos = 30;
   
-  // Titre principal
+  // Ligne 1 : "Votre stratégie de vente" - taille moyenne
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "normal");
   safeText(doc, "Votre strategie de vente", marginLeft, yPos);
-  yPos += 12;
-  doc.setFontSize(36);
-  doc.setTextColor(250, 66, 56); // GARY_RED
+  
+  // Ligne 2 : "sur mesure" - ÉNORME et BOLD
+  yPos += 16;
+  doc.setFontSize(48);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255); // Blanc (pas rouge, comme sur ton PDF)
   safeText(doc, "sur mesure", marginLeft, yPos);
   
   // === STATS GARY (partie droite) ===
