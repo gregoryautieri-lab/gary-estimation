@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModuleHeader } from '@/components/gary/ModuleHeader';
 import { ModuleProgressBar } from '@/components/gary/ModuleProgressBar';
 import { MissingFieldsAlert } from '@/components/gary/MissingFieldsAlert';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { Button } from '@/components/ui/button';
@@ -261,6 +262,9 @@ export default function Module4PreEstimation() {
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [preEst, setPreEst] = useState<PreEstimation>(defaultPreEstimation);
   const [saving, setSaving] = useState(false);
+  const initialLoadDone = useRef(false);
+  const preEstRef = useRef(preEst);
+  preEstRef.current = preEst;
 
   // Hook de progression
   const { 
@@ -275,6 +279,7 @@ export default function Module4PreEstimation() {
     if (data) {
       setEstimation(data);
       setPreEst({ ...defaultPreEstimation, ...data.preEstimation });
+      initialLoadDone.current = true;
     }
   }, [id, fetchEstimation]);
 
@@ -289,8 +294,31 @@ export default function Module4PreEstimation() {
     preEst
   );
 
+  // Auto-save silencieux quand preEst change
+  const handleAutoSave = useCallback(async () => {
+    if (!id || !estimation || !initialLoadDone.current) return;
+    
+    await updateEstimation(id, {
+      preEstimation: {
+        ...preEstRef.current,
+        prixEntre: calcul.prixEntreCalcule.toString(),
+        prixEt: calcul.prixEtCalcule.toString(),
+      },
+      prixMin: calcul.prixEntreCalcule,
+      prixMax: calcul.prixEtCalcule,
+      prixFinal: calcul.prixMiseEnVente,
+    }, true); // silent = true
+  }, [id, estimation, updateEstimation, calcul.prixEntreCalcule, calcul.prixEtCalcule, calcul.prixMiseEnVente]);
+
+  const { scheduleSave, isSaving: autoSaving } = useAutoSave({
+    delay: 1500,
+    onSave: handleAutoSave,
+    enabled: !!id && !!estimation && initialLoadDone.current
+  });
+
   const updateField = <K extends keyof PreEstimation>(field: K, value: PreEstimation[K]) => {
     setPreEst(prev => ({ ...prev, [field]: value }));
+    scheduleSave();
   };
 
   const handleSave = async () => {
@@ -306,7 +334,7 @@ export default function Module4PreEstimation() {
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
       prixFinal: calcul.prixMiseEnVente,
-    });
+    }, false);
     
     setSaving(false);
     
