@@ -612,8 +612,11 @@ const EstimationsList = () => {
                     onArchive={() => handleArchive(estimation.id)}
                     onOpenPresentation={() => navigate(`/estimation/${estimation.id}/presentation`)}
                     onDownloadPDF={() => {
-                      import('@/utils/pdfExport').then(({ generateEstimationPDF }) => {
-                        generateEstimationPDF({ estimation });
+                      import('@/utils/pdfExport').then(({ downloadEstimationPDF }) => {
+                        downloadEstimationPDF({ estimation }).catch(err => {
+                          console.error('Erreur PDF:', err);
+                          toast.error('Erreur lors de la génération du PDF');
+                        });
                       });
                     }}
                     isUpdating={updatingId === estimation.id}
