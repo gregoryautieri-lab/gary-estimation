@@ -100,6 +100,17 @@ export default function EstimationOverview() {
   const createdAt = estimation?.createdAt ? new Date(estimation.createdAt) : null;
   const updatedAt = estimation?.updatedAt ? new Date(estimation.updatedAt) : null;
   
+  // Génère une référence lisible: EST-AAMMJJ-XXX (année, mois, jour + 3 derniers caractères de l'ID)
+  const generateRef = () => {
+    if (!createdAt || !estimation?.id) return 'EST-000';
+    const yy = String(createdAt.getFullYear()).slice(-2);
+    const mm = String(createdAt.getMonth() + 1).padStart(2, '0');
+    const dd = String(createdAt.getDate()).padStart(2, '0');
+    const suffix = estimation.id.slice(-3).toUpperCase();
+    return `EST-${yy}${mm}${dd}-${suffix}`;
+  };
+  const refEstimation = generateRef();
+  
   // Actions
   const handleContinue = () => navigate(nextModule);
   
@@ -209,7 +220,7 @@ export default function EstimationOverview() {
               </h1>
             </div>
             <p className="text-sm text-white/70 truncate">
-              {estimation.id.slice(0, 8).toUpperCase()}
+              {refEstimation}
               {createdAt && ` • Créée le ${format(createdAt, 'd MMM yyyy', { locale: fr })}`}
             </p>
           </div>
