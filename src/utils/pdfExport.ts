@@ -649,6 +649,327 @@ async function renderCoverPage(ctx: PDFContext): Promise<void> {
 }
 
 // ============================================
+// PAGE MÉTHODOLOGIE D'ESTIMATION
+// ============================================
+
+async function renderMethodologyPage(ctx: PDFContext): Promise<void> {
+  const { doc, estimation, pageWidth, pageHeight } = ctx;
+  const helpers = createHelpers();
+  const { formatPrice } = helpers;
+
+  // Données estimation (with any type for flexibility)
+  const pre: any = estimation.preEstimation || {};
+  const carac: any = estimation.caracteristiques || {};
+  const isAppartement = carac.typeBien === 'appartement';
+
+  // Calculs de base
+  const surfacePonderee = isAppartement ? (parseFloat(carac.surfacePPE || '0') || 0) : 0;
+  const surfaceTerrain = parseFloat(carac.surfaceTerrain || '0') || 0;
+  const surfaceHabMaison = parseFloat(carac.surfaceHabitableMaison || '0') || 0;
+  const cubage = parseFloat(pre.cubageManuel || '0') || (surfaceHabMaison * 3.1);
+
+  const nbPlaceInt = parseInt(carac.parkingInterieur || '0') || 0;
+  const nbPlaceExt = parseInt(carac.parkingExterieur || '0') || 0;
+  const nbBox = parseInt(carac.box || '0') || 0;
+  const hasCave = carac.cave === true ? 1 : 0;
+
+  // Prix unitaires
+  const prixM2 = parseFloat(pre.prixM2 || '0') || 0;
+  const prixM2Terrain = parseFloat(pre.prixM2Terrain || '0') || 0;
+  const prixM3 = parseFloat(pre.prixM3 || '0') || 0;
+  const prixM2Amenagement = parseFloat(pre.prixM2Amenagement || '0') || 0;
+  const prixPlaceInt = parseFloat(pre.prixPlaceInt || '0') || 0;
+  const prixPlaceExt = parseFloat(pre.prixPlaceExt || '0') || 0;
+  const prixBox = parseFloat(pre.prixBox || '0') || 0;
+  const prixCave = parseFloat(pre.prixCave || '0') || 0;
+
+  // Valeurs calculées
+  const valeurSurface = surfacePonderee * prixM2;
+  const valeurTerrain = surfaceTerrain * prixM2Terrain;
+  const valeurCubage = cubage * prixM3;
+  const valeurPlaceInt = nbPlaceInt * prixPlaceInt;
+  const valeurPlaceExt = nbPlaceExt * prixPlaceExt;
+  const valeurBox = nbBox * prixBox;
+  const valeurCave = hasCave * prixCave;
+
+  // Aménagements extérieurs (maisons)
+  const nbNiveaux = parseInt(carac.nombreNiveaux || '1') || 1;
+  const surfaceAuSol = nbNiveaux > 0 ? surfaceHabMaison / nbNiveaux : 0;
+  const surfaceAmenagement = Math.max(0, surfaceTerrain - surfaceAuSol);
+  const valeurAmenagement = surfaceAmenagement * prixM2Amenagement;
+
+  // Lignes supplémentaires
+  const lignesSuppList = pre.lignesSupp || [];
+  const valeurLignesSupp = lignesSuppList.reduce((sum: number, l: any) => sum + (parseFloat(l.prix) || 0), 0);
+
+  // Annexes (maisons)
+  const annexesList = pre.annexes || [];
+  const valeurAnnexes = annexesList.reduce((sum: number, a: any) => sum + (parseFloat(a.prix) || 0), 0);
+
+  // Total vénale
+  const totalVenale = isAppartement
+    ? valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp
+    : valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
+
+  const totalVenaleArrondi = Math.ceil(totalVenale / 5000) * 5000;
+
+  // Fourchette de négociation
+  const prixEntre = Math.ceil(totalVenaleArrondi * 0.97 / 5000) * 5000;
+  const prixEt = Math.ceil(totalVenaleArrondi * 1.03 / 5000) * 5000;
+
+  // Valeur rendement
+  const loyerMensuel = parseFloat(pre.loyerActuelMensuel || '0') || 0;
+  const loyerAnnuel = loyerMensuel * 12;
+  const tauxCapi = (parseFloat(pre.tauxCapitalisation || '2.5') || 2.5) / 100;
+  const valeurRendement = tauxCapi > 0 ? Math.ceil((loyerAnnuel / tauxCapi) / 5000) * 5000 : 0;
+
+  // Valeur de gage
+  const valeurGage = (2 * totalVenaleArrondi + valeurRendement) / 3;
+  const valeurGageArrondi = Math.ceil(valeurGage / 5000) * 5000;
+
+  // Nouvelle page
+  doc.addPage();
+
+  // Header
+  doc.setFillColor(26, 46, 53);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GARY', 20, 25);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Annexe : Methodologie', pageWidth - 20, 25, { align: 'right' });
+
+  let yPos = 50;
+
+  // Fourchette de négociation
+  doc.setFillColor(248, 250, 252);
+  doc.rect(0, yPos, pageWidth, 20, 'F');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('FOURCHETTE', pageWidth / 2 - 60, yPos + 12);
+  doc.setFontSize(14);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatPrice(prixEntre), pageWidth / 2 - 20, yPos + 12);
+  doc.setFontSize(12);
+  doc.setTextColor(209, 213, 219);
+  doc.text('->', pageWidth / 2 + 25, yPos + 12);
+  doc.setFontSize(14);
+  doc.setTextColor(26, 46, 53);
+  doc.text(formatPrice(prixEt), pageWidth / 2 + 35, yPos + 12);
+
+  yPos += 25;
+
+  // Les 3 valeurs - Grille compacte
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, yPos, pageWidth, 50, 'F');
+
+  const cardWidth = (pageWidth - 60) / 3;
+  const cardX = [20, 20 + cardWidth + 10, 20 + 2 * cardWidth + 20];
+
+  // Valeur Vénale
+  doc.setFillColor(249, 250, 251);
+  doc.roundedRect(cardX[0], yPos + 10, cardWidth, 35, 3, 3, 'F');
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(cardX[0], yPos + 10, cardWidth, 35, 3, 3, 'S');
+  doc.setFontSize(8);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('VENALE', cardX[0] + cardWidth / 2, yPos + 20, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatPrice(totalVenaleArrondi), cardX[0] + cardWidth / 2, yPos + 30, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(156, 163, 175);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Base de calcul', cardX[0] + cardWidth / 2, yPos + 38, { align: 'center' });
+
+  // Valeur Rendement
+  doc.setFillColor(249, 250, 251);
+  doc.roundedRect(cardX[1], yPos + 10, cardWidth, 35, 3, 3, 'F');
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(cardX[1], yPos + 10, cardWidth, 35, 3, 3, 'S');
+  doc.setFontSize(8);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('RENDEMENT', cardX[1] + cardWidth / 2, yPos + 20, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatPrice(valeurRendement), cardX[1] + cardWidth / 2, yPos + 30, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(156, 163, 175);
+  doc.setFont('helvetica', 'normal');
+  const tauxText = `Taux ${(tauxCapi * 100).toFixed(1)}% - ${formatPrice(loyerMensuel)}/mois`;
+  doc.text(tauxText, cardX[1] + cardWidth / 2, yPos + 38, { align: 'center' });
+
+  // Valeur de Gage
+  doc.setFillColor(249, 250, 251);
+  doc.roundedRect(cardX[2], yPos + 10, cardWidth, 35, 3, 3, 'F');
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(cardX[2], yPos + 10, cardWidth, 35, 3, 3, 'S');
+  doc.setFontSize(8);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'normal');
+  doc.text('GAGE', cardX[2] + cardWidth / 2, yPos + 20, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatPrice(valeurGageArrondi), cardX[2] + cardWidth / 2, yPos + 30, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(156, 163, 175);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ref. bancaire', cardX[2] + cardWidth / 2, yPos + 38, { align: 'center' });
+
+  yPos += 60;
+
+  // Tableau détaillé du calcul
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETAIL DU CALCUL', 20, yPos);
+
+  yPos += 8;
+
+  // En-tête tableau
+  doc.setFillColor(26, 46, 53);
+  doc.rect(20, yPos, pageWidth - 40, 12, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ELEMENT', 25, yPos + 8);
+  doc.text('QUANTITE', pageWidth / 2 - 30, yPos + 8, { align: 'center' });
+  doc.text('PRIX UNITAIRE', pageWidth / 2 + 20, yPos + 8, { align: 'center' });
+  doc.text('MONTANT', pageWidth - 30, yPos + 8, { align: 'right' });
+
+  yPos += 12;
+
+  // Lignes du tableau
+  doc.setFillColor(255, 255, 255);
+  doc.setTextColor(26, 46, 53);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+
+  let rowIndex = 0;
+
+  const addTableRow = (label: string, quantity: string, unitPrice: string, amount: number, isTotal: boolean = false) => {
+    if (isTotal) {
+      doc.setFillColor(26, 46, 53);
+      doc.rect(20, yPos, pageWidth - 40, 12, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, 25, yPos + 8);
+      doc.setTextColor(255, 69, 57);
+      doc.text(formatPrice(amount), pageWidth - 30, yPos + 8, { align: 'right' });
+    } else {
+      doc.setFillColor(rowIndex % 2 === 0 ? 249 : 255, rowIndex % 2 === 0 ? 250 : 255, rowIndex % 2 === 0 ? 251 : 255);
+      doc.rect(20, yPos, pageWidth - 40, 10, 'F');
+      doc.setDrawColor(241, 245, 249);
+      doc.line(20, yPos + 10, pageWidth - 20, yPos + 10);
+      doc.setTextColor(26, 46, 53);
+      doc.setFont('helvetica', 'normal');
+      doc.text(label, 25, yPos + 7);
+      doc.text(quantity, pageWidth / 2 - 30, yPos + 7, { align: 'center' });
+      doc.text(unitPrice, pageWidth / 2 + 20, yPos + 7, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatPrice(amount), pageWidth - 30, yPos + 7, { align: 'right' });
+      rowIndex++;
+    }
+    yPos += isTotal ? 12 : 10;
+  };
+
+  if (isAppartement) {
+    // APPARTEMENT
+    addTableRow('Surface ponderee', `${surfacePonderee.toFixed(1)} m2`, formatPrice(prixM2), valeurSurface);
+    if (nbPlaceInt > 0) addTableRow('Places interieures', nbPlaceInt.toString(), formatPrice(prixPlaceInt), valeurPlaceInt);
+    if (nbPlaceExt > 0) addTableRow('Places exterieures', nbPlaceExt.toString(), formatPrice(prixPlaceExt), valeurPlaceExt);
+    if (nbBox > 0) addTableRow('Box ferme', nbBox.toString(), formatPrice(prixBox), valeurBox);
+    if (hasCave > 0) addTableRow('Cave', '1', formatPrice(prixCave), valeurCave);
+
+    lignesSuppList.forEach((l: any) => {
+      if (l.libelle && l.prix) {
+        addTableRow(l.libelle, '-', '-', parseFloat(l.prix));
+      }
+    });
+  } else {
+    // MAISON
+    addTableRow('Terrain', `${surfaceTerrain.toFixed(0)} m2`, formatPrice(prixM2Terrain), valeurTerrain);
+    addTableRow('Cubage construction', `${cubage.toFixed(0)} m3`, formatPrice(prixM3), valeurCubage);
+    if (surfaceAmenagement > 0) {
+      addTableRow('Amenagements ext.', `${surfaceAmenagement.toFixed(0)} m2`, formatPrice(prixM2Amenagement), valeurAmenagement);
+    }
+
+    annexesList.forEach((a: any) => {
+      if (a.libelle && a.prix) {
+        addTableRow(a.libelle, '-', '-', parseFloat(a.prix));
+      }
+    });
+  }
+
+  // Total
+  addTableRow('VALEUR VENALE TOTALE', '', '', totalVenaleArrondi, true);
+
+  yPos += 5;
+
+  // Section comparables (simplifié pour ce prompt)
+  const comparablesVendus = pre.comparablesVendus || [];
+  const comparablesEnVente = pre.comparablesEnVente || [];
+
+  if (comparablesVendus.length > 0 || comparablesEnVente.length > 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.text('POSITIONNEMENT MARCHE', 20, yPos);
+    yPos += 10;
+
+    // Liste simple des comparables
+    doc.setFontSize(8);
+    doc.setTextColor(16, 185, 129);
+    doc.setFont('helvetica', 'bold');
+    if (comparablesVendus.length > 0) {
+      doc.text('Transactions recentes', 20, yPos);
+      yPos += 8;
+
+      comparablesVendus.forEach((c: any) => {
+        doc.setFontSize(8);
+        doc.setTextColor(26, 46, 53);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`- ${c.adresse || '-'}`, 25, yPos);
+        doc.setTextColor(16, 185, 129);
+        doc.setFont('helvetica', 'bold');
+        doc.text(c.prix || '-', pageWidth - 30, yPos, { align: 'right' });
+        yPos += 6;
+      });
+    }
+
+    yPos += 5;
+
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'bold');
+    if (comparablesEnVente.length > 0) {
+      doc.text('Actuellement en vente', 20, yPos);
+      yPos += 8;
+
+      comparablesEnVente.forEach((c: any) => {
+        doc.setFontSize(8);
+        doc.setTextColor(26, 46, 53);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`- ${c.adresse || '-'}`, 25, yPos);
+        doc.setTextColor(107, 114, 128);
+        doc.setFont('helvetica', 'bold');
+        doc.text(c.prix || '-', pageWidth - 30, yPos, { align: 'right' });
+        yPos += 6;
+      });
+    }
+  }
+}
+
+// ============================================
 // FONCTION PRINCIPALE : Génère le PDF
 // ============================================
 export async function generateEstimationPDF({
@@ -683,6 +1004,11 @@ export async function generateEstimationPDF({
   // PAGE 1 : COUVERTURE PREMIUM (modulaire)
   // ========================================
   await renderCoverPage(ctx);
+
+  // ========================================
+  // PAGE 2 : MÉTHODOLOGIE D'ESTIMATION (modulaire)
+  // ========================================
+  await renderMethodologyPage(ctx);
 
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
