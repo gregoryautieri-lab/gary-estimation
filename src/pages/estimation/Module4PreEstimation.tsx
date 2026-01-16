@@ -131,6 +131,9 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
               onKeyDown={preventEnterSubmit}
               placeholder="1350000"
               className="mt-1"
+              min={50000}
+              max={100000000}
+              step={10000}
             />
           </div>
           <div>
@@ -142,6 +145,9 @@ function ComparableCard({ index, type, data, onUpdate, onDelete, referenceCoords
               onKeyDown={preventEnterSubmit}
               placeholder="116"
               className="mt-1"
+              min={10}
+              max={2000}
+              step={1}
             />
           </div>
         </div>
@@ -570,6 +576,9 @@ export default function Module4PreEstimation() {
                     onKeyDown={preventEnterSubmit}
                     placeholder="11900"
                     className="w-28 text-center"
+                    min={1000}
+                    max={50000}
+                    step={100}
                   />
                   <span className="text-muted-foreground">=</span>
                   <span className="font-medium whitespace-nowrap">
@@ -636,6 +645,9 @@ export default function Module4PreEstimation() {
                       onKeyDown={preventEnterSubmit}
                       placeholder="30000"
                       className="w-28 text-center"
+                      min={0}
+                      max={100000}
+                      step={1000}
                     />
                     <span className="text-muted-foreground">=</span>
                     <span className="font-medium whitespace-nowrap">
@@ -662,6 +674,9 @@ export default function Module4PreEstimation() {
                       onKeyDown={preventEnterSubmit}
                       placeholder="20000"
                       className="w-28 text-center"
+                      min={0}
+                      max={80000}
+                      step={1000}
                     />
                     <span className="text-muted-foreground">=</span>
                     <span className="font-medium whitespace-nowrap">
@@ -688,6 +703,9 @@ export default function Module4PreEstimation() {
                       onKeyDown={preventEnterSubmit}
                       placeholder="40000"
                       className="w-28 text-center"
+                      min={0}
+                      max={150000}
+                      step={1000}
                     />
                     <span className="text-muted-foreground">=</span>
                     <span className="font-medium whitespace-nowrap">
@@ -714,6 +732,9 @@ export default function Module4PreEstimation() {
                       onKeyDown={preventEnterSubmit}
                       placeholder="0"
                       className="w-28 text-center"
+                      min={0}
+                      max={50000}
+                      step={500}
                     />
                   </div>
                 </div>
@@ -730,18 +751,21 @@ export default function Module4PreEstimation() {
                       placeholder="Libellé"
                       className="flex-1"
                     />
-                    <span className="text-muted-foreground">=</span>
-                    <Input
-                      type="number"
-                      value={ligne.prix}
-                      onChange={(e) => updateLigneSupp(index, { ...ligne, prix: e.target.value })}
-                      onKeyDown={preventEnterSubmit}
-                      placeholder="Prix"
-                      className="w-28 text-center"
-                    />
-                    <button type="button" onClick={() => deleteLigneSupp(index)} className="text-destructive">
-                      <X className="h-4 w-4" />
-                    </button>
+                      <span className="text-muted-foreground">=</span>
+                      <Input
+                        type="number"
+                        value={ligne.prix}
+                        onChange={(e) => updateLigneSupp(index, { ...ligne, prix: e.target.value })}
+                        onKeyDown={preventEnterSubmit}
+                        placeholder="Prix"
+                        className="w-28 text-center"
+                        min={0}
+                        max={1000000}
+                        step={1000}
+                      />
+                      <button type="button" onClick={() => deleteLigneSupp(index)} className="text-destructive">
+                        <X className="h-4 w-4" />
+                      </button>
                   </div>
                 </div>
               ))}
@@ -799,6 +823,9 @@ export default function Module4PreEstimation() {
                     onChange={(e) => updateField('prixM2Terrain', e.target.value)}
                     placeholder="1200"
                     className="w-28 text-center"
+                    min={100}
+                    max={10000}
+                    step={50}
                   />
                   <span className="text-muted-foreground">=</span>
                   <span className="font-medium whitespace-nowrap">
@@ -827,6 +854,9 @@ export default function Module4PreEstimation() {
                       onChange={(e) => updateField('cubageManuel', e.target.value)}
                       placeholder="Laisser vide pour auto"
                       className="text-center"
+                      min={0}
+                      max={10000}
+                      step={10}
                     />
                   </FormRow>
                   
@@ -841,6 +871,9 @@ export default function Module4PreEstimation() {
                       onChange={(e) => updateField('prixM3', e.target.value)}
                       placeholder="950"
                       className="w-28 text-center"
+                      min={500}
+                      max={2000}
+                      step={10}
                     />
                     <span className="text-muted-foreground">=</span>
                     <span className="font-medium whitespace-nowrap">
@@ -909,6 +942,9 @@ export default function Module4PreEstimation() {
                       onChange={(e) => updateField('prixM2Amenagement', e.target.value)}
                       placeholder="200"
                       className="w-28 text-center"
+                      min={0}
+                      max={1000}
+                      step={10}
                     />
                     <span className="text-muted-foreground">=</span>
                     <span className="font-medium whitespace-nowrap">
@@ -944,6 +980,9 @@ export default function Module4PreEstimation() {
                         onKeyDown={preventEnterSubmit}
                         placeholder="Prix"
                         className="w-28 text-center"
+                        min={0}
+                        max={500000}
+                        step={1000}
                       />
                       <button type="button" onClick={() => deleteAnnexe(index)} className="text-destructive">
                         <X className="h-4 w-4" />
@@ -1043,6 +1082,9 @@ export default function Module4PreEstimation() {
                   onChange={(e) => updateField('loyerMensuel', e.target.value)}
                   placeholder="3900"
                   className="mt-1.5 text-lg"
+                  min={500}
+                  max={50000}
+                  step={100}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Si inconnu, indiquez la valeur locative annuelle ci-dessous
@@ -1059,6 +1101,9 @@ export default function Module4PreEstimation() {
                     onChange={(e) => updateField('valeurLocativeEstimee', e.target.value)}
                     placeholder="46800"
                     className="mt-1.5"
+                    min={0}
+                    max={500000}
+                    step={1000}
                   />
                 </div>
               )}

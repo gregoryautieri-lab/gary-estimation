@@ -878,48 +878,72 @@ const Module1Identification = () => {
           <div className="grid grid-cols-2 gap-3">
             <FormRow label="Prix d'achat">
               <Input
+                type="number"
                 placeholder="CHF"
                 value={identification.financier.prixAchat}
                 onChange={(e) => updateField('financier', 'prixAchat', e.target.value)}
+                min={0}
+                max={100000000}
+                step={1000}
               />
             </FormRow>
             <FormRow label="Valeur locative" optional>
               <Input
+                type="number"
                 placeholder="CHF"
                 value={identification.financier.valeurLocative || ''}
                 onChange={(e) => updateField('financier', 'valeurLocative', e.target.value)}
+                min={0}
+                max={200000}
+                step={100}
               />
             </FormRow>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <FormRow label="Cédule hypothécaire">
               <Input
+                type="number"
                 placeholder="CHF"
                 value={identification.financier.ceduleHypothecaire}
                 onChange={(e) => updateField('financier', 'ceduleHypothecaire', e.target.value)}
+                min={0}
+                max={100000000}
+                step={1000}
               />
             </FormRow>
             <FormRow label="Montant hypothèque" optional>
               <Input
+                type="number"
                 placeholder="CHF"
                 value={identification.financier.montantHypotheque || ''}
                 onChange={(e) => updateField('financier', 'montantHypotheque', e.target.value)}
+                min={0}
+                max={100000000}
+                step={1000}
               />
             </FormRow>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <FormRow label="Charges annuelles" optional>
               <Input
+                type="number"
                 placeholder="CHF/an"
                 value={identification.financier.chargesAnnuelles || ''}
                 onChange={(e) => updateField('financier', 'chargesAnnuelles', e.target.value)}
+                min={0}
+                max={100000}
+                step={100}
               />
             </FormRow>
             <FormRow label="Impôt foncier" optional>
               <Input
+                type="number"
                 placeholder="CHF/an"
                 value={identification.financier.impotFoncier || ''}
                 onChange={(e) => updateField('financier', 'impotFoncier', e.target.value)}
+                min={0}
+                max={100000}
+                step={100}
               />
             </FormRow>
           </div>
