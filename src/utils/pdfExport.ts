@@ -130,6 +130,177 @@ export async function generateEstimationPDF({
 
   yPos += 45;
 
+  // ========== AMÉLIORATION #1: Justification détaillée du prix ==========
+  const preEst = estimation.preEstimation;
+  const carac = estimation.caracteristiques;
+  const typeBien = carac?.typeBien;
+  const isAppart = typeBien?.toLowerCase().includes('appartement');
+
+  if (preEst) {
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Détail de l'estimation", marginLeft, yPos);
+    yPos += 8;
+
+    // Si appartement : décomposition avec prix au m²
+    if (isAppart) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+
+      const prixM2 = parseFloat(preEst.prixM2 || "0");
+      const surface = parseFloat(carac?.surfacePPE || "0");
+      
+      if (prixM2 > 0 && surface > 0) {
+        const valeurBase = prixM2 * surface;
+        
+        doc.text("Prix au m² marché:", marginLeft + 5, yPos);
+        doc.text(`${formatPrix(prixM2)} × ${surface} m²`, marginLeft + 85, yPos);
+        doc.setFont("helvetica", "bold");
+        doc.text(`= ${formatPrix(valeurBase)}`, marginLeft + 145, yPos);
+        doc.setFont("helvetica", "normal");
+        yPos += 6;
+
+        // Vétusté
+        const tauxVetusteVal = preEst.tauxVetuste;
+        const tauxVetuste = typeof tauxVetusteVal === 'number' ? tauxVetusteVal : parseFloat(String(tauxVetusteVal || "0"));
+        if (tauxVetuste > 0) {
+          const reductionVetuste = valeurBase * (tauxVetuste / 100);
+          doc.text(`Travaux à prévoir (${tauxVetuste}%):`, marginLeft + 5, yPos);
+          doc.setTextColor(220, 38, 38);
+          doc.text(`- ${formatPrix(reductionVetuste)}`, marginLeft + 145, yPos);
+          doc.setTextColor(80, 80, 80);
+          yPos += 6;
+        }
+
+        // Parking intérieur
+        const prixPlaceInt = parseFloat(preEst.prixPlaceInt || "0");
+        if (prixPlaceInt > 0) {
+          doc.text("Place parking intérieure:", marginLeft + 5, yPos);
+          doc.setTextColor(34, 197, 94);
+          doc.text(`+ ${formatPrix(prixPlaceInt)}`, marginLeft + 145, yPos);
+          doc.setTextColor(80, 80, 80);
+          yPos += 6;
+        }
+
+        // Cave
+        const prixCave = parseFloat(preEst.prixCave || "0");
+        if (prixCave > 0) {
+          doc.text("Cave:", marginLeft + 5, yPos);
+          doc.setTextColor(34, 197, 94);
+          doc.text(`+ ${formatPrix(prixCave)}`, marginLeft + 145, yPos);
+          doc.setTextColor(80, 80, 80);
+          yPos += 6;
+        }
+
+        // Lignes supplémentaires
+        const lignesSupp = preEst.lignesSupp || [];
+        lignesSupp.forEach((ligne: { libelle?: string; prix?: string }) => {
+          const prix = parseFloat(ligne.prix || "0");
+          if (prix !== 0) {
+            doc.text(`${ligne.libelle || 'Ajustement'}:`, marginLeft + 5, yPos);
+            if (prix > 0) {
+              doc.setTextColor(34, 197, 94);
+              doc.text(`+ ${formatPrix(prix)}`, marginLeft + 145, yPos);
+            } else {
+              doc.setTextColor(220, 38, 38);
+              doc.text(`${formatPrix(prix)}`, marginLeft + 145, yPos);
+            }
+            doc.setTextColor(80, 80, 80);
+            yPos += 6;
+          }
+        });
+
+        // Ligne de séparation
+        yPos += 2;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(marginLeft + 90, yPos, marginLeft + contentWidth, yPos);
+        yPos += 5;
+
+        // Total
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("Valeur estimée:", marginLeft + 5, yPos);
+        doc.setTextColor(250, 66, 56);
+        const prixRecommande = parseFloat(preEst.prixRecommande || preEst.prixEt || "0");
+        doc.text(`${formatPrix(prixRecommande)}`, marginLeft + 145, yPos);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        yPos += 10;
+      }
+    }
+
+    // Si maison : cubage SIA
+    if (!isAppart && typeBien?.toLowerCase().includes('maison')) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+
+      const prixM3 = parseFloat(preEst.prixM3 || "0");
+      const cubage = parseFloat(preEst.cubageManuel || preEst.cubageTheorique || "0");
+
+      if (prixM3 > 0 && cubage > 0) {
+        const valeurCubage = prixM3 * cubage;
+        
+        doc.text("Prix au m³ (SIA):", marginLeft + 5, yPos);
+        doc.text(`${formatPrix(prixM3)} × ${Math.round(cubage)} m³`, marginLeft + 85, yPos);
+        doc.setFont("helvetica", "bold");
+        doc.text(`= ${formatPrix(valeurCubage)}`, marginLeft + 145, yPos);
+        doc.setFont("helvetica", "normal");
+        yPos += 6;
+      }
+
+      // Terrain
+      const prixM2Terrain = parseFloat(preEst.prixM2Terrain || "0");
+      const surfaceTerrain = parseFloat(carac?.surfaceTerrain || "0");
+      
+      if (prixM2Terrain > 0 && surfaceTerrain > 0) {
+        const valeurTerrain = prixM2Terrain * surfaceTerrain;
+        doc.text("Terrain:", marginLeft + 5, yPos);
+        doc.text(`${formatPrix(prixM2Terrain)}/m² × ${Math.round(surfaceTerrain)} m²`, marginLeft + 85, yPos);
+        doc.setTextColor(34, 197, 94);
+        doc.text(`+ ${formatPrix(valeurTerrain)}`, marginLeft + 145, yPos);
+        doc.setTextColor(80, 80, 80);
+        yPos += 6;
+      }
+
+      // Annexes maison
+      const annexes = preEst.annexes || [];
+      annexes.forEach((annexe: { libelle?: string; prix?: string }) => {
+        const prix = parseFloat(annexe.prix || "0");
+        if (prix > 0) {
+          doc.text(`${annexe.libelle || 'Annexe'}:`, marginLeft + 5, yPos);
+          doc.setTextColor(34, 197, 94);
+          doc.text(`+ ${formatPrix(prix)}`, marginLeft + 145, yPos);
+          doc.setTextColor(80, 80, 80);
+          yPos += 6;
+        }
+      });
+
+      yPos += 5;
+    }
+
+    // Note justification si présente
+    if (preEst.justificationPrix) {
+      doc.setFillColor(248, 250, 252);
+      const justifLines = doc.splitTextToSize(preEst.justificationPrix, contentWidth - 20);
+      const boxHeight = 10 + (justifLines.length * 5);
+      
+      doc.roundedRect(marginLeft, yPos, contentWidth, boxHeight, 2, 2, "F");
+      yPos += 6;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont("helvetica", "italic");
+      doc.text(justifLines, marginLeft + 10, yPos);
+      yPos += (justifLines.length * 5) + 6;
+    }
+
+    yPos += 5;
+  }
+
   // ========== Caractéristiques principales ==========
   doc.setTextColor(GARY_DARK);
   doc.setFontSize(14);
@@ -141,17 +312,17 @@ export async function generateEstimationPDF({
   doc.setFontSize(11);
   doc.setTextColor(80, 80, 80);
 
-  const carac = estimation.caracteristiques;
-  if (carac) {
+  const caracInfo = estimation.caracteristiques;
+  if (caracInfo) {
     const caracteristiques = [
-      { label: "Type de bien", value: carac.typeBien || "-" },
-      { label: "Surface habitable", value: `${carac.surfacePPE || carac.surfaceHabitableMaison || "-"} m²` },
-      { label: "Pièces", value: carac.nombrePieces || "-" },
-      { label: "Chambres", value: carac.nombreChambres || "-" },
-      { label: "Salles de bain", value: carac.nombreSDB || "-" },
-      { label: "Étage", value: carac.etage || "-" },
-      { label: "Année de construction", value: carac.anneeConstruction || "-" },
-      { label: "Style", value: carac.styleArchitectural || "-" },
+      { label: "Type de bien", value: caracInfo.typeBien || "-" },
+      { label: "Surface habitable", value: `${caracInfo.surfacePPE || caracInfo.surfaceHabitableMaison || "-"} m²` },
+      { label: "Pièces", value: caracInfo.nombrePieces || "-" },
+      { label: "Chambres", value: caracInfo.nombreChambres || "-" },
+      { label: "Salles de bain", value: caracInfo.nombreSDB || "-" },
+      { label: "Étage", value: caracInfo.etage || "-" },
+      { label: "Année de construction", value: caracInfo.anneeConstruction || "-" },
+      { label: "Style", value: caracInfo.styleArchitectural || "-" },
     ];
 
     caracteristiques.forEach((item, idx) => {
@@ -163,6 +334,206 @@ export async function generateEstimationPDF({
       doc.text(String(item.value), col + 45, yPos);
     });
     yPos += 15;
+  }
+
+  // ========== AMÉLIORATION #2: Contexte de vente ==========
+  const contexte = estimation.identification?.contexte;
+  if (contexte && (contexte.motifVente || contexte.horizon || contexte.prioriteVendeur)) {
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Contexte de vente", marginLeft, yPos);
+    yPos += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+
+    // Motif
+    if (contexte.motifVente) {
+      const motifsLabels: Record<string, string> = {
+        mutation: "Mutation professionnelle",
+        separation: "Séparation / Divorce",
+        succession: "Succession",
+        investissement: "Réalisation investissement",
+        agrandissement: "Recherche plus grand",
+        reduction: "Recherche plus petit",
+        retraite: "Départ à la retraite",
+        liquidites: "Besoin de liquidités",
+        autre: "Autre motif"
+      };
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Motif:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(motifsLabels[contexte.motifVente] || contexte.motifVente, marginLeft + 22, yPos);
+      yPos += 6;
+    }
+
+    // Horizon
+    if (contexte.horizon) {
+      const horizonsLabels: Record<string, string> = {
+        urgent: "Urgent (< 3 mois)",
+        court: "Court terme (3-6 mois)",
+        moyen: "Moyen terme (6-12 mois)",
+        long: "Long terme (> 12 mois)",
+        flexible: "Flexible"
+      };
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Horizon:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(horizonsLabels[contexte.horizon] || contexte.horizon, marginLeft + 25, yPos);
+      yPos += 6;
+    }
+
+    // Priorité
+    if (contexte.prioriteVendeur) {
+      const prioriteLabels: Record<string, string> = {
+        prixMax: "Maximiser le prix de vente",
+        rapidite: "Vendre rapidement",
+        equilibre: "Équilibre prix / délai"
+      };
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Priorité:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(prioriteLabels[contexte.prioriteVendeur] || contexte.prioriteVendeur, marginLeft + 25, yPos);
+      yPos += 6;
+    }
+
+    yPos += 5;
+  }
+
+  // ========== Historique de diffusion ==========
+  const historique = estimation.identification?.historique;
+  if (historique?.dejaDiffuse) {
+    if (yPos > 240) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    const dureeLabels: Record<string, string> = {
+      "moins1mois": "Moins d'un mois",
+      "1-3mois": "1 à 3 mois",
+      "3-6mois": "3 à 6 mois",
+      "6-12mois": "6 à 12 mois",
+      "plus12mois": "Plus de 12 mois"
+    };
+
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(marginLeft, yPos, contentWidth, 28, 2, 2, "F");
+    
+    yPos += 7;
+    doc.setTextColor(180, 83, 9);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bien déjà mis en vente", marginLeft + 5, yPos);
+    yPos += 7;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    
+    let infoLine = "";
+    if (historique.duree) {
+      infoLine += `Durée: ${dureeLabels[historique.duree] || historique.duree}`;
+    }
+    if (historique.prixAffiche) {
+      infoLine += infoLine ? ` | ` : "";
+      infoLine += `Prix affiché: ${formatPrix(parseFloat(historique.prixAffiche))}`;
+    }
+    if (infoLine) {
+      doc.text(infoLine, marginLeft + 8, yPos);
+    }
+
+    yPos += 15;
+  }
+
+  // ========== AMÉLIORATION #4: Informations financières ==========
+  const financier = estimation.identification?.financier;
+  if (financier && (financier.chargesAnnuelles || financier.valeurLocative)) {
+    if (yPos > 230) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Informations financières", marginLeft, yPos);
+    yPos += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+
+    // Charges annuelles
+    const charges = parseFloat(financier.chargesAnnuelles || "0");
+    if (charges > 0) {
+      doc.text("Charges annuelles (PPE):", marginLeft, yPos);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatPrix(charges), marginLeft + 70, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`(${formatPrix(Math.round(charges / 12))}/mois)`, marginLeft + 115, yPos);
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      yPos += 6;
+    }
+
+    // Valeur locative officielle
+    const valeurLoc = parseFloat(financier.valeurLocative || "0");
+    if (valeurLoc > 0) {
+      doc.text("Valeur locative officielle:", marginLeft, yPos);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatPrix(valeurLoc), marginLeft + 70, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 6;
+    }
+
+    // Loyer potentiel + rendement
+    const loyerMensuel = parseFloat(estimation.preEstimation?.loyerMensuel || "0");
+    if (loyerMensuel > 0) {
+      const loyerAnnuel = loyerMensuel * 12;
+      doc.text("Potentiel locatif:", marginLeft, yPos);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(34, 197, 94);
+      doc.text(`${formatPrix(loyerMensuel)}/mois`, marginLeft + 70, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`(${formatPrix(loyerAnnuel)}/an)`, marginLeft + 125, yPos);
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      yPos += 6;
+
+      // Rendement si prix connu
+      const prix = prixMax;
+      if (prix > 0) {
+        const rendement = (loyerAnnuel / prix) * 100;
+        doc.text("Rendement brut estimé:", marginLeft, yPos);
+        doc.setFont("helvetica", "bold");
+        if (rendement >= 4) {
+          doc.setTextColor(34, 197, 94);
+        } else if (rendement >= 3) {
+          doc.setTextColor(251, 146, 60);
+        } else {
+          doc.setTextColor(239, 68, 68);
+        }
+        doc.text(`${rendement.toFixed(2)}%`, marginLeft + 70, yPos);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "normal");
+        yPos += 6;
+      }
+    }
+
+    yPos += 8;
   }
 
   // ========== Points forts ==========
@@ -182,6 +553,89 @@ export async function generateEstimationPDF({
       doc.text(`• ${point}`, marginLeft + 5, yPos);
       yPos += 6;
     });
+    yPos += 5;
+  }
+
+  // ========== AMÉLIORATION #3: Proximités et cadre de vie ==========
+  const proximites = estimation.identification?.proximites;
+  if (proximites && Array.isArray(proximites) && proximites.length > 0) {
+    if (yPos > 200) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Proximités", marginLeft, yPos);
+    yPos += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+
+    // Grouper par type
+    const transports = proximites.filter((p: { type: string }) => p.type?.includes('transport'));
+    const ecoles = proximites.filter((p: { type: string }) => p.type === 'ecole');
+    const commerces = proximites.filter((p: { type: string }) => p.type === 'commerce');
+    const autres = proximites.filter((p: { type: string }) => !['transport_bus', 'transport_tram', 'ecole', 'commerce'].includes(p.type));
+
+    // Transports
+    if (transports.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Transports:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 5;
+
+      transports.slice(0, 3).forEach((transport: { libelle?: string; distance?: string }) => {
+        doc.text(`• ${transport.libelle || 'Transport'} - ${transport.distance || ''}`, marginLeft + 5, yPos);
+        yPos += 5;
+      });
+      yPos += 2;
+    }
+
+    // Écoles
+    if (ecoles.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Écoles:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 5;
+
+      ecoles.slice(0, 3).forEach((ecole: { libelle?: string; distance?: string }) => {
+        doc.text(`• ${ecole.libelle || 'École'} - ${ecole.distance || ''}`, marginLeft + 5, yPos);
+        yPos += 5;
+      });
+      yPos += 2;
+    }
+
+    // Commerces
+    if (commerces.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Commerces:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 5;
+
+      commerces.slice(0, 3).forEach((commerce: { libelle?: string; distance?: string }) => {
+        doc.text(`• ${commerce.libelle || 'Commerce'} - ${commerce.distance || ''}`, marginLeft + 5, yPos);
+        yPos += 5;
+      });
+      yPos += 2;
+    }
+
+    // Autres (santé, nature, etc.)
+    if (autres.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Autres:", marginLeft, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 5;
+
+      autres.slice(0, 3).forEach((autre: { libelle?: string; distance?: string }) => {
+        doc.text(`• ${autre.libelle || 'Proximité'} - ${autre.distance || ''}`, marginLeft + 5, yPos);
+        yPos += 5;
+      });
+      yPos += 2;
+    }
+
     yPos += 5;
   }
 
