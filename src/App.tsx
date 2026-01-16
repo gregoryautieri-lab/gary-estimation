@@ -15,6 +15,7 @@ import Module3AnalyseTerrain from "./pages/estimation/Module3AnalyseTerrain";
 import ModulePhotos from "./pages/estimation/ModulePhotos";
 import Module4PreEstimation from "./pages/estimation/Module4PreEstimation";
 import Module5Strategie from "./pages/estimation/Module5Strategie";
+import PresentationPage from "./pages/estimation/PresentationPage";
 import HistoryView from "./pages/estimation/HistoryView";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -138,6 +139,19 @@ function AppWithWarning() {
               <HistoryView />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/estimation/:id/presentation"
+          element={
+            <ProtectedRoute>
+              <PresentationPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Route publique pour partage client */}
+        <Route
+          path="/presentation/:id"
+          element={<PresentationPage />}
         />
         
         {/* Fallback module routes */}
