@@ -66,6 +66,22 @@ export function getMissingFieldsModule1(id?: Identification): MissingField[] {
     missing.push({ field: 'contexte.horizon', label: 'Horizon de vente', type: 'recommandé', section: 'Contexte' });
   }
 
+  // BUG #1 FIX: Validation projet achat avec critères obligatoires
+  if (id.projetPostVente?.nature === 'achat') {
+    const criteres = id.projetPostVente.criteresAchat;
+    const hasZones = criteres?.zones && criteres.zones.length > 0;
+    const hasBudget = criteres?.budgetMax && criteres.budgetMax > 0;
+    
+    if (!hasZones || !hasBudget) {
+      missing.push({ 
+        field: 'criteresAchat', 
+        label: 'Critères d\'achat détaillés', 
+        type: 'obligatoire', 
+        section: 'Projet Post-Vente' 
+      });
+    }
+  }
+
   return missing;
 }
 

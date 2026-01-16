@@ -96,13 +96,24 @@ export function StatusSelector({
   };
 
   const handleConfirmWithComment = () => {
-    if (pendingStatus) {
-      onChange(pendingStatus, comment || undefined);
-      setPendingStatus(null);
-      setComment('');
-      setShowCommentDialog(false);
+    if (!pendingStatus) return;
+    
+    // BUG #3 FIX: Validation commentaire obligatoire (min 10 caractères)
+    const trimmedComment = comment.trim();
+    if (!trimmedComment || trimmedComment.length < 10) {
+      // On ne peut pas utiliser toast ici car il n'est pas importé
+      // On va juste empêcher la validation - le placeholder guide l'utilisateur
+      return;
     }
+    
+    onChange(pendingStatus, trimmedComment);
+    setPendingStatus(null);
+    setComment('');
+    setShowCommentDialog(false);
   };
+  
+  // Vérifie si le commentaire est valide pour activer le bouton
+  const isCommentValid = comment.trim().length >= 10;
 
   const sizeClasses = {
     sm: 'h-7 text-xs gap-1 px-2',
@@ -194,18 +205,29 @@ export function StatusSelector({
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="status-comment">Commentaire</Label>
+              <Label htmlFor="status-comment">Commentaire <span className="text-destructive">*</span></Label>
               <Textarea
                 id="status-comment"
                 placeholder={
                   pendingStatus === 'perdu' 
-                    ? 'Ex: Client a choisi une autre agence, prix trop élevé, projet reporté...'
-                    : 'Décrivez la raison de ce changement...'
+                    ? 'Ex: Client a choisi une autre agence, prix trop élevé, projet reporté... (min. 10 caractères)'
+                    : 'Décrivez la raison de ce changement... (min. 10 caractères)'
                 }
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={3}
+                className={!isCommentValid && comment.length > 0 ? 'border-destructive' : ''}
               />
+              {comment.length > 0 && !isCommentValid && (
+                <p className="text-xs text-destructive">
+                  Le commentaire doit contenir au moins 10 caractères ({comment.trim().length}/10)
+                </p>
+              )}
+              {comment.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Minimum 10 caractères requis
+                </p>
+              )}
             </div>
           </div>
           
@@ -217,7 +239,10 @@ export function StatusSelector({
             }}>
               Annuler
             </Button>
-            <Button onClick={handleConfirmWithComment}>
+            <Button 
+              onClick={handleConfirmWithComment}
+              disabled={!isCommentValid}
+            >
               Confirmer le changement
             </Button>
           </DialogFooter>
