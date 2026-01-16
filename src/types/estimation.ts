@@ -644,6 +644,33 @@ export function getCategorieConfig(categorie?: PhotoCategorie): PhotoCategorieCo
   return PHOTO_CATEGORIES.find(c => c.value === categorie) || PHOTO_CATEGORIES[PHOTO_CATEGORIES.length - 1];
 }
 
+// Suggestions de titres par catégorie
+export const TITRE_SUGGESTIONS: Record<PhotoCategorie, string[]> = {
+  exterieur: ['Façade principale', 'Façade arrière', 'Vue d\'ensemble', 'Entrée immeuble'],
+  entree: ['Hall d\'entrée', 'Porte d\'entrée', 'Dégagement entrée', 'Vestibule'],
+  sejour: ['Séjour lumineux', 'Espace de vie', 'Double séjour', 'Séjour avec cheminée'],
+  salon: ['Salon spacieux', 'Coin salon', 'Salon double exposition', 'Salon avec vue'],
+  cuisine: ['Cuisine équipée', 'Cuisine ouverte', 'Coin repas', 'Cuisine rénovée', 'Cuisine Miele/Siemens'],
+  chambre: ['Chambre parentale', 'Chambre enfant', 'Chambre avec dressing', 'Suite parentale'],
+  bureau: ['Bureau lumineux', 'Espace de travail', 'Bureau avec rangements', 'Home office'],
+  sdb: ['Salle de bain moderne', 'Salle d\'eau', 'Salle de bain rénovée', 'Baignoire balnéo'],
+  couloir: ['Couloir de distribution', 'Dégagement', 'Couloir avec rangements'],
+  balcon: ['Balcon ensoleillé', 'Balcon couvert', 'Loggia', 'Balcon avec vue'],
+  terrasse: ['Terrasse plein sud', 'Terrasse panoramique', 'Rooftop', 'Terrasse aménagée'],
+  jardin: ['Jardin arboré', 'Jardin privatif', 'Jardin paysager', 'Jardin avec piscine'],
+  vue: ['Vue dégagée', 'Vue panoramique', 'Vue sur le lac', 'Vue sur les Alpes', 'Vue sur le jardin'],
+  parking: ['Place de parking', 'Box fermé', 'Garage privé', 'Parking souterrain'],
+  cave: ['Cave privative', 'Local de stockage', 'Cave à vin', 'Grande cave'],
+  grenier: ['Grenier aménageable', 'Combles', 'Espace sous toiture', 'Grenier isolé'],
+  defaut: ['Fissure à traiter', 'Humidité visible', 'Travaux à prévoir', 'Point à surveiller'],
+  autre: ['Photo du bien', 'Détail intérieur', 'Vue complémentaire'],
+};
+
+export function getTitreSuggestions(categorie?: PhotoCategorie): string[] {
+  if (!categorie) return TITRE_SUGGESTIONS.autre;
+  return TITRE_SUGGESTIONS[categorie] || TITRE_SUGGESTIONS.autre;
+}
+
 export interface Photo {
   id: string;
   dataUrl: string;
