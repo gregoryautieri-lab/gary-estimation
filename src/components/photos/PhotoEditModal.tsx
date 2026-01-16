@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { AlertTriangle, Star, Trash2 } from 'lucide-react';
+import { AlertTriangle, Star, Trash2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Photo, PhotoCategorie } from '@/types/estimation';
-import { PHOTO_CATEGORIES, getCategorieConfig } from '@/types/estimation';
+import { PHOTO_CATEGORIES, getCategorieConfig, getTitreSuggestions } from '@/types/estimation';
 
 interface PhotoEditModalProps {
   photo: Photo | null;
@@ -48,6 +48,9 @@ export function PhotoEditModal({
       setFavori(photo.favori || false);
     }
   }, [photo]);
+
+  // Suggestions de titres basées sur la catégorie
+  const suggestions = useMemo(() => getTitreSuggestions(categorie), [categorie]);
 
   if (!photo) return null;
 
@@ -103,7 +106,7 @@ export function PhotoEditModal({
             )}
           </div>
 
-          {/* Titre */}
+          {/* Titre avec suggestions */}
           <div className="space-y-2">
             <Label htmlFor="titre">Titre</Label>
             <Input
@@ -113,6 +116,23 @@ export function PhotoEditModal({
               onChange={(e) => setTitre(e.target.value)}
               maxLength={50}
             />
+            {/* Suggestions intelligentes */}
+            <div className="flex flex-wrap gap-1">
+              <Sparkles className="h-3 w-3 text-muted-foreground mt-1" />
+              {suggestions.slice(0, 4).map((suggestion) => (
+                <Badge
+                  key={suggestion}
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer text-xs hover:bg-secondary",
+                    titre === suggestion && "bg-secondary"
+                  )}
+                  onClick={() => setTitre(suggestion)}
+                >
+                  {suggestion}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           {/* Description */}

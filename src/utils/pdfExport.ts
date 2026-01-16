@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { EstimationData, PDFConfig } from "@/types/estimation";
+import { EstimationData, PDFConfig, Photo, PHOTO_CATEGORIES, getCategorieConfig } from "@/types/estimation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -16,7 +16,7 @@ interface GeneratePDFOptions {
 }
 
 const defaultConfig: PDFConfig = {
-  inclurePhotos: false,
+  inclurePhotos: true,
   inclureCarte: false,
   inclureComparables: true,
   inclureTimeline: true,
@@ -224,6 +224,100 @@ export async function generateEstimationPDF({
     yPos += lines.length * 5;
   }
 
+  // ========== Photos groupées par catégorie ==========
+  const photos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
+  if (finalConfig.inclurePhotos && photos.length > 0) {
+    // Nouvelle page pour les photos
+    doc.addPage();
+    yPos = 20;
+
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Galerie Photos", marginLeft, yPos);
+    yPos += 10;
+
+    // Grouper les photos par catégorie
+    const groupedPhotos = groupPhotosByCategory(photos);
+    
+    for (const group of groupedPhotos) {
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const catConfig = getCategorieConfig(group.category);
+      
+      // Header de catégorie
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(GARY_DARK);
+      doc.text(`${catConfig.emoji} ${catConfig.label} (${group.photos.length})`, marginLeft, yPos);
+      yPos += 8;
+
+      // Liste des photos avec légendes
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+
+      group.photos.forEach((photo, idx) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        const titre = photo.titre || `Photo ${idx + 1}`;
+        const defautBadge = photo.defaut ? " ⚠️" : "";
+        const favoriBadge = photo.favori ? " ⭐" : "";
+        
+        doc.text(`• ${titre}${favoriBadge}${defautBadge}`, marginLeft + 5, yPos);
+        
+        if (photo.description) {
+          yPos += 5;
+          doc.setFontSize(9);
+          doc.setTextColor(120, 120, 120);
+          const descLines = doc.splitTextToSize(photo.description, contentWidth - 15);
+          doc.text(descLines, marginLeft + 10, yPos);
+          yPos += descLines.length * 4;
+          doc.setFontSize(10);
+          doc.setTextColor(80, 80, 80);
+        }
+        
+        yPos += 6;
+      });
+
+      yPos += 5;
+    }
+
+    // Résumé des défauts si présents
+    const defauts = photos.filter(p => p.defaut);
+    if (defauts.length > 0) {
+      if (yPos > 230) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFillColor(254, 226, 226); // Light red background
+      doc.roundedRect(marginLeft, yPos, contentWidth, 8 + defauts.length * 6, 2, 2, "F");
+      
+      yPos += 6;
+      doc.setTextColor(185, 28, 28); // Red text
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("⚠️ Points d'attention relevés", marginLeft + 5, yPos);
+      yPos += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      defauts.forEach((photo) => {
+        doc.text(`• ${photo.titre || 'Défaut à signaler'}`, marginLeft + 8, yPos);
+        yPos += 5;
+      });
+      yPos += 5;
+    }
+  }
+
   // ========== Pied de page ==========
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -245,6 +339,33 @@ export async function generateEstimationPDF({
   }
 
   return doc;
+}
+
+// Fonction helper pour grouper les photos par catégorie
+function groupPhotosByCategory(photos: Photo[]): { category: Photo['categorie']; photos: Photo[] }[] {
+  const groups = new Map<Photo['categorie'], Photo[]>();
+  
+  // Initialiser les groupes dans l'ordre des catégories
+  PHOTO_CATEGORIES.forEach(cat => {
+    groups.set(cat.value, []);
+  });
+  
+  // Répartir les photos
+  photos.forEach(photo => {
+    const cat = photo.categorie || 'autre';
+    if (!groups.has(cat)) {
+      groups.set(cat, []);
+    }
+    groups.get(cat)!.push(photo);
+  });
+  
+  // Retourner uniquement les groupes non vides, triés par ordre de catégorie
+  return Array.from(groups.entries())
+    .filter(([_, photos]) => photos.length > 0)
+    .map(([category, photos]) => ({
+      category,
+      photos: photos.sort((a, b) => (a.ordre || 0) - (b.ordre || 0))
+    }));
 }
 
 // Télécharge le PDF
