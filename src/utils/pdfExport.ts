@@ -232,76 +232,222 @@ export async function generateEstimationPDF({
   const adresse = estimation.identification?.adresse;
 
   // ========================================
-  // PAGE 1 : COUVERTURE PREMIUM
+  // PAGE 1 : COUVERTURE PREMIUM (Style Founex)
   // ========================================
 
-  // Fond bicolore
-  doc.setFillColor(250, 66, 56); // GARY_RED
-  doc.rect(0, 0, pageWidth, pageHeight / 2, "F");
-
+  // Fond pleine page sombre
   doc.setFillColor(26, 46, 53); // GARY_DARK
-  doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
 
-  // Logo GARY centré
-  yPos = 55;
+  // === HEADER : Titre + Stats ===
+  yPos = 25;
+  
+  // Titre principal
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(48);
-  doc.setFont("helvetica", "bold");
-  safeText(doc, "GARY", pageWidth / 2, yPos, { align: "center" });
-
-  yPos += 12;
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "normal");
-  safeText(doc, "Courtiers Immobiliers", pageWidth / 2, yPos, { align: "center" });
-
-  // Ligne séparation
-  yPos += 12;
-  doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(0.5);
-  doc.line(pageWidth / 2 - 40, yPos, pageWidth / 2 + 40, yPos);
-
-  // Titre document
-  yPos += 20;
-  doc.setFontSize(26);
-  doc.setFont("helvetica", "bold");
-  safeText(doc, "Estimation", pageWidth / 2, yPos, { align: "center" });
-  yPos += 10;
-  safeText(doc, "Immobiliere", pageWidth / 2, yPos, { align: "center" });
-
-  // Adresse du bien
-  yPos += 18;
-  if (adresse) {
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    safeText(doc, adresse.rue || "", pageWidth / 2, yPos, { align: "center" });
-    yPos += 8;
-    safeText(doc, `${adresse.codePostal || ""} ${adresse.localite || ""}`, pageWidth / 2, yPos, { align: "center" });
-  }
-
-  // Prix estimé (dans partie sombre)
-  yPos = pageHeight / 2 + 35;
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(180, 180, 180);
-  safeText(doc, "Estimation de prix", pageWidth / 2, yPos, { align: "center" });
-
-  yPos += 12;
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
+  safeText(doc, "Votre strategie de vente", marginLeft, yPos);
+  yPos += 12;
+  doc.setFontSize(36);
+  doc.setTextColor(250, 66, 56); // GARY_RED
+  safeText(doc, "sur mesure", marginLeft, yPos);
+  
+  // === STATS GARY (partie droite) ===
+  const statsRightX = pageWidth - marginRight;
+  const statsTopY = 20;
+  
+  // Stats principales (4 colonnes alignées à droite)
+  const mainStats = [
+    { value: GARY_STATS.vues2025, label: "VUES EN 2025" },
+    { value: GARY_STATS.communaute, label: "COMMUNAUTE" },
+    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS)\nGOOGLE` },
+    { value: `${GARY_STATS.delaiMoyenMois}`, label: "MOIS EN MOYENNE" }
+  ];
+  
+  const statSpacing = 28;
+  mainStats.forEach((stat, idx) => {
+    const xPos = statsRightX - (mainStats.length - idx) * statSpacing;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    safeText(doc, stat.value, xPos, statsTopY, { align: "center" });
+    doc.setFontSize(5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150, 150, 150);
+    const labelLines = stat.label.split("\n");
+    labelLines.forEach((line, lineIdx) => {
+      safeText(doc, line, xPos, statsTopY + 5 + (lineIdx * 4), { align: "center" });
+    });
+  });
+  
+  // Stats réseaux sociaux (en dessous)
+  const socialStats = [
+    { value: "33K", color: "#E1306C" }, // Instagram rose
+    { value: "3.4K", color: "#0077B5" }, // LinkedIn bleu
+    { value: "4.6K", color: "#1DA1F2" }  // Twitter bleu
+  ];
+  
+  const socialY = statsTopY + 18;
+  socialStats.forEach((stat, idx) => {
+    const xPos = statsRightX - (socialStats.length - idx) * 20 - 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    safeText(doc, stat.value, xPos, socialY, { align: "center" });
+  });
+
+  // === BADGE TYPE DE BIEN ===
+  yPos = 55;
+  const caracCover = estimation.caracteristiques;
+  const typeBienCover = caracCover?.typeBien || estimation.typeBien || "bien";
+  const sousTypeCover = caracCover?.sousType || "";
+  
+  // Construire le label du badge
+  let badgeLabel = typeBienCover.toUpperCase();
+  if (sousTypeCover) {
+    badgeLabel += ` • ${sousTypeCover.toUpperCase()}`;
+  }
+  
+  // Dessiner le badge
+  doc.setFillColor(50, 70, 80);
+  const badgeWidth = doc.getTextWidth(badgeLabel) * 0.35 + 12;
+  doc.roundedRect(marginLeft, yPos, badgeWidth, 8, 2, 2, "F");
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  safeText(doc, prixText, pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, badgeLabel, marginLeft + 6, yPos + 5.5);
 
-  // Date et référence en bas
-  yPos = pageHeight - 28;
-  doc.setFontSize(11);
+  // === ADRESSE DU BIEN ===
+  yPos += 18;
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  safeText(doc, adresse?.rue || "", marginLeft, yPos);
+  yPos += 10;
+  doc.setFontSize(16);
   doc.setFont("helvetica", "normal");
+  safeText(doc, `${adresse?.codePostal || ""} ${adresse?.localite || ""}`, marginLeft, yPos);
+
+  // === TABLEAU RÉSUMÉ DU BIEN ===
+  yPos += 20;
+  
+  // Calculer les valeurs du résumé (structure plate)
+  const surfaceHabCover = parseFloat(caracCover?.surfaceHabitableMaison || caracCover?.surfacePPE || "0") || 0;
+  const nbChambresCover = parseInt(caracCover?.nombreChambres || "0") || 0;
+  const nbSdbCover = parseInt(caracCover?.nombreSDB || "0") || 0;
+  const surfaceExtCover = (parseFloat(caracCover?.surfaceBalcon || "0") || 0) + 
+                          (parseFloat(caracCover?.surfaceTerrasse || "0") || 0) + 
+                          (parseFloat(caracCover?.surfaceJardin || "0") || 0);
+  
+  // Tableau avec 4 colonnes
+  const colWidthCover = contentWidth / 4;
+  const tableData = [
+    { value: `${surfaceHabCover}`, unit: "m²", label: "SURFACE" },
+    { value: `${nbChambresCover}`, unit: "", label: "CHAMBRES" },
+    { value: `${nbSdbCover}`, unit: "", label: "SDB" },
+    { value: `${surfaceExtCover}`, unit: "m²", label: "EXTERIEUR" }
+  ];
+  
+  // Fond du tableau
+  doc.setFillColor(35, 55, 65);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 28, 3, 3, "F");
+  
+  tableData.forEach((col, idx) => {
+    const xPos = marginLeft + (idx * colWidthCover) + colWidthCover / 2;
+    
+    // Valeur principale
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    const valueText = col.unit ? `${col.value} ${col.unit}` : col.value;
+    safeText(doc, valueText, xPos, yPos + 12, { align: "center" });
+    
+    // Label
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150, 150, 150);
+    safeText(doc, col.label, xPos, yPos + 22, { align: "center" });
+    
+    // Séparateur vertical (sauf dernier)
+    if (idx < tableData.length - 1) {
+      doc.setDrawColor(60, 80, 90);
+      doc.setLineWidth(0.3);
+      doc.line(marginLeft + (idx + 1) * colWidthCover, yPos + 6, marginLeft + (idx + 1) * colWidthCover, yPos + 22);
+    }
+  });
+
+  // === POINTS FORTS (Chips) ===
+  yPos += 40;
+  
+  const pointsFortsCover = estimation.analyseTerrain?.pointsForts || [];
+  
+  if (pointsFortsCover.length > 0) {
+    let chipX = marginLeft;
+    const chipY = yPos;
+    const chipHeight = 8;
+    const chipPadding = 8;
+    const chipGap = 6;
+    let currentRow = 0;
+    const maxRowWidth = contentWidth;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    
+    pointsFortsCover.slice(0, 8).forEach((point) => {
+      const chipWidth = doc.getTextWidth(point) * 0.35 + chipPadding * 2;
+      
+      // Nouvelle ligne si dépassement
+      if (chipX + chipWidth > marginLeft + maxRowWidth) {
+        chipX = marginLeft;
+        currentRow++;
+      }
+      
+      const currentY = chipY + (currentRow * (chipHeight + 4));
+      
+      // Fond du chip (rouge semi-transparent via couleur claire)
+      doc.setFillColor(80, 50, 50);
+      doc.roundedRect(chipX, currentY, chipWidth, chipHeight, 2, 2, "F");
+      
+      // Bordure du chip
+      doc.setDrawColor(250, 66, 56);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(chipX, currentY, chipWidth, chipHeight, 2, 2, "S");
+      
+      // Texte du chip
+      doc.setTextColor(250, 66, 56);
+      safeText(doc, point, chipX + chipPadding, currentY + 5.5);
+      
+      chipX += chipWidth + chipGap;
+    });
+    
+    yPos += (currentRow + 1) * (chipHeight + 4) + 10;
+  }
+
+  // === FOOTER : Prix + Date ===
+  // Ligne de séparation
+  const footerY = pageHeight - 50;
+  doc.setDrawColor(60, 80, 90);
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft, footerY, pageWidth - marginRight, footerY);
+  
+  // Prix affiché
   doc.setTextColor(150, 150, 150);
-  safeText(doc, format(new Date(), "dd MMMM yyyy", { locale: fr }), pageWidth / 2, yPos, { align: "center" });
-
-  yPos += 7;
-  doc.setFontSize(9);
-  safeText(doc, `Reference: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth / 2, yPos, { align: "center" });
-
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  safeText(doc, "Estimation de prix", marginLeft, footerY + 12);
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  safeText(doc, prixText, marginLeft, footerY + 25);
+  
+  // Date et référence (à droite)
+  doc.setTextColor(150, 150, 150);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  safeText(doc, format(new Date(), "d MMMM yyyy", { locale: fr }), statsRightX, footerY + 12, { align: "right" });
+  doc.setFontSize(8);
+  safeText(doc, `Ref: ${estimation.id?.slice(0, 8) || "N/A"}`, statsRightX, footerY + 20, { align: "right" });
   // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
   // ========================================
@@ -558,41 +704,41 @@ export async function generateEstimationPDF({
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(marginLeft, yPos, contentWidth, 28, 3, 3, "F");
 
-    const colWidth = contentWidth / 3;
+    const colWidth3Val = contentWidth / 3;
     const valeursY = yPos + 10;
 
     // Valeur Vénale
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(100, 100, 100);
-    safeText(doc, "VENALE", marginLeft + colWidth / 2, valeursY - 3, { align: "center" });
+    safeText(doc, "VENALE", marginLeft + colWidth3Val / 2, valeursY - 3, { align: "center" });
     doc.setFontSize(13);
     doc.setTextColor(GARY_DARK);
-    safeText(doc, formatPrix(valeurVenale), marginLeft + colWidth / 2, valeursY + 8, { align: "center" });
+    safeText(doc, formatPrix(valeurVenale), marginLeft + colWidth3Val / 2, valeursY + 8, { align: "center" });
 
     // Valeur Rendement
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(100, 100, 100);
-    safeText(doc, "RENDEMENT", marginLeft + colWidth + colWidth / 2, valeursY - 3, { align: "center" });
+    safeText(doc, "RENDEMENT", marginLeft + colWidth3Val + colWidth3Val / 2, valeursY - 3, { align: "center" });
     doc.setFontSize(13);
     doc.setTextColor(GARY_DARK);
     if (valeurRendement > 0) {
-      safeText(doc, formatPrix(valeurRendement), marginLeft + colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+      safeText(doc, formatPrix(valeurRendement), marginLeft + colWidth3Val + colWidth3Val / 2, valeursY + 8, { align: "center" });
     } else {
       doc.setFontSize(10);
       doc.setTextColor(150, 150, 150);
-      safeText(doc, "N/A", marginLeft + colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+      safeText(doc, "N/A", marginLeft + colWidth3Val + colWidth3Val / 2, valeursY + 8, { align: "center" });
     }
 
     // Valeur Gage
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(100, 100, 100);
-    safeText(doc, "GAGE", marginLeft + 2 * colWidth + colWidth / 2, valeursY - 3, { align: "center" });
+    safeText(doc, "GAGE", marginLeft + 2 * colWidth3Val + colWidth3Val / 2, valeursY - 3, { align: "center" });
     doc.setFontSize(13);
     doc.setTextColor(GARY_DARK);
-    safeText(doc, formatPrix(valeurGage), marginLeft + 2 * colWidth + colWidth / 2, valeursY + 8, { align: "center" });
+    safeText(doc, formatPrix(valeurGage), marginLeft + 2 * colWidth3Val + colWidth3Val / 2, valeursY + 8, { align: "center" });
 
     yPos += 35;
 
@@ -601,9 +747,9 @@ export async function generateEstimationPDF({
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120, 120, 120);
     if (valeurRendement > 0) {
-      safeText(doc, `Base: Taux ${tauxCapitalisation}% - ${formatPrix(loyerMensuelCalc)}/mois`, marginLeft + colWidth + colWidth / 2, yPos - 2, { align: "center" });
+      safeText(doc, `Base: Taux ${tauxCapitalisation}% - ${formatPrix(loyerMensuelCalc)}/mois`, marginLeft + colWidth3Val + colWidth3Val / 2, yPos - 2, { align: "center" });
     }
-    safeText(doc, "Ref. bancaire", marginLeft + 2 * colWidth + colWidth / 2, yPos - 2, { align: "center" });
+    safeText(doc, "Ref. bancaire", marginLeft + 2 * colWidth3Val + colWidth3Val / 2, yPos - 2, { align: "center" });
     yPos += 8;
   }
 
@@ -790,13 +936,13 @@ export async function generateEstimationPDF({
     ];
 
     // Affichage 2 colonnes
-    const colWidth = contentWidth / 2;
+    const colWidthCarac = contentWidth / 2;
     const startY = yPos + 8;
     
     caracteristiques.forEach((item, idx) => {
       const col = idx % 2;
       const row = Math.floor(idx / 2);
-      const xPos = marginLeft + 10 + (col * colWidth);
+      const xPos = marginLeft + 10 + (col * colWidthCarac);
       const itemY = startY + (row * 7);
       
       // Label en gras gris
@@ -1006,8 +1152,8 @@ export async function generateEstimationPDF({
   }
 
   // ========== Points forts avec style ==========
-  const pointsForts = estimation.analyseTerrain?.pointsForts;
-  if (pointsForts && pointsForts.length > 0) {
+  const pointsFortsSection = estimation.analyseTerrain?.pointsForts;
+  if (pointsFortsSection && pointsFortsSection.length > 0) {
     if (yPos > 220) {
       doc.addPage();
       yPos = 20;
@@ -1020,21 +1166,21 @@ export async function generateEstimationPDF({
     doc.setTextColor(80, 80, 80);
 
     // Afficher en 2 colonnes si plus de 4 points
-    if (pointsForts.length > 4) {
-      const colWidth = contentWidth / 2;
-      pointsForts.forEach((point, idx) => {
+    if (pointsFortsSection.length > 4) {
+      const colWidthPts = contentWidth / 2;
+      pointsFortsSection.forEach((point, idx) => {
         const col = idx % 2;
         const row = Math.floor(idx / 2);
-        const xPos = marginLeft + (col * colWidth);
+        const xPos = marginLeft + (col * colWidthPts);
         const itemY = yPos + (row * SPACE.betweenItems);
         
         doc.setFillColor(34, 197, 94);
         doc.circle(xPos + 3, itemY - 1.5, 1.5, 'F');
         doc.text(point, xPos + 8, itemY);
       });
-      yPos += Math.ceil(pointsForts.length / 2) * SPACE.betweenItems;
+      yPos += Math.ceil(pointsFortsSection.length / 2) * SPACE.betweenItems;
     } else {
-      pointsForts.forEach((point) => {
+      pointsFortsSection.forEach((point) => {
         doc.setFillColor(34, 197, 94);
         doc.circle(marginLeft + 3, yPos - 1.5, 1.5, 'F');
         doc.text(point, marginLeft + 8, yPos);
