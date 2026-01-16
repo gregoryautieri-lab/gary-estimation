@@ -143,15 +143,15 @@ const EstimationExpress = () => {
   const handleAddressSelect = (details: AddressDetails) => {
     setFormData(prev => ({
       ...prev,
-      adresse: details.formatted,
-      codePostal: details.postalCode || '',
-      localite: details.locality || ''
+      adresse: details.formatted || details.rue || '',
+      codePostal: details.postalCode || details.codePostal || '',
+      localite: details.locality || details.localite || ''
     }));
     
-    // Auto-suggérer prix/m² si pas encore saisi
-    if (!formData.prixM2 && details.postalCode) {
-      const cp = details.postalCode.slice(0, 4);
-      const suggestion = PRIX_M2_SUGGESTIONS[cp] || PRIX_M2_SUGGESTIONS['default'];
+    const cp = details.postalCode || details.codePostal || '';
+    if (!formData.prixM2 && cp) {
+      const cpPrefix = cp.slice(0, 4);
+      const suggestion = PRIX_M2_SUGGESTIONS[cpPrefix] || PRIX_M2_SUGGESTIONS['default'];
       setFormData(prev => ({
         ...prev,
         prixM2: suggestion.default.toString()
