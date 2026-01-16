@@ -25,13 +25,49 @@ const defaultConfig: PDFConfig = {
   langue: "fr",
 };
 
-// Format prix CHF
+// ============================================
+// FONCTION CRITIQUE : Normalise le texte pour jsPDF
+// Évite les problèmes d'encodage avec Helvetica
+// ============================================
+function sanitizeText(text: string): string {
+  if (!text) return "";
+  
+  // Remplace les caractères problématiques par leurs équivalents ASCII
+  return text
+    // Guillemets et apostrophes
+    .replace(/['']/g, "'")
+    .replace(/[""]/g, '"')
+    // Tirets spéciaux
+    .replace(/[–—]/g, "-")
+    // Espaces insécables
+    .replace(/\u00A0/g, " ")
+    .replace(/\u202F/g, " ")
+    // Points de suspension
+    .replace(/…/g, "...")
+    // Fractions
+    .replace(/½/g, "1/2")
+    .replace(/¼/g, "1/4")
+    .replace(/¾/g, "3/4")
+    // Symboles monétaires (garder CHF)
+    .replace(/€/g, "EUR")
+    // Flèches
+    .replace(/→/g, "->")
+    .replace(/←/g, "<-")
+    .replace(/↑/g, "^")
+    .replace(/↓/g, "v");
+}
+
+// Wrapper sécurisé pour doc.text qui réinitialise la police
+function safeText(doc: jsPDF, text: string, x: number, y: number, options?: { align?: "left" | "center" | "right" }) {
+  const sanitized = sanitizeText(text);
+  doc.text(sanitized, x, y, options);
+}
+
+// Format prix CHF - version sécurisée
 const formatPrix = (prix: number): string => {
-  return new Intl.NumberFormat("fr-CH", {
-    style: "currency",
-    currency: "CHF",
-    maximumFractionDigits: 0,
-  }).format(prix);
+  // Formater avec apostrophe comme séparateur de milliers (style suisse)
+  const formatted = Math.round(prix).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return formatted + " CHF";
 };
 
 // Espacements standard pour cohérence
@@ -55,11 +91,11 @@ function addSectionHeader(
   doc.setLineWidth(2);
   doc.line(marginLeft, yPos, marginLeft + 30, yPos);
   
-  // Titre section
+  // Titre section - réinitialiser la police proprement
   doc.setTextColor(26, 46, 53); // GARY_DARK
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(title, marginLeft, yPos + 8);
+  safeText(doc, title, marginLeft, yPos + 8);
   
   return yPos + 16;
 }
@@ -200,12 +236,12 @@ export async function generateEstimationPDF({
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(48);
   doc.setFont("helvetica", "bold");
-  doc.text("GARY", pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, "GARY", pageWidth / 2, yPos, { align: "center" });
 
   yPos += 12;
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
-  doc.text("Courtiers Immobiliers", pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, "Courtiers Immobiliers", pageWidth / 2, yPos, { align: "center" });
 
   // Ligne séparation
   yPos += 12;
@@ -217,18 +253,18 @@ export async function generateEstimationPDF({
   yPos += 20;
   doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
-  doc.text("Estimation", pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, "Estimation", pageWidth / 2, yPos, { align: "center" });
   yPos += 10;
-  doc.text("Immobilière", pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, "Immobiliere", pageWidth / 2, yPos, { align: "center" });
 
   // Adresse du bien
   yPos += 18;
   if (adresse) {
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(adresse.rue || "", pageWidth / 2, yPos, { align: "center" });
+    safeText(doc, adresse.rue || "", pageWidth / 2, yPos, { align: "center" });
     yPos += 8;
-    doc.text(`${adresse.codePostal || ""} ${adresse.localite || ""}`, pageWidth / 2, yPos, { align: "center" });
+    safeText(doc, `${adresse.codePostal || ""} ${adresse.localite || ""}`, pageWidth / 2, yPos, { align: "center" });
   }
 
   // Prix estimé (dans partie sombre)
@@ -236,24 +272,24 @@ export async function generateEstimationPDF({
   doc.setFontSize(13);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(180, 180, 180);
-  doc.text("Estimation de prix", pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, "Estimation de prix", pageWidth / 2, yPos, { align: "center" });
 
   yPos += 12;
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text(prixText, pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, prixText, pageWidth / 2, yPos, { align: "center" });
 
   // Date et référence en bas
   yPos = pageHeight - 28;
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(150, 150, 150);
-  doc.text(format(new Date(), "dd MMMM yyyy", { locale: fr }), pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, format(new Date(), "dd MMMM yyyy", { locale: fr }), pageWidth / 2, yPos, { align: "center" });
 
   yPos += 7;
   doc.setFontSize(9);
-  doc.text(`Référence: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth / 2, yPos, { align: "center" });
+  safeText(doc, `Reference: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth / 2, yPos, { align: "center" });
 
   // ========================================
   // PAGE 2 : À L'ATTENTION DE
@@ -270,12 +306,12 @@ export async function generateEstimationPDF({
     doc.setTextColor(GARY_DARK);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("À l'attention de", marginLeft, yPos);
+    safeText(doc, "A l'attention de", marginLeft, yPos);
     yPos += 10;
     
     doc.setFontSize(16);
     doc.setTextColor(250, 66, 56);
-    doc.text(`Madame, Monsieur ${nomComplet}`, marginLeft, yPos);
+    safeText(doc, `Madame, Monsieur ${nomComplet}`, marginLeft, yPos);
     yPos += 18;
   }
 
@@ -284,23 +320,23 @@ export async function generateEstimationPDF({
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
 
-  const introText = nomComplet
-    ? `Suite à notre entretien et à la visite de votre bien situé ${adresse?.rue ? 'au ' + adresse.rue : 'à ' + (adresse?.localite || '')}, nous avons le plaisir de vous transmettre notre estimation détaillée.`
-    : `Nous avons le plaisir de vous transmettre l'estimation détaillée du bien situé ${adresse?.rue ? 'au ' + adresse.rue : 'à ' + (adresse?.localite || '')}.`;
+  const introText = sanitizeText(nomComplet
+    ? `Suite a notre entretien et a la visite de votre bien situe ${adresse?.rue ? 'au ' + adresse.rue : 'a ' + (adresse?.localite || '')}, nous avons le plaisir de vous transmettre notre estimation detaillee.`
+    : `Nous avons le plaisir de vous transmettre l'estimation detaillee du bien situe ${adresse?.rue ? 'au ' + adresse.rue : 'a ' + (adresse?.localite || '')}.`);
 
   const introLines = doc.splitTextToSize(introText, contentWidth);
   doc.text(introLines, marginLeft, yPos);
   yPos += introLines.length * 6 + 12;
 
-  doc.text("Ce document reprend :", marginLeft, yPos);
+  safeText(doc, "Ce document reprend :", marginLeft, yPos);
   yPos += 8;
 
   const sections = [
-    "L'estimation de prix basée sur notre analyse du marché",
-    "Les caractéristiques détaillées de votre bien",
-    "Les comparables de référence",
-    "Notre stratégie de mise en vente personnalisée",
-    "Les prochaines étapes pour concrétiser ce projet"
+    "L'estimation de prix basee sur notre analyse du marche",
+    "Les caracteristiques detaillees de votre bien",
+    "Les comparables de reference",
+    "Notre strategie de mise en vente personnalisee",
+    "Les prochaines etapes pour concretiser ce projet"
   ];
 
   doc.setFontSize(10);
@@ -308,7 +344,7 @@ export async function generateEstimationPDF({
     doc.setFillColor(34, 197, 94);
     doc.circle(marginLeft + 4, yPos - 1.5, 1.5, 'F');
     doc.setTextColor(GARY_DARK);
-    doc.text(section, marginLeft + 10, yPos);
+    safeText(doc, section, marginLeft + 10, yPos);
     yPos += 7;
   });
 
@@ -318,7 +354,7 @@ export async function generateEstimationPDF({
   doc.setFontSize(10);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(100, 100, 100);
-  const closingIntro = "Nous restons à votre entière disposition pour échanger sur cette estimation et répondre à toutes vos questions.";
+  const closingIntro = sanitizeText("Nous restons a votre entiere disposition pour echanger sur cette estimation et repondre a toutes vos questions.");
   const closingIntroLines = doc.splitTextToSize(closingIntro, contentWidth);
   doc.text(closingIntroLines, marginLeft, yPos);
   yPos += closingIntroLines.length * 5 + 15;
@@ -353,15 +389,15 @@ export async function generateEstimationPDF({
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("FOURCHETTE DE PRIX RECOMMANDÉE", marginLeft + 20, yPos + 16);
+  safeText(doc, "FOURCHETTE DE PRIX RECOMMANDEE", marginLeft + 20, yPos + 16);
 
   // Prix
   doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
   const prixDisplayText = prixMin > 0 && prixMax > 0 
     ? `${formatPrix(prixMin)} - ${formatPrix(prixMax)}`
-    : "Prix à déterminer";
-  doc.text(prixDisplayText, marginLeft + 20, yPos + 34);
+    : "Prix a determiner";
+  safeText(doc, prixDisplayText, marginLeft + 20, yPos + 34);
 
   yPos += 50 + SPACE.afterBlock;
 
@@ -1037,7 +1073,7 @@ export async function generateEstimationPDF({
       yPos = 20;
     }
 
-    yPos = addSectionHeader(doc, "Stratégie de mise en vente", yPos, marginLeft);
+    yPos = addSectionHeader(doc, "Strategie de mise en vente", yPos, marginLeft);
 
     const strat = estimation.strategiePitch;
     
@@ -1046,7 +1082,7 @@ export async function generateEstimationPDF({
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80, 80, 80);
-      doc.text(`Lancement prévu: ${format(new Date(strat.dateDebut), "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
+      safeText(doc, `Lancement prevu: ${format(new Date(strat.dateDebut), "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
       yPos += 10;
     }
 
@@ -1060,7 +1096,7 @@ export async function generateEstimationPDF({
     // Tableau phases avec couleurs
     const phases = [
       { 
-        nom: "Phase 0 - Préparation", 
+        nom: "Phase 0 - Preparation", 
         duree: durees.phase0, 
         prix: null as number | null,
         desc: "Photos, home staging, dossier",
@@ -1087,7 +1123,7 @@ export async function generateEstimationPDF({
         nom: "Phase 3 - Public", 
         duree: durees.phase3, 
         prix: prixBase > 0 ? prixBase * (1 + pourcPublic / 100) : null,
-        desc: `Prix marché (+${pourcPublic}%)`,
+        desc: `Prix marche (+${pourcPublic}%)`,
         bgColor: [220, 252, 231] as [number, number, number],
         textColor: [21, 128, 61] as [number, number, number]
       }
@@ -1109,12 +1145,12 @@ export async function generateEstimationPDF({
       doc.setTextColor(...phase.textColor);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text(phase.nom, marginLeft + 5, yPos);
+      safeText(doc, phase.nom, marginLeft + 5, yPos);
 
       // Durée à droite
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`${phase.duree} sem.`, pageWidth - marginRight - 20, yPos);
+      safeText(doc, `${phase.duree} sem.`, pageWidth - marginRight - 20, yPos);
 
       yPos += 6;
 
@@ -1123,9 +1159,9 @@ export async function generateEstimationPDF({
       doc.setTextColor(100, 100, 100);
       let descLine = phase.desc;
       if (phase.prix) {
-        descLine += ` → ${formatPrix(phase.prix)}`;
+        descLine += ` -> ${formatPrix(phase.prix)}`;
       }
-      doc.text(descLine, marginLeft + 5, yPos);
+      safeText(doc, descLine, marginLeft + 5, yPos);
 
       yPos += 12;
     });
@@ -1147,19 +1183,20 @@ export async function generateEstimationPDF({
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80, 80, 80);
 
-    // Split long text into lines
-    const lines = doc.splitTextToSize(pitchText, contentWidth);
+    // Split long text into lines - sanitize text
+    const sanitizedPitch = sanitizeText(pitchText);
+    const lines = doc.splitTextToSize(sanitizedPitch, contentWidth);
     doc.text(lines, marginLeft, yPos);
     yPos += lines.length * 5;
   }
 
-  // ========== Prochaines étapes avec style ==========
+  // ========== Prochaines etapes avec style ==========
   doc.addPage();
   yPos = 25;
 
-  yPos = addSectionHeader(doc, "Prochaines étapes", yPos, marginLeft);
+  yPos = addSectionHeader(doc, "Prochaines etapes", yPos, marginLeft);
 
-  // Encadré calendrier prévisionnel
+  // Encadre calendrier previsionnel
   doc.setFillColor(239, 246, 255);
   doc.roundedRect(marginLeft, yPos, contentWidth, 45, 3, 3, "F");
 
@@ -1167,7 +1204,7 @@ export async function generateEstimationPDF({
   doc.setFontSize(11);
   doc.setTextColor(29, 78, 216);
   doc.setFont("helvetica", "bold");
-  doc.text("Calendrier prévisionnel", marginLeft + 10, yPos);
+  safeText(doc, "Calendrier previsionnel", marginLeft + 10, yPos);
   yPos += 8;
 
   doc.setFontSize(9);
@@ -1199,8 +1236,8 @@ export async function generateEstimationPDF({
     }
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80, 80, 80);
-    doc.text(etape.date, marginLeft + 22, yPos);
-    doc.text(etape.label, marginLeft + 50, yPos);
+    safeText(doc, etape.date, marginLeft + 22, yPos);
+    safeText(doc, etape.label, marginLeft + 50, yPos);
     yPos += 6;
   });
 
@@ -1210,7 +1247,7 @@ export async function generateEstimationPDF({
   doc.setTextColor(GARY_DARK);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Actions à préparer de votre côté", marginLeft, yPos);
+  safeText(doc, "Actions a preparer de votre cote", marginLeft, yPos);
   yPos += 8;
 
   doc.setFontSize(9);
@@ -1218,16 +1255,16 @@ export async function generateEstimationPDF({
   doc.setTextColor(80, 80, 80);
 
   const actionsVendeur = [
-    "Rassembler les documents (acte de propriété, règlement PPE, plans...)",
-    "Préparer une liste des travaux effectués ces dernières années",
+    "Rassembler les documents (acte de propriete, reglement PPE, plans...)",
+    "Preparer une liste des travaux effectues ces dernieres annees",
     "Anticiper les questions techniques (chauffage, isolation, toiture...)",
-    "Réfléchir à votre projet post-vente (timing, budget, critères)"
+    "Reflechir a votre projet post-vente (timing, budget, criteres)"
   ];
 
   actionsVendeur.forEach(action => {
     doc.setDrawColor(150, 150, 150);
     doc.rect(marginLeft + 3, yPos - 3, 3, 3);
-    doc.text(action, marginLeft + 10, yPos);
+    safeText(doc, action, marginLeft + 10, yPos);
     yPos += 6;
   });
 
@@ -1237,7 +1274,7 @@ export async function generateEstimationPDF({
   doc.setTextColor(GARY_DARK);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Ce que nous préparons", marginLeft, yPos);
+  safeText(doc, "Ce que nous preparons", marginLeft, yPos);
   yPos += 8;
 
   doc.setFontSize(9);
@@ -1245,16 +1282,16 @@ export async function generateEstimationPDF({
   doc.setTextColor(80, 80, 80);
 
   const actionsCourtier = [
-    "Rédaction du mandat de courtage personnalisé",
-    "Préparation du dossier de vente complet",
+    "Redaction du mandat de courtage personnalise",
+    "Preparation du dossier de vente complet",
     "Planning des photos et visites professionnelles",
-    "Mise en place de la stratégie de diffusion"
+    "Mise en place de la strategie de diffusion"
   ];
 
   actionsCourtier.forEach(action => {
     doc.setFillColor(34, 197, 94);
     doc.rect(marginLeft + 3, yPos - 3, 3, 3, "F");
-    doc.text(action, marginLeft + 10, yPos);
+    safeText(doc, action, marginLeft + 10, yPos);
     yPos += 6;
   });
 
@@ -1266,7 +1303,7 @@ export async function generateEstimationPDF({
 
   yPos = addSectionHeader(doc, "Restons en contact", yPos, marginLeft);
 
-  // Encadré courtier
+  // Encadre courtier
   const encadreWidth = (contentWidth / 2) - 5;
 
   doc.setFillColor(248, 250, 252);
@@ -1278,7 +1315,7 @@ export async function generateEstimationPDF({
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(250, 66, 56);
-  doc.text("Votre conseiller GARY", marginLeft + 10, contactY);
+  safeText(doc, "Votre conseiller GARY", marginLeft + 10, contactY);
   contactY += 12;
 
   // Récupérer le courtier assigné
@@ -1293,19 +1330,19 @@ export async function generateEstimationPDF({
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(GARY_DARK);
-  doc.text(courtierNomComplet, marginLeft + 10, contactY);
+  safeText(doc, courtierNomComplet, marginLeft + 10, contactY);
   contactY += 10;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.text(telephoneCourtier, marginLeft + 10, contactY);
+  safeText(doc, telephoneCourtier, marginLeft + 10, contactY);
   contactY += 6;
-  doc.text(emailCourtier, marginLeft + 10, contactY);
+  safeText(doc, emailCourtier, marginLeft + 10, contactY);
   contactY += 6;
-  doc.text("www.gary-immobilier.ch", marginLeft + 10, contactY);
+  safeText(doc, "www.gary-immobilier.ch", marginLeft + 10, contactY);
 
-  // Encadré disponibilité
+  // Encadre disponibilite
   const encadreX = marginLeft + encadreWidth + 10;
 
   doc.setFillColor(254, 243, 199);
@@ -1316,54 +1353,54 @@ export async function generateEstimationPDF({
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(180, 83, 9);
-  doc.text("Disponibilité", encadreX + 10, contactY);
+  safeText(doc, "Disponibilite", encadreX + 10, contactY);
   contactY += 12;
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
 
-  doc.text("Lundi - Vendredi", encadreX + 10, contactY);
+  safeText(doc, "Lundi - Vendredi", encadreX + 10, contactY);
   contactY += 5;
-  doc.text("8h00 - 19h00", encadreX + 10, contactY);
+  safeText(doc, "8h00 - 19h00", encadreX + 10, contactY);
   contactY += 8;
-  doc.text("Samedi", encadreX + 10, contactY);
+  safeText(doc, "Samedi", encadreX + 10, contactY);
   contactY += 5;
-  doc.text("9h00 - 17h00", encadreX + 10, contactY);
+  safeText(doc, "9h00 - 17h00", encadreX + 10, contactY);
 
   yPos += 85;
 
-  // Message personnalisé
+  // Message personnalise
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
 
-  const messageContact = "Pour fixer un rendez-vous de signature du mandat ou pour toute question, n'hésitez pas à me contacter par téléphone ou email. Je me ferai un plaisir de vous accompagner dans votre projet.";
+  const messageContact = sanitizeText("Pour fixer un rendez-vous de signature du mandat ou pour toute question, n'hesitez pas a me contacter par telephone ou email. Je me ferai un plaisir de vous accompagner dans votre projet.");
 
   const messageContactLines = doc.splitTextToSize(messageContact, contentWidth);
   doc.text(messageContactLines, marginLeft, yPos);
 
-  // ════════════════════════════════════════════════════════════
-  // ANNEXE PHOTOGRAPHIQUE (À LA FIN DU DOCUMENT - MAX 50 PHOTOS)
-  // ════════════════════════════════════════════════════════════
+  // ================================================================
+  // ANNEXE PHOTOGRAPHIQUE (A LA FIN DU DOCUMENT - MAX 50 PHOTOS)
+  // ================================================================
   const allPhotos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
   
   if (finalConfig.inclurePhotos && allPhotos.length > 0) {
-    // Page de séparation ANNEXE PHOTOGRAPHIQUE
+    // Page de separation ANNEXE PHOTOGRAPHIQUE
     doc.addPage();
     yPos = 80;
     
-    // Titre "ANNEXE PHOTOGRAPHIQUE" centré
+    // Titre "ANNEXE PHOTOGRAPHIQUE" centre
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(26, 46, 53); // GARY_DARK
-    doc.text("ANNEXE", pageWidth / 2, yPos, { align: "center" });
+    safeText(doc, "ANNEXE", pageWidth / 2, yPos, { align: "center" });
     yPos += 16;
-    doc.text("PHOTOGRAPHIQUE", pageWidth / 2, yPos, { align: "center" });
+    safeText(doc, "PHOTOGRAPHIQUE", pageWidth / 2, yPos, { align: "center" });
     
     yPos += 25;
     
-    // Ligne décorative rouge
+    // Ligne decorative rouge
     doc.setDrawColor(250, 66, 56); // GARY_RED
     doc.setLineWidth(3);
     const lineWidth = 80;
@@ -1382,7 +1419,7 @@ export async function generateEstimationPDF({
     doc.setTextColor(100, 100, 100);
     const photosCount = allPhotos.length;
     const displayCount = Math.min(photosCount, 50);
-    doc.text(
+    safeText(doc, 
       `${displayCount} photo${displayCount > 1 ? 's' : ''} du bien`,
       pageWidth / 2,
       yPos,
@@ -1395,8 +1432,8 @@ export async function generateEstimationPDF({
       doc.setFontSize(10);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(239, 68, 68);
-      doc.text(
-        `(${photosCount} photos disponibles, affichage limité à 50 pour le PDF)`,
+      safeText(doc, 
+        `(${photosCount} photos disponibles, affichage limite a 50 pour le PDF)`,
         pageWidth / 2,
         yPos,
         { align: "center" }
@@ -1428,12 +1465,12 @@ export async function generateEstimationPDF({
         photosOnCurrentPage = 0;
       }
       
-      // Titre catégorie (SANS EMOJI)
+      // Titre categorie (SANS EMOJI)
       const catConfig = getCategorieConfig(group.category);
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(26, 46, 53);
-      doc.text(catConfig.label, marginLeft, yPos);
+      safeText(doc, catConfig.label, marginLeft, yPos);
       yPos += 10;
       
       // Afficher photos de la catégorie
