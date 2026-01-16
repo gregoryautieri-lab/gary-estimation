@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { EstimationData, PDFConfig, Photo, PHOTO_CATEGORIES, getCategorieConfig } from "@/types/estimation";
+import { EstimationData, PDFConfig, Photo, PHOTO_CATEGORIES, getCategorieConfig, COURTIERS_GARY, getCourtierById } from "@/types/estimation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -33,6 +33,23 @@ const formatPrix = (prix: number): string => {
     maximumFractionDigits: 0,
   }).format(prix);
 };
+
+// Charger une image depuis URL et retourner en base64
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 // Génère le PDF de l'estimation
 export async function generateEstimationPDF({
@@ -168,10 +185,132 @@ export async function generateEstimationPDF({
     yPos += 5;
   }
 
-  // ========== Timeline (si configuré) ==========
+  // ========== CORRECTION #2: Comparables marché ==========
+  if (finalConfig.inclureComparables) {
+    const comparablesVendus = estimation.preEstimation?.comparablesVendus || [];
+    const comparablesEnVente = estimation.preEstimation?.comparablesEnVente || [];
+    const hasComparables = comparablesVendus.length > 0 || comparablesEnVente.length > 0;
+
+    if (hasComparables) {
+      if (yPos > 180) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setTextColor(GARY_DARK);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Analyse du marché", marginLeft, yPos);
+      yPos += 10;
+
+      // Comparables vendus
+      if (comparablesVendus.length > 0) {
+        doc.setFontSize(12);
+        doc.setTextColor(34, 197, 94);
+        doc.setFont("helvetica", "bold");
+        doc.text("Biens vendus récemment", marginLeft, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "normal");
+
+        comparablesVendus.slice(0, 3).forEach((comp) => {
+          if (yPos > 260) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          const prix = parseFloat(comp.prix) || 0;
+          const surface = parseFloat(comp.surface) || 0;
+          const prixM2 = surface > 0 ? Math.round(prix / surface) : 0;
+
+          doc.setFont("helvetica", "bold");
+          doc.text(`• ${comp.adresse || 'Adresse non renseignée'}`, marginLeft + 3, yPos);
+          yPos += 5;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          
+          let infoLine = `  ${formatPrix(prix)}`;
+          if (surface > 0) infoLine += ` | ${surface} m²`;
+          if (prixM2 > 0) infoLine += ` | ${formatPrix(prixM2)}/m²`;
+          doc.text(infoLine, marginLeft + 5, yPos);
+          yPos += 5;
+
+          if (comp.dateVente) {
+            doc.setTextColor(120, 120, 120);
+            doc.text(`  Vendu: ${comp.dateVente}`, marginLeft + 5, yPos);
+            doc.setTextColor(80, 80, 80);
+            yPos += 4;
+          }
+
+          doc.setFontSize(10);
+          yPos += 3;
+        });
+
+        yPos += 5;
+      }
+
+      // Comparables en vente
+      if (comparablesEnVente.length > 0) {
+        if (yPos > 200) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(12);
+        doc.setTextColor(59, 130, 246);
+        doc.setFont("helvetica", "bold");
+        doc.text("Biens actuellement en vente", marginLeft, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "normal");
+
+        comparablesEnVente.slice(0, 3).forEach((comp) => {
+          if (yPos > 260) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          const prix = parseFloat(comp.prix) || 0;
+          const surface = parseFloat(comp.surface) || 0;
+          const prixM2 = surface > 0 ? Math.round(prix / surface) : 0;
+
+          doc.setFont("helvetica", "bold");
+          doc.text(`• ${comp.adresse || 'Adresse non renseignée'}`, marginLeft + 3, yPos);
+          yPos += 5;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          
+          let infoLine = `  ${formatPrix(prix)}`;
+          if (surface > 0) infoLine += ` | ${surface} m²`;
+          if (prixM2 > 0) infoLine += ` | ${formatPrix(prixM2)}/m²`;
+          doc.text(infoLine, marginLeft + 5, yPos);
+          yPos += 5;
+
+          if (comp.dureeEnVente) {
+            doc.setTextColor(120, 120, 120);
+            doc.text(`  En vente depuis: ${comp.dureeEnVente}`, marginLeft + 5, yPos);
+            doc.setTextColor(80, 80, 80);
+            yPos += 4;
+          }
+
+          doc.setFontSize(10);
+          yPos += 3;
+        });
+
+        yPos += 10;
+      }
+    }
+  }
+
+  // ========== CORRECTION #4: Timeline détaillée avec dates et prix ==========
   if (finalConfig.inclureTimeline && estimation.strategiePitch) {
-    // Vérifier si on a besoin d'une nouvelle page
-    if (yPos > 220) {
+    if (yPos > 160) {
       doc.addPage();
       yPos = 20;
     }
@@ -182,28 +321,104 @@ export async function generateEstimationPDF({
     doc.text("Stratégie de mise en vente", marginLeft, yPos);
     yPos += 10;
 
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
-
     const strat = estimation.strategiePitch;
+    
+    // Date de lancement
     if (strat.dateDebut) {
-      doc.text(`Date de lancement prévue: ${format(new Date(strat.dateDebut), "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
-      yPos += 7;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Lancement prévu: ${format(new Date(strat.dateDebut), "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
+      yPos += 10;
     }
 
-    const phases = ["Phase 0 - Préparation", "Phase 1 - Off-Market", "Phase 2 - Coming Soon", "Phase 3 - Public"];
+    // Récupérer les durées et pourcentages
+    const durees = strat.phaseDurees || { phase0: 2, phase1: 2, phase2: 2, phase3: 4 };
+    const prixBase = prixMax;
+    const pourcOffmarket = estimation.preEstimation?.pourcOffmarket || 15;
+    const pourcComingsoon = estimation.preEstimation?.pourcComingsoon || 10;
+    const pourcPublic = estimation.preEstimation?.pourcPublic || 6;
+
+    // Tableau phases avec couleurs
+    const phases = [
+      { 
+        nom: "Phase 0 - Préparation", 
+        duree: durees.phase0, 
+        prix: null as number | null,
+        desc: "Photos, home staging, dossier",
+        bgColor: [243, 244, 246] as [number, number, number],
+        textColor: [75, 85, 99] as [number, number, number]
+      },
+      { 
+        nom: "Phase 1 - Off-Market", 
+        duree: durees.phase1, 
+        prix: prixBase > 0 ? prixBase * (1 + pourcOffmarket / 100) : null,
+        desc: `Prix premium (+${pourcOffmarket}%)`,
+        bgColor: [254, 226, 226] as [number, number, number],
+        textColor: [185, 28, 28] as [number, number, number]
+      },
+      { 
+        nom: "Phase 2 - Coming Soon", 
+        duree: durees.phase2, 
+        prix: prixBase > 0 ? prixBase * (1 + pourcComingsoon / 100) : null,
+        desc: `Prix attractif (+${pourcComingsoon}%)`,
+        bgColor: [254, 243, 199] as [number, number, number],
+        textColor: [180, 83, 9] as [number, number, number]
+      },
+      { 
+        nom: "Phase 3 - Public", 
+        duree: durees.phase3, 
+        prix: prixBase > 0 ? prixBase * (1 + pourcPublic / 100) : null,
+        desc: `Prix marché (+${pourcPublic}%)`,
+        bgColor: [220, 252, 231] as [number, number, number],
+        textColor: [21, 128, 61] as [number, number, number]
+      }
+    ];
+
     phases.forEach((phase) => {
-      doc.text(`• ${phase}`, marginLeft + 5, yPos);
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Rectangle de fond coloré
+      doc.setFillColor(...phase.bgColor);
+      doc.roundedRect(marginLeft, yPos, contentWidth, 20, 2, 2, "F");
+
+      yPos += 7;
+
+      // Nom phase
+      doc.setTextColor(...phase.textColor);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(phase.nom, marginLeft + 5, yPos);
+
+      // Durée à droite
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`${phase.duree} sem.`, pageWidth - marginRight - 20, yPos);
+
       yPos += 6;
+
+      // Description et prix
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      let descLine = phase.desc;
+      if (phase.prix) {
+        descLine += ` → ${formatPrix(phase.prix)}`;
+      }
+      doc.text(descLine, marginLeft + 5, yPos);
+
+      yPos += 12;
     });
+
     yPos += 5;
   }
 
   // ========== Pitch (si configuré) ==========
   const pitchText = estimation.strategiePitch?.pitchCustom || estimation.strategiePitch?.pitchGenere?.pitchComplet;
   if (finalConfig.inclurePitch && pitchText) {
-    if (yPos > 200) {
+    if (yPos > 180) {
       doc.addPage();
       yPos = 20;
     }
@@ -224,10 +439,9 @@ export async function generateEstimationPDF({
     yPos += lines.length * 5;
   }
 
-  // ========== Photos groupées par catégorie ==========
+  // ========== CORRECTION #1: Photos avec images réelles ==========
   const photos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
   if (finalConfig.inclurePhotos && photos.length > 0) {
-    // Nouvelle page pour les photos
     doc.addPage();
     yPos = 20;
 
@@ -241,8 +455,7 @@ export async function generateEstimationPDF({
     const groupedPhotos = groupPhotosByCategory(photos);
     
     for (const group of groupedPhotos) {
-      // Vérifier si on a besoin d'une nouvelle page
-      if (yPos > 240) {
+      if (yPos > 220) {
         doc.addPage();
         yPos = 20;
       }
@@ -253,40 +466,81 @@ export async function generateEstimationPDF({
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(GARY_DARK);
-      doc.text(`${catConfig.emoji} ${catConfig.label} (${group.photos.length})`, marginLeft, yPos);
+      doc.text(`${catConfig.emoji} ${catConfig.label}`, marginLeft, yPos);
       yPos += 8;
 
-      // Liste des photos avec légendes
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
+      // Dimensions photo constantes
+      const imgWidth = (contentWidth / 2) - 5;
+      const imgHeight = 50;
 
-      group.photos.forEach((photo, idx) => {
-        if (yPos > 270) {
+      // Afficher photos (2 par ligne)
+      let col = 0;
+      for (const photo of group.photos) {
+        if (col === 0 && yPos > 200) {
           doc.addPage();
           yPos = 20;
         }
 
-        const titre = photo.titre || `Photo ${idx + 1}`;
-        const defautBadge = photo.defaut ? " ⚠️" : "";
-        const favoriBadge = photo.favori ? " ⭐" : "";
-        
-        doc.text(`• ${titre}${favoriBadge}${defautBadge}`, marginLeft + 5, yPos);
-        
-        if (photo.description) {
-          yPos += 5;
-          doc.setFontSize(9);
-          doc.setTextColor(120, 120, 120);
-          const descLines = doc.splitTextToSize(photo.description, contentWidth - 15);
-          doc.text(descLines, marginLeft + 10, yPos);
-          yPos += descLines.length * 4;
-          doc.setFontSize(10);
-          doc.setTextColor(80, 80, 80);
-        }
-        
-        yPos += 6;
-      });
+        const xPos = col === 0 ? marginLeft : marginLeft + contentWidth / 2 + 5;
 
+        // Cadre photo avec fond gris clair
+        doc.setFillColor(245, 245, 245);
+        doc.setDrawColor(200, 200, 200);
+        doc.roundedRect(xPos, yPos, imgWidth, imgHeight, 2, 2, "FD");
+
+        // Essayer d'afficher l'image si URL disponible
+        const imageUrl = photo.storageUrl || photo.dataUrl;
+        if (imageUrl) {
+          try {
+            const base64 = await loadImageAsBase64(imageUrl);
+            if (base64) {
+              doc.addImage(base64, 'JPEG', xPos + 2, yPos + 2, imgWidth - 4, imgHeight - 4);
+            } else {
+              // Placeholder si chargement échoue
+              doc.setFontSize(8);
+              doc.setTextColor(150, 150, 150);
+              doc.text("Image", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+            }
+          } catch {
+            // Placeholder si erreur
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Image", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+          }
+        } else {
+          // Placeholder si pas d'URL
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text("Photo", xPos + imgWidth / 2, yPos + imgHeight / 2, { align: "center" });
+        }
+
+        // Badges en haut
+        if (photo.favori) {
+          doc.setFillColor(255, 215, 0);
+          doc.circle(xPos + imgWidth - 6, yPos + 6, 4, 'F');
+        }
+        if (photo.defaut) {
+          doc.setFillColor(239, 68, 68);
+          doc.circle(xPos + 6, yPos + 6, 4, 'F');
+        }
+
+        // Titre sous la photo
+        doc.setFontSize(9);
+        doc.setTextColor(GARY_DARK);
+        doc.setFont("helvetica", "bold");
+        const titre = photo.titre || `Photo ${group.photos.indexOf(photo) + 1}`;
+        const titreLines = doc.splitTextToSize(titre, imgWidth - 4);
+        doc.text(titreLines[0] || titre, xPos + 2, yPos + imgHeight + 5);
+
+        col = col === 0 ? 1 : 0;
+        if (col === 0) {
+          yPos += imgHeight + 12;
+        }
+      }
+
+      if (col === 1) {
+        yPos += imgHeight + 12;
+      }
       yPos += 5;
     }
 
@@ -298,14 +552,14 @@ export async function generateEstimationPDF({
         yPos = 20;
       }
 
-      doc.setFillColor(254, 226, 226); // Light red background
+      doc.setFillColor(254, 226, 226);
       doc.roundedRect(marginLeft, yPos, contentWidth, 8 + defauts.length * 6, 2, 2, "F");
       
       yPos += 6;
-      doc.setTextColor(185, 28, 28); // Red text
+      doc.setTextColor(185, 28, 28);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text("⚠️ Points d'attention relevés", marginLeft + 5, yPos);
+      doc.text("Points d'attention relevés", marginLeft + 5, yPos);
       yPos += 6;
 
       doc.setFont("helvetica", "normal");
@@ -317,6 +571,59 @@ export async function generateEstimationPDF({
       yPos += 5;
     }
   }
+
+  // ========== CORRECTION #3: Coordonnées courtier ==========
+  doc.addPage();
+  yPos = 20;
+
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Votre conseiller GARY", marginLeft, yPos);
+  yPos += 15;
+
+  // Encadré contact courtier
+  doc.setDrawColor(250, 66, 56);
+  doc.setLineWidth(1);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 55, 3, 3);
+
+  yPos += 12;
+
+  // Récupérer le courtier assigné
+  const courtierId = estimation.identification?.courtierAssigne;
+  const courtier = courtierId ? getCourtierById(courtierId) : null;
+  const courtierNom = courtier?.nom || "GARY Courtiers Immobiliers";
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(250, 66, 56);
+  doc.text(courtierNom, marginLeft + 10, yPos);
+  yPos += 12;
+
+  // Contact
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+
+  const email = courtier?.email || "contact@gary-immobilier.ch";
+  const telephone = courtier?.telephone || "+41 22 552 22 22";
+
+  doc.text(`Tel: ${telephone}`, marginLeft + 10, yPos);
+  yPos += 8;
+
+  doc.text(`Email: ${email}`, marginLeft + 10, yPos);
+  yPos += 8;
+
+  doc.text("Web: www.gary-immobilier.ch", marginLeft + 10, yPos);
+  yPos += 20;
+
+  // Message de clôture
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.setFont("helvetica", "italic");
+  const closingText = "Je reste à votre entière disposition pour toute question ou pour planifier la signature du mandat.";
+  const closingLines = doc.splitTextToSize(closingText, contentWidth - 20);
+  doc.text(closingLines, marginLeft + 10, yPos);
 
   // ========== Pied de page ==========
   const pageCount = doc.getNumberOfPages();
