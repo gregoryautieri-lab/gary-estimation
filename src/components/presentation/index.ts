@@ -8,3 +8,7 @@ export { PresentationMap } from './PresentationMap';
 export { PresentationTimeline } from './PresentationTimeline';
 export { PresentationPrice } from './PresentationPrice';
 export { PresentationPitch } from './PresentationPitch';
+export { PresentationCover } from './PresentationCover';
+export { PresentationCharacteristics } from './PresentationCharacteristics';
+export { PresentationLocation } from './PresentationLocation';
+export { PresentationActions } from './PresentationActions';

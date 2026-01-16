@@ -36,7 +36,7 @@ import { DateVenteIdeale } from '@/components/strategie/DateVenteIdeale';
 import { LockBannerEnhanced } from '@/components/gary/LockBannerEnhanced';
 import { useEstimationLockEnhanced } from '@/hooks/useEstimationLockEnhanced';
 import { ContrainteBadge } from '@/components/strategie/ContrainteBadge';
-import { PresentationMode } from '@/components/presentation';
+// Note: PresentationMode moved to dedicated route /estimation/:id/presentation
 import { format, nextMonday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -53,7 +53,7 @@ export default function Module5Strategie() {
   const [checkedPhase0Actions, setCheckedPhase0Actions] = useState<string[]>([]);
   const [generatingPitch, setGeneratingPitch] = useState(false);
   const [pitchSource, setPitchSource] = useState<'rule' | 'ai'>('rule');
-  const [showPresentation, setShowPresentation] = useState(false);
+  // Note: Presentation mode now uses dedicated route
 
   useEffect(() => {
     if (id) loadEstimation();
@@ -612,11 +612,11 @@ export default function Module5Strategie() {
 
         {/* Navigation */}
         <div className="flex flex-col gap-3 pt-4">
-          {/* Bouton Mode Présentation */}
+          {/* Bouton Mode Présentation - Navigation vers la route dédiée */}
           <Button 
             variant="outline" 
             className="w-full border-primary/30 text-primary hover:bg-primary/10"
-            onClick={() => setShowPresentation(true)}
+            onClick={() => navigate(`/estimation/${id}/presentation`)}
           >
             <Presentation className="h-4 w-4 mr-2" />
             🎨 Mode Présentation Client
@@ -637,19 +637,6 @@ export default function Module5Strategie() {
           </div>
         </div>
       </div>
-
-      {/* Mode Présentation */}
-      {showPresentation && estimation && (
-        <PresentationMode
-          estimation={estimation}
-          phases={logic.phases}
-          pitch={pitchCustom || logic.pitch.complet}
-          typeMiseEnVente={logic.typeMiseEnVente}
-          capitalVisibilite={logic.capitalVisibilite}
-          isLuxe={luxMode.isLux}
-          onClose={() => setShowPresentation(false)}
-        />
-      )}
 
       <BottomNav />
     </div>

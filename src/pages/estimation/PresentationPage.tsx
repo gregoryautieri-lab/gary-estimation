@@ -5,13 +5,26 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, ChevronLeft, ChevronRight, Share2, Copy, Check, Mail, Lock, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Share2, Copy, Check, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { EstimationData, Photo, TypeMiseEnVente, defaultCaracteristiques, defaultIdentification, defaultAnalyseTerrain, defaultPreEstimation, defaultStrategiePitch } from '@/types/estimation';
+import { 
+  Photo, 
+  TypeMiseEnVente, 
+  defaultCaracteristiques, 
+  defaultIdentification, 
+  defaultAnalyseTerrain, 
+  defaultPreEstimation, 
+  defaultStrategiePitch,
+  Caracteristiques,
+  Identification,
+  AnalyseTerrain,
+  PreEstimation,
+  StrategiePitch
+} from '@/types/estimation';
 
 // Composants de présentation
 import { PresentationCover } from '@/components/presentation/PresentationCover';
@@ -23,6 +36,24 @@ import { PresentationActions } from '@/components/presentation/PresentationActio
 
 // Types pour les sections
 type Section = 'cover' | 'bien' | 'localisation' | 'estimation' | 'strategie' | 'pitch';
+
+// Type local simplifié pour la page presentation
+interface PresentationEstimation {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: string;
+  courtierId: string;
+  adresse: string;
+  localite: string;
+  prixFinal: number;
+  identification: Identification;
+  caracteristiques: Caracteristiques;
+  analyseTerrain: AnalyseTerrain;
+  photos: Photo[];
+  preEstimation: PreEstimation;
+  strategiePitch: StrategiePitch;
+}
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'cover', label: 'Couverture' },
@@ -37,7 +68,7 @@ export default function PresentationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const [estimation, setEstimation] = useState<EstimationData | null>(null);
+  const [estimation, setEstimation] = useState<PresentationEstimation | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentSection, setCurrentSection] = useState<Section>('cover');
   const [copied, setCopied] = useState(false);
@@ -62,8 +93,19 @@ export default function PresentationPage() {
         if (error) throw error;
         
         if (data) {
-          // Mapper les données Supabase vers EstimationData
-          const mapped: EstimationData = {
+          // Extraire photos correctement (peut être tableau ou objet avec items)
+          let photosArray: Photo[] = [];
+          if (data.photos) {
+            const photosData = data.photos as unknown;
+            if (Array.isArray(photosData)) {
+              photosArray = photosData as Photo[];
+            } else if (typeof photosData === 'object' && photosData !== null && 'items' in photosData) {
+              photosArray = (photosData as { items: Photo[] }).items || [];
+            }
+          }
+
+          // Mapper les données Supabase
+          const mapped: PresentationEstimation = {
             id: data.id,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
@@ -84,7 +126,7 @@ export default function PresentationPage() {
               ...defaultAnalyseTerrain,
               ...(data.analyse_terrain as object || {})
             },
-            photos: (data.photos as unknown as Photo[]) || [],
+            photos: photosArray,
             preEstimation: {
               ...defaultPreEstimation,
               ...(data.pre_estimation as object || {})
@@ -92,12 +134,7 @@ export default function PresentationPage() {
             strategiePitch: {
               ...defaultStrategiePitch,
               ...(data.strategie as object || {})
-            },
-            timeline: (data.timeline as EstimationData['timeline']) || { dateDebut: '', dateVenteIdeale: '', phaseDurees: { phase1: 2, phase2: 2, phase3: 4 }, phase0Actions: [] },
-            comparables: (data.comparables as EstimationData['comparables']) || { items: [], source: '' },
-            historique: (data.historique as EstimationData['historique']) || { ancienneAgence: false },
-            notesLibres: data.notes_libres || '',
-            etapesCompletees: data.etapes_completees || []
+            }
           };
           
           setEstimation(mapped);
@@ -206,10 +243,7 @@ export default function PresentationPage() {
   }
 
   // Extraire les données
-  const rawPhotos = estimation.photos;
-  const photos: Photo[] = Array.isArray(rawPhotos) 
-    ? rawPhotos 
-    : (rawPhotos as { items?: Photo[] })?.items || [];
+  const photos = estimation.photos;
   
   const adresse = estimation.identification?.adresse?.rue || estimation.adresse || '';
   const localite = estimation.identification?.adresse?.localite 
@@ -235,12 +269,27 @@ export default function PresentationPage() {
   const vendeurEmail = estimation.identification?.vendeur?.email;
   const vendeurTelephone = estimation.identification?.vendeur?.telephone;
   
-  const pitch = estimation.strategiePitch?.pitchGenere || '';
-  const typeMiseEnVente = (estimation.strategiePitch?.typeMiseEnVente || 'public') as TypeMiseEnVente;
+  // Pitch - peut être un objet PitchGenere ou une chaîne custom
+  const pitchGenere = estimation.strategiePitch?.pitchGenere;
+  const pitchText = typeof pitchGenere === 'object' && pitchGenere 
+    ? pitchGenere.pitchComplet || ''
+    : estimation.strategiePitch?.pitchCustom || '';
+  
+  // Type de mise en vente - dérivé des canaux actifs
+  const canauxActifs = estimation.strategiePitch?.canauxActifs || [];
+  let typeMiseEnVente: TypeMiseEnVente = 'public';
+  if (canauxActifs.includes('offmarket') && !canauxActifs.includes('immoscout')) {
+    typeMiseEnVente = 'offmarket';
+  } else if (canauxActifs.includes('reseaux_sociaux') && !canauxActifs.includes('immoscout')) {
+    typeMiseEnVente = 'comingsoon';
+  }
+  
+  // Capital visibilité - nombre direct
+  const capitalValue = estimation.strategiePitch?.capitalVisibilite || 100;
   const capitalVisibilite = {
-    value: estimation.strategiePitch?.capitalVisibilite?.valeur || 100,
-    label: estimation.strategiePitch?.capitalVisibilite?.message || 'Visibilité optimale',
-    color: 'green'
+    value: typeof capitalValue === 'number' ? capitalValue : 100,
+    label: capitalValue >= 80 ? 'Capital préservé' : capitalValue >= 50 ? 'Capital modéré' : 'Capital faible',
+    color: capitalValue >= 80 ? 'green' : capitalValue >= 50 ? 'yellow' : 'red'
   };
   
   const proximites = estimation.identification?.proximites || [];
@@ -249,13 +298,13 @@ export default function PresentationPage() {
   const isLuxe = prixFinal >= 3000000;
 
   // Construire les phases pour la timeline
-  const dateDebut = estimation.strategiePitch?.dateDebutStrategy 
-    ? new Date(estimation.strategiePitch.dateDebutStrategy) 
-    : new Date();
+  const dateDebutStr = estimation.strategiePitch?.dateDebut;
+  const dateDebut = dateDebutStr ? new Date(dateDebutStr) : new Date();
   
-  const dureeP1 = estimation.strategiePitch?.phase1Duree || 2;
-  const dureeP2 = estimation.strategiePitch?.phase2Duree || 2;
-  const dureeP3 = estimation.strategiePitch?.phase3Duree || 4;
+  const phaseDurees = estimation.strategiePitch?.phaseDurees || { phase0: 1, phase1: 2, phase2: 2, phase3: 4 };
+  const dureeP1 = phaseDurees.phase1 || 2;
+  const dureeP2 = phaseDurees.phase2 || 2;
+  const dureeP3 = phaseDurees.phase3 || 4;
   
   const phase1End = new Date(dateDebut);
   phase1End.setDate(phase1End.getDate() + dureeP1 * 7);
@@ -407,7 +456,7 @@ export default function PresentationPage() {
           )}
           {currentSection === 'pitch' && (
             <PresentationActions 
-              pitch={pitch}
+              pitch={pitchText}
               vendeurNom={vendeurNom}
               vendeurPrenom={vendeurPrenom}
               vendeurTelephone={vendeurTelephone}
@@ -453,7 +502,7 @@ export default function PresentationPage() {
       {/* Bottom navigation - visible sauf sur la couverture */}
       {currentSection !== 'cover' && (
         <nav className="flex items-center justify-center gap-1.5 p-4 border-t border-white/10 shrink-0 z-20">
-          {SECTIONS.map((section, idx) => (
+          {SECTIONS.map((section) => (
             <button
               key={section.id}
               className={cn(
