@@ -34,21 +34,99 @@ const formatPrix = (prix: number): string => {
   }).format(prix);
 };
 
-// Charger une image depuis URL et retourner en base64
-async function loadImageAsBase64(url: string): Promise<string | null> {
+// Charger et COMPRESSER une image depuis URL (max 800px, JPEG 70%)
+async function loadImageAsBase64(url: string, maxWidth: number = 800): Promise<string | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
+    
     const blob = await response.blob();
+    
+    // Créer une image pour compression
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+      img.onload = () => {
+        // Canvas pour compression
+        const canvas = document.createElement('canvas');
+        
+        // Calculer nouvelles dimensions (max 800px de large)
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Dessiner image redimensionnée
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(null);
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir en base64 avec compression JPEG 70%
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        
+        // Nettoyer
+        URL.revokeObjectURL(objectUrl);
+        
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(null);
+      };
+      
+      img.src = objectUrl;
     });
   } catch {
     return null;
   }
+}
+
+// Sélectionne les meilleures photos pour le PDF (max N photos)
+function selectionnerMeilleuresPhotos(photos: Photo[], max: number): Photo[] {
+  if (photos.length <= max) return photos;
+  
+  // Priorité 1 : Photos favorites
+  const favorites = photos.filter(p => p.favori);
+  
+  if (favorites.length >= max) {
+    return favorites.slice(0, max);
+  }
+  
+  // Compléter avec les autres par catégorie prioritaire
+  const nonFavorites = photos.filter(p => !p.favori);
+  const selected: Photo[] = [...favorites];
+  
+  // Prendre 1 photo de chaque catégorie prioritaire
+  const categories = ['facade', 'salon', 'cuisine', 'chambre', 'sdb', 'jardin', 'vue', 'autre'];
+  
+  for (const cat of categories) {
+    if (selected.length >= max) break;
+    const photoCategorie = nonFavorites.find(p => p.categorie === cat && !selected.includes(p));
+    if (photoCategorie) selected.push(photoCategorie);
+  }
+  
+  // Si encore pas assez, prendre les premières restantes
+  if (selected.length < max) {
+    const reste = nonFavorites
+      .filter(p => !selected.includes(p))
+      .slice(0, max - selected.length);
+    selected.push(...reste);
+  }
+  
+  return selected;
 }
 
 // Génère le PDF de l'estimation
@@ -1009,20 +1087,22 @@ export async function generateEstimationPDF({
     yPos += lines.length * 5;
   }
 
-  // ========== CORRECTION #1: Photos avec images réelles ==========
-  const photos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
-  if (finalConfig.inclurePhotos && photos.length > 0) {
+  // ========== Photos sélectionnées (8 max, compressées) ==========
+  const allPhotos = Array.isArray(estimation.photos) ? estimation.photos : estimation.photos?.items || [];
+  const photosSelectionnees = selectionnerMeilleuresPhotos(allPhotos, 8);
+  
+  if (finalConfig.inclurePhotos && photosSelectionnees.length > 0) {
     doc.addPage();
     yPos = 20;
 
     doc.setTextColor(GARY_DARK);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Galerie Photos", marginLeft, yPos);
+    doc.text(`Sélection Photos (${photosSelectionnees.length}/${allPhotos.length})`, marginLeft, yPos);
     yPos += 10;
 
-    // Grouper les photos par catégorie
-    const groupedPhotos = groupPhotosByCategory(photos);
+    // Grouper les photos sélectionnées par catégorie
+    const groupedPhotos = groupPhotosByCategory(photosSelectionnees);
     
     for (const group of groupedPhotos) {
       if (yPos > 220) {
@@ -1115,7 +1195,7 @@ export async function generateEstimationPDF({
     }
 
     // Résumé des défauts si présents
-    const defauts = photos.filter(p => p.defaut);
+    const defauts = allPhotos.filter(p => p.defaut);
     if (defauts.length > 0) {
       if (yPos > 230) {
         doc.addPage();
