@@ -248,18 +248,11 @@ export async function generateEstimationPDF({
       // Ajouter l'image en fond (pleine page)
       doc.addImage(coverPhotoUrl, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
       
-      // Overlay gradient sombre (du bas vers le haut pour lisibilité texte)
-      // Partie haute : légèrement sombre
-      doc.setFillColor(26, 46, 53);
-      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 0.4 }));
-      doc.rect(0, 0, pageWidth, pageHeight * 0.4, "F");
-      
-      // Partie basse : plus sombre pour le texte
-      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 0.85 }));
-      doc.rect(0, pageHeight * 0.5, pageWidth, pageHeight * 0.5, "F");
-      
-      // Reset opacity
-      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 1 }));
+      // Overlay sombre semi-transparent (simulé avec rectangles colorés)
+      // On ne peut pas utiliser setGState, donc on utilise des couleurs sombres
+      doc.setFillColor(20, 30, 35);
+      doc.rect(0, 0, pageWidth, 60, "F"); // Bande haute pour titre
+      doc.rect(0, pageHeight - 80, pageWidth, 80, "F"); // Bande basse pour infos
     } catch (e) {
       // Fallback : fond sombre si erreur d'image
       doc.setFillColor(26, 46, 53);
@@ -272,20 +265,17 @@ export async function generateEstimationPDF({
   }
 
   // === HEADER : Titre en 2 lignes (style Founex) ===
-  yPos = 30;
-  
-  // Ligne 1 : "Votre stratégie de vente" - taille moyenne
+  // Ligne 1 : "Votre stratégie de vente" - taille moyenne, en haut à gauche
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  doc.setFontSize(18);
   doc.setFont("helvetica", "normal");
-  safeText(doc, "Votre strategie de vente", marginLeft, yPos);
+  safeText(doc, "Votre strategie de vente", marginLeft, 25);
   
   // Ligne 2 : "sur mesure" - ÉNORME et BOLD
-  yPos += 16;
-  doc.setFontSize(48);
+  doc.setFontSize(42);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255); // Blanc (pas rouge, comme sur ton PDF)
-  safeText(doc, "sur mesure", marginLeft, yPos);
+  doc.setTextColor(255, 255, 255);
+  safeText(doc, "sur mesure", marginLeft, 42);
   
   // === STATS GARY (partie droite) ===
   const statsRightX = pageWidth - marginRight;
