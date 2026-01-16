@@ -467,7 +467,11 @@ export default function Module4PreEstimation() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div
+      className="min-h-screen bg-background pb-32"
+      onKeyDownCapture={preventEnterSubmit}
+      onSubmitCapture={(e) => e.preventDefault()}
+    >
       <ModuleHeader 
         moduleNumber={4} 
         title="Pré-estimation" 
