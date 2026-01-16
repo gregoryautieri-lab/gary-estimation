@@ -1075,7 +1075,11 @@ async function renderAnnexeTechnique1(ctx: PDFContext): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(26, 46, 53);
   doc.setFont('helvetica', 'bold');
-  doc.text(annexeVal(bien.adresse || estimation.adresse), 25, yPos + 15);
+  const adresseRaw = bien.adresse || estimation.adresse;
+  const adresseText = typeof adresseRaw === 'object' 
+    ? (adresseRaw?.rue || adresseRaw?.adresse || '-')
+    : (adresseRaw || '-');
+  doc.text(adresseText, 25, yPos + 15);
 
   yPos += 25;
 
