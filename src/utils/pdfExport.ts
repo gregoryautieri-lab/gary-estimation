@@ -63,72 +63,188 @@ export async function generateEstimationPDF({
     format: "a4",
   });
 
-  let yPos = 20;
+  let yPos = 0;
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const marginLeft = 20;
   const marginRight = 20;
   const contentWidth = pageWidth - marginLeft - marginRight;
 
-  // ========== En-tête GARY ==========
-  doc.setFillColor(GARY_RED);
-  doc.rect(0, 0, pageWidth, 35, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text("GARY", marginLeft, 18);
-
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.text("Courtiers Immobiliers", marginLeft, 28);
-
-  // Date et référence
-  doc.setFontSize(10);
-  doc.text(
-    format(new Date(), "dd MMMM yyyy", { locale: fr }),
-    pageWidth - marginRight,
-    18,
-    { align: "right" }
-  );
-  doc.text(`Réf: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth - marginRight, 25, {
-    align: "right",
-  });
-
-  yPos = 50;
-
-  // ========== Titre du document ==========
-  doc.setTextColor(GARY_DARK);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("Estimation Immobilière", marginLeft, yPos);
-  yPos += 12;
-
-  // ========== Adresse du bien ==========
-  const adresse = estimation.identification?.adresse;
-  if (adresse) {
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    const adresseComplete = `${adresse.rue || ""}, ${adresse.codePostal || ""} ${adresse.localite || ""}`;
-    doc.text(adresseComplete, marginLeft, yPos);
-    yPos += 15;
-  }
-
-  // ========== Encadré Prix ==========
-  doc.setFillColor(250, 66, 56);
-  doc.roundedRect(marginLeft, yPos, contentWidth, 35, 3, 3, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
-  doc.text("ESTIMATION DE PRIX", marginLeft + 10, yPos + 12);
-
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
+  // Prix calculés une seule fois
   const prixMin = estimation.prixMin || parseFloat(estimation.preEstimation?.prixEntre || "0") || 0;
   const prixMax = estimation.prixMax || parseFloat(estimation.preEstimation?.prixEt || "0") || 0;
   const prixText = `${formatPrix(prixMin)} - ${formatPrix(prixMax)}`;
-  doc.text(prixText, marginLeft + 10, yPos + 28);
+  const adresse = estimation.identification?.adresse;
 
-  yPos += 45;
+  // ========================================
+  // PAGE 1 : COUVERTURE PREMIUM
+  // ========================================
+
+  // Fond bicolore
+  doc.setFillColor(250, 66, 56); // GARY_RED
+  doc.rect(0, 0, pageWidth, pageHeight / 2, "F");
+
+  doc.setFillColor(26, 46, 53); // GARY_DARK
+  doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+
+  // Logo GARY centré
+  yPos = 55;
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(48);
+  doc.setFont("helvetica", "bold");
+  doc.text("GARY", pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 12;
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.text("Courtiers Immobiliers", pageWidth / 2, yPos, { align: "center" });
+
+  // Ligne séparation
+  yPos += 12;
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.5);
+  doc.line(pageWidth / 2 - 40, yPos, pageWidth / 2 + 40, yPos);
+
+  // Titre document
+  yPos += 20;
+  doc.setFontSize(26);
+  doc.setFont("helvetica", "bold");
+  doc.text("Estimation", pageWidth / 2, yPos, { align: "center" });
+  yPos += 10;
+  doc.text("Immobilière", pageWidth / 2, yPos, { align: "center" });
+
+  // Adresse du bien
+  yPos += 18;
+  if (adresse) {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text(adresse.rue || "", pageWidth / 2, yPos, { align: "center" });
+    yPos += 8;
+    doc.text(`${adresse.codePostal || ""} ${adresse.localite || ""}`, pageWidth / 2, yPos, { align: "center" });
+  }
+
+  // Prix estimé (dans partie sombre)
+  yPos = pageHeight / 2 + 35;
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(180, 180, 180);
+  doc.text("Estimation de prix", pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 12;
+  doc.setFontSize(28);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text(prixText, pageWidth / 2, yPos, { align: "center" });
+
+  // Date et référence en bas
+  yPos = pageHeight - 28;
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(150, 150, 150);
+  doc.text(format(new Date(), "dd MMMM yyyy", { locale: fr }), pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 7;
+  doc.setFontSize(9);
+  doc.text(`Référence: ${estimation.id?.slice(0, 8) || "N/A"}`, pageWidth / 2, yPos, { align: "center" });
+
+  // ========================================
+  // PAGE 2 : À L'ATTENTION DE
+  // ========================================
+  doc.addPage();
+  yPos = 35;
+
+  const vendeur = estimation.identification?.vendeur;
+  const nomComplet = vendeur?.nom 
+    ? `${vendeur.prenom ? vendeur.prenom + ' ' : ''}${vendeur.nom}`
+    : null;
+
+  if (nomComplet) {
+    doc.setTextColor(GARY_DARK);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("À l'attention de", marginLeft, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(16);
+    doc.setTextColor(250, 66, 56);
+    doc.text(`Madame, Monsieur ${nomComplet}`, marginLeft, yPos);
+    yPos += 18;
+  }
+
+  // Message personnalisé
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+
+  const introText = nomComplet
+    ? `Suite à notre entretien et à la visite de votre bien situé ${adresse?.rue ? 'au ' + adresse.rue : 'à ' + (adresse?.localite || '')}, nous avons le plaisir de vous transmettre notre estimation détaillée.`
+    : `Nous avons le plaisir de vous transmettre l'estimation détaillée du bien situé ${adresse?.rue ? 'au ' + adresse.rue : 'à ' + (adresse?.localite || '')}.`;
+
+  const introLines = doc.splitTextToSize(introText, contentWidth);
+  doc.text(introLines, marginLeft, yPos);
+  yPos += introLines.length * 6 + 12;
+
+  doc.text("Ce document reprend :", marginLeft, yPos);
+  yPos += 8;
+
+  const sections = [
+    "L'estimation de prix basée sur notre analyse du marché",
+    "Les caractéristiques détaillées de votre bien",
+    "Les comparables de référence",
+    "Notre stratégie de mise en vente personnalisée",
+    "Les prochaines étapes pour concrétiser ce projet"
+  ];
+
+  doc.setFontSize(10);
+  sections.forEach(section => {
+    doc.setTextColor(34, 197, 94);
+    doc.text("✓", marginLeft + 3, yPos);
+    doc.setTextColor(GARY_DARK);
+    doc.text(section, marginLeft + 10, yPos);
+    yPos += 7;
+  });
+
+  yPos += 12;
+
+  // Message de confiance
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100, 100, 100);
+  const closingIntro = "Nous restons à votre entière disposition pour échanger sur cette estimation et répondre à toutes vos questions.";
+  const closingIntroLines = doc.splitTextToSize(closingIntro, contentWidth);
+  doc.text(closingIntroLines, marginLeft, yPos);
+  yPos += closingIntroLines.length * 5 + 15;
+
+  // Ligne séparation
+  doc.setDrawColor(200, 200, 200);
+  doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+
+  // ========================================
+  // PAGE 3+ : CONTENU DÉTAILLÉ
+  // ========================================
+  doc.addPage();
+  yPos = 20;
+
+  // Titre section
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Détail de l'estimation", marginLeft, yPos);
+  yPos += 12;
+
+  // ========== Encadré Prix ==========
+  doc.setFillColor(250, 66, 56);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 32, 3, 3, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.text("FOURCHETTE DE PRIX RECOMMANDÉE", marginLeft + 10, yPos + 10);
+
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text(prixText, marginLeft + 10, yPos + 24);
+
+  yPos += 40;
 
   // ========== AMÉLIORATION #1: Justification détaillée du prix ==========
   const preEst = estimation.preEstimation;
@@ -1026,77 +1142,244 @@ export async function generateEstimationPDF({
     }
   }
 
-  // ========== CORRECTION #3: Coordonnées courtier ==========
+  // ========== Prochaines étapes ==========
   doc.addPage();
-  yPos = 20;
+  yPos = 25;
 
   doc.setTextColor(GARY_DARK);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Votre conseiller GARY", marginLeft, yPos);
-  yPos += 15;
+  doc.text("Prochaines étapes", marginLeft, yPos);
+  yPos += 12;
 
-  // Encadré contact courtier
-  doc.setDrawColor(250, 66, 56);
-  doc.setLineWidth(1);
-  doc.roundedRect(marginLeft, yPos, contentWidth, 55, 3, 3);
+  // Encadré calendrier prévisionnel
+  doc.setFillColor(239, 246, 255);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 45, 3, 3, "F");
+
+  yPos += 8;
+  doc.setFontSize(11);
+  doc.setTextColor(29, 78, 216);
+  doc.setFont("helvetica", "bold");
+  doc.text("Calendrier prévisionnel", marginLeft + 10, yPos);
+  yPos += 8;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+
+  // Dates calculées
+  const today = new Date();
+  const datePresentation = new Date(today);
+  datePresentation.setDate(today.getDate() + 5);
+  const dateLancement = estimation.strategiePitch?.dateDebut 
+    ? new Date(estimation.strategiePitch.dateDebut)
+    : new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000);
+
+  const etapesCalendrier = [
+    { date: format(today, "dd.MM.yyyy"), label: "Remise de l'estimation", statut: "✓" },
+    { date: format(datePresentation, "dd.MM.yyyy"), label: "Présentation du mandat et signature", statut: "→" },
+    { date: format(dateLancement, "dd.MM.yyyy"), label: "Lancement de la mise en vente", statut: "○" }
+  ];
+
+  etapesCalendrier.forEach(etape => {
+    doc.setFont("helvetica", "bold");
+    doc.text(etape.statut, marginLeft + 12, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(etape.date, marginLeft + 22, yPos);
+    doc.text(etape.label, marginLeft + 50, yPos);
+    yPos += 6;
+  });
 
   yPos += 12;
+
+  // Checklist actions vendeur
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Actions à préparer de votre côté", marginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+
+  const actionsVendeur = [
+    "Rassembler les documents (acte de propriété, règlement PPE, plans...)",
+    "Préparer une liste des travaux effectués ces dernières années",
+    "Anticiper les questions techniques (chauffage, isolation, toiture...)",
+    "Réfléchir à votre projet post-vente (timing, budget, critères)"
+  ];
+
+  actionsVendeur.forEach(action => {
+    doc.setDrawColor(150, 150, 150);
+    doc.rect(marginLeft + 3, yPos - 3, 3, 3);
+    doc.text(action, marginLeft + 10, yPos);
+    yPos += 6;
+  });
+
+  yPos += 8;
+
+  // Checklist actions courtier
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Ce que nous préparons", marginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+
+  const actionsCourtier = [
+    "Rédaction du mandat de courtage personnalisé",
+    "Préparation du dossier de vente complet",
+    "Planning des photos et visites professionnelles",
+    "Mise en place de la stratégie de diffusion"
+  ];
+
+  actionsCourtier.forEach(action => {
+    doc.setFillColor(34, 197, 94);
+    doc.rect(marginLeft + 3, yPos - 3, 3, 3, "F");
+    doc.text(action, marginLeft + 10, yPos);
+    yPos += 6;
+  });
+
+  yPos += 15;
+
+  // ========== Page contact courtier améliorée ==========
+  doc.addPage();
+  yPos = 30;
+
+  // Titre
+  doc.setTextColor(GARY_DARK);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Restons en contact", marginLeft, yPos);
+  yPos += 15;
+
+  // Encadré courtier
+  const encadreWidth = (contentWidth / 2) - 5;
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(marginLeft, yPos, encadreWidth, 70, 3, 3, "F");
+
+  let contactY = yPos + 10;
+
+  // Nom courtier
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(250, 66, 56);
+  doc.text("Votre conseiller GARY", marginLeft + 10, contactY);
+  contactY += 12;
 
   // Récupérer le courtier assigné
   const courtierId = estimation.identification?.courtierAssigne;
   const courtier = courtierId ? getCourtierById(courtierId) : null;
-  const courtierNom = courtier?.nom || "GARY Courtiers Immobiliers";
+  const courtierNomComplet = courtier 
+    ? `${courtier.prenom || ''} ${courtier.nom || ''}`.trim()
+    : "GARY Immobilier";
+  const emailCourtier = courtier?.email || "contact@gary-immobilier.ch";
+  const telephoneCourtier = courtier?.telephone || "+41 22 552 22 22";
 
-  doc.setFontSize(14);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(250, 66, 56);
-  doc.text(courtierNom, marginLeft + 10, yPos);
-  yPos += 12;
+  doc.setTextColor(GARY_DARK);
+  doc.text(courtierNomComplet, marginLeft + 10, contactY);
+  contactY += 10;
 
-  // Contact
-  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text(telephoneCourtier, marginLeft + 10, contactY);
+  contactY += 6;
+  doc.text(emailCourtier, marginLeft + 10, contactY);
+  contactY += 6;
+  doc.text("www.gary-immobilier.ch", marginLeft + 10, contactY);
+
+  // Encadré disponibilité
+  const encadreX = marginLeft + encadreWidth + 10;
+
+  doc.setFillColor(254, 243, 199);
+  doc.roundedRect(encadreX, yPos, encadreWidth, 70, 3, 3, "F");
+
+  contactY = yPos + 10;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(180, 83, 9);
+  doc.text("Disponibilité", encadreX + 10, contactY);
+  contactY += 12;
+
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
 
-  const email = courtier?.email || "contact@gary-immobilier.ch";
-  const telephone = courtier?.telephone || "+41 22 552 22 22";
+  doc.text("Lundi - Vendredi", encadreX + 10, contactY);
+  contactY += 5;
+  doc.text("8h00 - 19h00", encadreX + 10, contactY);
+  contactY += 8;
+  doc.text("Samedi", encadreX + 10, contactY);
+  contactY += 5;
+  doc.text("9h00 - 17h00", encadreX + 10, contactY);
 
-  doc.text(`Tel: ${telephone}`, marginLeft + 10, yPos);
-  yPos += 8;
+  yPos += 85;
 
-  doc.text(`Email: ${email}`, marginLeft + 10, yPos);
-  yPos += 8;
-
-  doc.text("Web: www.gary-immobilier.ch", marginLeft + 10, yPos);
-  yPos += 20;
-
-  // Message de clôture
+  // Message personnalisé
   doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "italic");
-  const closingText = "Je reste à votre entière disposition pour toute question ou pour planifier la signature du mandat.";
-  const closingLines = doc.splitTextToSize(closingText, contentWidth - 20);
-  doc.text(closingLines, marginLeft + 10, yPos);
 
-  // ========== Pied de page ==========
+  const messageContact = "Pour fixer un rendez-vous de signature du mandat ou pour toute question, n'hésitez pas à me contacter par téléphone ou email. Je me ferai un plaisir de vous accompagner dans votre projet.";
+
+  const messageContactLines = doc.splitTextToSize(messageContact, contentWidth);
+  doc.text(messageContactLines, marginLeft, yPos);
+
+  // ========== Pied de page enrichi ==========
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(9);
+    
+    const footerY = doc.internal.pageSize.getHeight() - 12;
+    
+    // Ligne séparation (pas sur page de garde)
+    if (i > 1) {
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.3);
+      doc.line(marginLeft, footerY - 3, pageWidth - marginRight, footerY - 3);
+    }
+    
+    // Footer gauche: Logo + nom (pas sur page 1)
+    if (i > 1) {
+      doc.setFontSize(8);
+      doc.setTextColor(GARY_DARK);
+      doc.setFont("helvetica", "bold");
+      doc.text("GARY", marginLeft, footerY + 1);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.text("Courtiers Immobiliers", marginLeft + 12, footerY + 1);
+    }
+    
+    // Footer centre: Numéro page
+    doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(
-      `GARY Courtiers Immobiliers | Page ${i}/${pageCount}`,
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: "center" }
-    );
-    doc.text(
-      "Document généré automatiquement - Estimation non contractuelle",
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 5,
-      { align: "center" }
-    );
+    doc.text(`Page ${i}/${pageCount}`, pageWidth / 2, footerY + 1, { align: "center" });
+    
+    // Footer droit: Contact (pas sur page de garde)
+    if (i > 1) {
+      doc.text("contact@gary-immobilier.ch", pageWidth - marginRight, footerY + 1, { align: "right" });
+    }
+    
+    // Disclaimer (uniquement dernière page)
+    if (i === pageCount) {
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "italic");
+      
+      const disclaimerText = "Estimation non contractuelle établie selon les données fournies et l'état apparent du bien. Validité : 3 mois. Document confidentiel.";
+      
+      doc.text(disclaimerText, pageWidth / 2, footerY + 5, { align: "center" });
+    }
   }
 
   return doc;
