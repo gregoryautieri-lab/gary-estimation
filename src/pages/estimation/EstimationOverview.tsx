@@ -190,7 +190,7 @@ export default function EstimationOverview() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
-      <div className="bg-gary-dark text-white p-4 sticky top-0 z-10">
+      <div className="bg-[#1a2e35] text-white p-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 mb-3">
           <Button 
             variant="ghost" 
