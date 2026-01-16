@@ -13,13 +13,16 @@ interface Prediction {
   };
 }
 
-interface AddressDetails {
-  rue: string;
-  codePostal: string;
-  localite: string;
+export interface AddressDetails {
+  rue?: string;
+  codePostal?: string;
+  localite?: string;
   canton?: string;
   coordinates?: { lat: number; lng: number };
   placeId?: string;
+  formatted?: string;
+  postalCode?: string;
+  locality?: string;
 }
 
 interface AddressAutocompleteProps {
