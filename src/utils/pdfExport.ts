@@ -235,9 +235,38 @@ export async function generateEstimationPDF({
   // PAGE 1 : COUVERTURE PREMIUM (Style Founex)
   // ========================================
 
-  // Fond pleine page sombre
-  doc.setFillColor(26, 46, 53); // GARY_DARK
-  doc.rect(0, 0, pageWidth, pageHeight, "F");
+  // Photo de fond pleine page avec overlay gradient
+  const photos = (estimation.photos || []) as Photo[];
+  const coverPhoto = photos.find(p => p.favori) || photos[0];
+  const coverPhotoUrl = coverPhoto?.storageUrl || coverPhoto?.dataUrl;
+  
+  if (coverPhotoUrl) {
+    try {
+      // Ajouter l'image en fond (pleine page)
+      doc.addImage(coverPhotoUrl, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+      
+      // Overlay gradient sombre (du bas vers le haut pour lisibilité texte)
+      // Partie haute : légèrement sombre
+      doc.setFillColor(26, 46, 53);
+      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 0.4 }));
+      doc.rect(0, 0, pageWidth, pageHeight * 0.4, "F");
+      
+      // Partie basse : plus sombre pour le texte
+      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 0.85 }));
+      doc.rect(0, pageHeight * 0.5, pageWidth, pageHeight * 0.5, "F");
+      
+      // Reset opacity
+      doc.setGState && doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    } catch (e) {
+      // Fallback : fond sombre si erreur d'image
+      doc.setFillColor(26, 46, 53);
+      doc.rect(0, 0, pageWidth, pageHeight, "F");
+    }
+  } else {
+    // Pas de photo : fond sombre classique
+    doc.setFillColor(26, 46, 53);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+  }
 
   // === HEADER : Titre + Stats ===
   yPos = 25;
