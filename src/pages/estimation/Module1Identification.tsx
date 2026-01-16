@@ -60,7 +60,9 @@ const SITUATIONS_VENDEUR = [
   { value: 'proprietaire', label: 'Propriétaire occupant' },
   { value: 'bailleur', label: 'Bailleur' },
   { value: 'heritier', label: 'Héritier' },
-  { value: 'investisseur', label: 'Investisseur' }
+  { value: 'investisseur', label: 'Investisseur' },
+  { value: 'coproprietaire', label: 'Copropriétaire' },
+  { value: 'multiproprietaire', label: 'Multipropriétaire' }
 ];
 
 const STATUTS_OCCUPATION = [
