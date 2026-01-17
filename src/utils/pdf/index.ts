@@ -27,7 +27,18 @@ export {
   raisonEchecLabels,
   nuisanceLabels,
   renoLabels,
-  travLabels
+  travLabels,
+  sousTypeLabels,
+  zoneLabels,
+  buanderieLabels,
+  motifLabels,
+  chauffageLabels,
+  etatLabels,
+  expositionLabels,
+  standingLabels,
+  horizonLabels,
+  mandatLabels,
+  cecbLabels
 } from './pdfFormatters';
 
 // Calculs métier
