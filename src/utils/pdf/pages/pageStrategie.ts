@@ -6,7 +6,7 @@
 import { EstimationData } from '@/types/estimation';
 import { ico } from '../pdfIcons';
 import { getLogo } from '../pdfLogos';
-import { formatPrice, formatDateCH, getNextMonday, addWeeks } from '../pdfFormatters';
+import { formatPrice, getNextMonday, addWeeks } from '../pdfFormatters';
 import { 
   calculateCapitalVisibilite, 
   calculateLuxMode, 
@@ -69,39 +69,44 @@ export function generateStrategiePage(
   data: EstimationData,
   config: PageStrategieConfig
 ): string {
-  const identification = data.identification || {};
-  const caracteristiques = data.caracteristiques || {};
-  const preEstimation = data.pre_estimation || {};
+  const identification = data.identification as any || {};
+  const caracteristiques = data.caracteristiques as any || {};
+  const preEstimation = data.preEstimation as any || {};
   const historique = identification.historique || {};
-  const strategie = data.strategie || {};
+  const contexte = identification.contexte || {};
+  const strategie = data.strategiePitch as any || {};
   
-  const isAppartement = data.type_bien === 'appartement';
-  const isMaison = data.type_bien === 'maison';
+  const isAppartement = data.typeBien === 'appartement';
+  const isMaison = data.typeBien === 'maison';
   
   // Calculs
-  const surfaces = calculateSurfaces(caracteristiques, preEstimation, isAppartement, isMaison);
-  const valeurs = calculateValeurs(surfaces, caracteristiques, preEstimation, isAppartement, isMaison);
-  const capitalResult = calculateCapitalVisibilite(historique);
-  const luxResult = calculateLuxMode(caracteristiques, identification.contexte, historique, valeurs.totalVenale);
-  const copy = getLuxCopy(luxResult.isLux);
+  const surfaces = calculateSurfaces(caracteristiques, preEstimation, isAppartement);
+  const valeurs = calculateValeurs(surfaces, caracteristiques, preEstimation, isAppartement);
+  const capitalResult = calculateCapitalVisibilite(historique, valeurs.totalVenale);
+  const luxResult = calculateLuxMode(
+    caracteristiques, 
+    contexte, 
+    historique, 
+    isAppartement, 
+    isMaison,
+    surfaces.surfacePrincipale,
+    surfaces.surfaceTerrain,
+    valeurs.totalVenaleArrondi
+  );
+  const copy = getLuxCopy(luxResult.luxMode);
   const pauseRecalibrage = calculatePauseRecalibrage(historique);
   
   // Durées phases
-  const phaseDurees = {
-    phase1: strategie.dureePhase1 || 3,
-    phase2: strategie.dureePhase2 || 2,
-    phase3: strategie.dureePhase3 || 6
-  };
+  const phaseDurees = strategie.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 6 };
   
   // Type de mise en vente
-  const typeMV = strategie.typeMiseEnVente || 'offmarket';
-  const activerComingSoon = strategie.activerComingSoon !== false;
+  const typeMV = preEstimation.typeMiseEnVente || 'offmarket';
+  const activerComingSoon = true; // Par défaut
   
   // Dates
   const startDate = getNextMonday();
-  const phase1End = addWeeks(startDate, phaseDurees.phase1);
-  const phase2End = addWeeks(phase1End, phaseDurees.phase2);
-  const phase3End = addWeeks(phase2End, phaseDurees.phase3);
+  const phase1End = addWeeks(startDate, phaseDurees.phase1 || 3);
+  const phase2End = addWeeks(phase1End, phaseDurees.phase2 || 2);
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -115,23 +120,23 @@ export function generateStrategiePage(
   html += generateTimelineSection(phaseDurees, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage);
   
   // Trajectoires
-  html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenaleArrondi, luxResult.isLux, historique, copy);
+  html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenaleArrondi, luxResult.luxMode, historique as any, copy);
   
   // Capital visibilité
-  html += generateCapitalSection(capitalResult, historique, copy);
+  html += generateCapitalSection(capitalResult, historique as any, copy);
   
   // Alertes si bien déjà diffusé
-  if (capitalResult.alerts.length > 0 || (luxResult.isLux && historique.dejaDiffuse)) {
-    html += generateAlertesSection(capitalResult.alerts, luxResult.isLux, historique, copy);
+  if (capitalResult.capitalAlerts.length > 0 || (luxResult.luxMode && (historique as any).dejaDiffuse)) {
+    html += generateAlertesSection(capitalResult.capitalAlerts, luxResult.luxMode, historique as any, copy);
   }
   
   // Bloc valeur à préserver (luxMode)
-  if (luxResult.isLux) {
+  if (luxResult.luxMode) {
     html += generateValeurPreserverSection();
   }
   
   // Disclaimer
-  html += generateDisclaimerSection(luxResult.isLux, copy);
+  html += generateDisclaimerSection(luxResult.luxMode, copy);
   
   // Footer
   html += '<div class="footer">';
@@ -169,7 +174,7 @@ function generateTimelineSection(
   html += '<div style="margin-bottom:2px;">' + ico('lock', 16, phase1Active ? 'rgba(255,255,255,0.8)' : '#9ca3af') + '</div>';
   html += '<div style="font-size:9px;font-weight:600;color:' + (phase1Active ? 'white' : '#1a2e35') + ';">Off-Market</div>';
   html += '<div style="font-size:7px;color:' + (phase1Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';margin-top:2px;">' + formatDatePDF(startDate).split(' ').slice(0,2).join(' ') + '</div>';
-  html += '<div style="font-size:7px;color:' + (phase1Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';">~' + phaseDurees.phase1 + ' sem.</div>';
+  html += '<div style="font-size:7px;color:' + (phase1Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';">~' + (phaseDurees.phase1 || 3) + ' sem.</div>';
   html += '</div>';
   
   // Phase 2 - Coming Soon
@@ -179,7 +184,7 @@ function generateTimelineSection(
     html += '<div style="margin-bottom:2px;">' + ico('clock', 16, phase2Active ? 'rgba(255,255,255,0.8)' : '#6b7280') + '</div>';
     html += '<div style="font-size:9px;font-weight:600;color:' + (phase2Active ? 'white' : '#1a2e35') + ';">Coming soon</div>';
     html += '<div style="font-size:7px;color:' + (phase2Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';margin-top:2px;">' + formatDatePDF(phase1End).split(' ').slice(0,2).join(' ') + '</div>';
-    html += '<div style="font-size:7px;color:' + (phase2Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';">~' + phaseDurees.phase2 + ' sem.</div>';
+    html += '<div style="font-size:7px;color:' + (phase2Active ? 'rgba(255,255,255,0.7)' : '#6b7280') + ';">~' + (phaseDurees.phase2 || 2) + ' sem.</div>';
     html += '</div>';
   } else {
     html += '<div style="flex:1;text-align:center;padding:8px 4px;background:#f9fafb;border-radius:6px;border:1px dashed #e5e7eb;opacity:0.5;">';
@@ -195,13 +200,13 @@ function generateTimelineSection(
   html += '<div style="margin-bottom:2px;">' + ico('globe', 16, '#6b7280') + '</div>';
   html += '<div style="font-size:9px;font-weight:600;color:#1a2e35;">Public</div>';
   html += '<div style="font-size:7px;color:#6b7280;margin-top:2px;">' + formatDatePDF(phase2End).split(' ').slice(0,2).join(' ') + '</div>';
-  html += '<div style="font-size:7px;color:#6b7280;">~' + phaseDurees.phase3 + ' sem.</div>';
+  html += '<div style="font-size:7px;color:#6b7280;">~' + (phaseDurees.phase3 || 6) + ' sem.</div>';
   html += '</div>';
   
   html += '</div>';
   
   // Date vente estimée
-  const dateVenteEstimee = addWeeks(phase2End, phaseDurees.phase3);
+  const dateVenteEstimee = addWeeks(phase2End, phaseDurees.phase3 || 6);
   html += '<div style="text-align:center;margin-top:10px;font-size:9px;color:#6b7280;">';
   html += ico('calendar', 12, '#6b7280') + ' Vente estimée : <strong style="color:#1a2e35;">' + formatDatePDF(dateVenteEstimee) + '</strong>';
   html += '</div>';
@@ -313,7 +318,7 @@ function generateTrajectoiresSection(
 }
 
 function generateCapitalSection(capitalResult: any, historique: any, copy: any): string {
-  const capitalPct = capitalResult.percentage;
+  const capitalPct = capitalResult.capitalPct;
   const capColor = capitalPct >= 70 ? '#1a2e35' : (capitalPct >= 50 ? '#64748b' : '#94a3b8');
   
   let html = '<div style="padding:10px 24px;background:white;border-bottom:1px solid #e5e7eb;">';
@@ -343,7 +348,7 @@ function generateAlertesSection(alerts: any[], isLux: boolean, historique: any, 
     const alertIco = alert.type === 'critical' ? 'xCircle' : (alert.type === 'warning' ? 'alertCircle' : 'circle');
     html += '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">';
     html += ico(alertIco, 12, '#6b7280');
-    html += '<span style="font-size:9px;color:#4b5563;line-height:1.3;">' + alert.msg + '</span>';
+    html += '<span style="font-size:9px;color:#4b5563;">' + alert.msg + '</span>';
     html += '</div>';
   });
   
@@ -353,37 +358,21 @@ function generateAlertesSection(alerts: any[], isLux: boolean, historique: any, 
 }
 
 function generateValeurPreserverSection(): string {
-  let html = '<div style="padding:10px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;">';
-  html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;">';
-  html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:6px;">' + ico('shield', 12, '#9ca3af') + 'Valeur à préserver</div>';
-  
-  const valeurItems = [
-    {icon: 'star', text: 'Image du bien'},
-    {icon: 'lock', text: 'Discrétion et maîtrise de l\'information'},
-    {icon: 'users', text: 'Sélectivité des visites'},
-    {icon: 'edit', text: 'Cohérence du récit'}
-  ];
-  
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
-  valeurItems.forEach((item) => {
-    html += '<div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:#f9fafb;border-radius:4px;">';
-    html += ico(item.icon, 10, '#9ca3af');
-    html += '<span style="font-size:8px;color:#4b5563;">' + item.text + '</span>';
-    html += '</div>';
-  });
+  let html = '<div style="padding:10px 24px;background:#fffbeb;border-top:1px solid #fcd34d;">';
+  html += '<div style="font-size:9px;color:#92400e;line-height:1.4;text-align:center;font-style:italic;">';
+  html += '"La vraie valeur d\'un bien d\'exception se protège avant de se révéler. GARY orchestre chaque étape pour que votre patrimoine conserve sa prestance sur le marché."';
   html += '</div>';
-  
-  html += '<div style="font-size:8px;color:#6b7280;font-style:italic;text-align:center;line-height:1.3;">Dans ce segment, la stratégie protège autant la valeur que la confidentialité.</div>';
-  html += '</div></div>';
+  html += '</div>';
   
   return html;
 }
 
 function generateDisclaimerSection(isLux: boolean, copy: any): string {
-  let html = '<div style="padding:10px 24px;background:#f8fafc;">';
-  html += '<div style="font-size:7px;color:#9ca3af;text-align:center;line-height:1.4;">';
-  html += copy.disclaimerPrefix + ' Cette estimation est un avis de valeur basé sur notre connaissance du marché local et les informations communiquées. Elle ne constitue pas une expertise immobilière au sens légal.';
-  html += '</div></div>';
+  let html = '<div style="padding:10px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:7px;color:#9ca3af;line-height:1.4;text-align:center;">';
+  html += copy.disclaimerPhrase;
+  html += '</div>';
+  html += '</div>';
   
   return html;
 }
