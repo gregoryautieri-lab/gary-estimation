@@ -1645,118 +1645,161 @@ export async function generateEstimationPDF({
   await renderCoverPage(ctx);
 
   // ========================================
-  // PAGE 2 : QUI EST GARY (Philosophie)
+  // PAGE 2 : QUI EST GARY (Philosophie) - VERSION COMPLÈTE
   // ========================================
   doc.addPage();
-  yPos = 25;
+
+  // Header sombre
+  doc.setFillColor(26, 46, 53);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  safeText(doc, 'GARY', 20, 25);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  safeText(doc, 'Qui est GARY', pageWidth - 20, 25, { align: 'right' });
+
+  yPos = 55;
 
   // Titre principal
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(GARY_DARK);
-  safeText(doc, "Qui est GARY", marginLeft, yPos);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(26, 46, 53);
+  safeText(doc, 'Une autre facon de penser', marginLeft, yPos);
+  yPos += 7;
+  safeText(doc, 'la vente immobiliere', marginLeft, yPos);
+  yPos += 12;
+
+  // Intro
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  const garyIntro = sanitizeText("Vendre un bien, ce n'est pas publier une annonce. C'est une sequence de decisions qui engagent l'image du bien sur le marche. Chaque exposition laisse une trace. Chaque silence aussi.");
+  const garyIntroLines = doc.splitTextToSize(garyIntro, contentWidth);
+  doc.text(garyIntroLines, marginLeft, yPos);
+  yPos += garyIntroLines.length * 4 + 8;
+
+  // Ligne décorative rouge
+  doc.setDrawColor(250, 66, 56);
+  doc.setLineWidth(2);
+  doc.line(marginLeft, yPos, marginLeft + 40, yPos);
+  yPos += 10;
+
+  // ===== SECTION : CE QUE NOUS CROYONS =====
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(250, 66, 56);
+  safeText(doc, 'CE QUE NOUS CROYONS', marginLeft, yPos);
   yPos += 8;
 
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  safeText(doc, "Une autre facon de penser la vente immobiliere", marginLeft, yPos);
-  yPos += 15;
-
-  // Texte philosophie
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  const philoIntro = sanitizeText("Vendre un bien, ce n'est pas publier une annonce. C'est une sequence de decisions qui engagent l'image du bien sur le marche. Chaque exposition laisse une trace. Chaque silence aussi.");
-  const philoLines = doc.splitTextToSize(philoIntro, contentWidth);
-  doc.text(philoLines, marginLeft, yPos);
-  yPos += philoLines.length * 5 + 8;
-
-  // Section "CE QUE NOUS CROYONS"
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(GARY_RED);
-  safeText(doc, "CE QUE NOUS CROYONS", marginLeft, yPos);
-  yPos += 7;
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(60, 60, 60);
-
-  const croyances = [
-    "Une vente est une orchestration, pas une diffusion.",
-    "Chaque bien dispose d'un capital d'attention limite. Un bien trop expose perd son pouvoir d'attraction.",
-    "Le timing compte autant que le prix."
+  const convictions = [
+    {
+      titre: 'Une vente est une orchestration, pas une diffusion',
+      texte: "Le marche ne reagit pas aux intentions. Il reagit aux signaux. Le prix affiche, le moment choisi, le canal utilise - tout parle. Notre role est de maitriser ce que le marche entend."
+    },
+    {
+      titre: "Chaque bien dispose d'un capital d'attention limite",
+      texte: "Un bien trop expose perd son pouvoir d'attraction. Un bien mal positionne au depart se retrouve en negociation defensive. La premiere impression conditionne toute la suite."
+    },
+    {
+      titre: 'Le timing compte autant que le prix',
+      texte: "Deux strategies identiques, lancees a deux semaines d'ecart, peuvent produire des resultats opposes. Le contexte change. Les acheteurs aussi. La methode doit s'adapter en permanence."
+    }
   ];
 
-  croyances.forEach(c => {
-    const lines = doc.splitTextToSize(sanitizeText(c), contentWidth - 5);
+  convictions.forEach(conv => {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(26, 46, 53);
+    safeText(doc, conv.titre, marginLeft, yPos);
+    yPos += 4;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    const lines = doc.splitTextToSize(sanitizeText(conv.texte), contentWidth - 5);
     doc.text(lines, marginLeft + 3, yPos);
-    yPos += lines.length * 4 + 3;
+    yPos += lines.length * 3.5 + 6;
   });
-  yPos += 5;
 
-  // Section "CE QUE NOUS FAISONS"
+  yPos += 3;
+
+  // ===== SECTION : NOTRE APPROCHE =====
   doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(GARY_RED);
-  safeText(doc, "CE QUE NOUS FAISONS", marginLeft, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(250, 66, 56);
+  safeText(doc, 'NOTRE APPROCHE', marginLeft, yPos);
   yPos += 7;
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  const approche1 = sanitizeText("Il n'existe pas de recette universelle. Plusieurs chemins de vente sont toujours possibles. Le bon choix depend du bien, du moment, du contexte, et surtout des retours reels du marche.");
+  const approche1Lines = doc.splitTextToSize(approche1, contentWidth);
+  doc.text(approche1Lines, marginLeft, yPos);
+  yPos += approche1Lines.length * 3.5 + 3;
 
-  const actions = [
-    "Lire et interpreter les signaux du marche",
-    "Arbitrer entre exposition et retenue",
-    "Adapter le discours aux reactions observees",
+  const approche2 = sanitizeText("Une strategie qui semblait evidente au depart peut devoir evoluer apres les premiers signaux. C'est pourquoi nous ne figeons jamais un plan. Nous le pilotons.");
+  const approche2Lines = doc.splitTextToSize(approche2, contentWidth);
+  doc.text(approche2Lines, marginLeft, yPos);
+  yPos += approche2Lines.length * 3.5 + 8;
+
+  // ===== SECTION : CE QUE NOUS FAISONS =====
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(250, 66, 56);
+  safeText(doc, 'CE QUE NOUS FAISONS', marginLeft, yPos);
+  yPos += 8;
+
+  const garyRoles = [
+    'Lire et interpreter les signaux du marche',
+    'Arbitrer entre exposition et retenue',
+    'Adapter le discours aux reactions observees',
     "Proteger l'image du bien dans la duree",
-    "Securiser vos decisions a chaque etape"
+    'Securiser vos decisions a chaque etape'
   ];
 
-  actions.forEach(a => {
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+
+  garyRoles.forEach(role => {
+    // Puce rouge
     doc.setFillColor(250, 66, 56);
-    doc.circle(marginLeft + 4, yPos - 1.5, 1.5, 'F');
-    safeText(doc, a, marginLeft + 10, yPos);
+    doc.circle(marginLeft + 2, yPos - 1, 1.5, 'F');
+    safeText(doc, role, marginLeft + 8, yPos);
     yPos += 5;
   });
-  yPos += 8;
 
-  // Bloc slogan + stats
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(marginLeft, yPos, contentWidth, 40, 3, 3, "F");
+  yPos += 5;
 
-  // Slogan centré
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(GARY_DARK);
-  safeText(doc, "Nous ne sommes pas des diffuseurs.", marginLeft + contentWidth / 2, yPos + 10, { align: "center" });
-  safeText(doc, "Nous sommes des pilotes.", marginLeft + contentWidth / 2, yPos + 18, { align: "center" });
+  // Slogan
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(100, 116, 139);
+  safeText(doc, 'Nous ne sommes pas des diffuseurs. Nous sommes des pilotes.', marginLeft, yPos);
+  yPos += 12;
 
-  // Stats en bas du bloc
-  const statsY = yPos + 30;
-  const statWidth = contentWidth / 5;
-  
-  const statsDisplay = [
-    { value: GARY_STATS.vues2025, label: "Vues 2025" },
-    { value: GARY_STATS.communaute, label: "Communaute" },
-    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} avis)` },
-    { value: `${GARY_STATS.delaiMoyenMois}`, label: "mois en moy." }
-  ];
+  // ===== NOTE JAUNE =====
+  doc.setFillColor(254, 243, 199);
+  doc.roundedRect(marginLeft, yPos, contentWidth, 22, 3, 3, 'F');
 
-  statsDisplay.forEach((stat, idx) => {
-    const xPos = marginLeft + 15 + (idx * statWidth);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(GARY_RED);
-    safeText(doc, stat.value, xPos, statsY);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    safeText(doc, stat.label, xPos, statsY + 5);
-  });
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 100, 50);
+  const garyNote = sanitizeText("Cette page ne remplace pas un echange. Elle ne donne pas de strategie cle en main. Chaque strategie se construit a partir du bien reel, de son contexte, et des signaux observes sur le terrain.");
+  const garyNoteLines = doc.splitTextToSize(garyNote, contentWidth - 16);
+  doc.text(garyNoteLines, marginLeft + 8, yPos + 8);
+  yPos += 28;
 
-  yPos += 50;
+  // ===== CONCLUSION =====
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(26, 46, 53);
+  safeText(doc, 'Une bonne strategie ne se choisit pas sur le papier.', pageWidth / 2, yPos, { align: 'center' });
+  yPos += 5;
+  safeText(doc, 'Elle se construit dans le temps, avec methode et discernement.', pageWidth / 2, yPos, { align: 'center' });
 
   // ========================================
   // PAGE 3 : À L'ATTENTION DE
@@ -2683,59 +2726,203 @@ export async function generateEstimationPDF({
     safeText(doc, "PLANIFICATION PREVISIONNELLE", marginLeft, yPos);
     yPos += 10;
 
-    // Récupérer les durées et calculer les dates
-    const durees = strat.phaseDurees || { phase0: 2, phase1: 2, phase2: 2, phase3: 4 };
-    const dateDebut = strat.dateDebut ? new Date(strat.dateDebut) : new Date();
+    // ===== TIMELINE VISUELLE 4 PHASES =====
+    const phaseDureesBase = strat.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 10 };
     
-    const datePhase0 = new Date(dateDebut);
-    const datePhase1 = new Date(dateDebut);
-    datePhase1.setDate(datePhase1.getDate() + (durees.phase0 || 2) * 7);
-    const datePhase2 = new Date(datePhase1);
-    datePhase2.setDate(datePhase2.getDate() + (durees.phase1 || 2) * 7);
-    const datePhase3 = new Date(datePhase2);
-    datePhase3.setDate(datePhase3.getDate() + (durees.phase2 || 2) * 7);
+    // Dériver typeMV depuis canauxActifs (comme dans PresentationPage.tsx)
+    const canauxActifs = strat.canauxActifs || [];
+    let typeMV: 'offmarket' | 'comingsoon' | 'public' = 'public';
+    if (canauxActifs.includes('offmarket') && !canauxActifs.includes('immoscout')) {
+      typeMV = 'offmarket';
+    } else if (canauxActifs.includes('reseaux_sociaux') && !canauxActifs.includes('immoscout')) {
+      typeMV = 'comingsoon';
+    }
 
-    // Ligne de timeline visuelle
+    // Calcul pause recalibrage si bien déjà diffusé
+    let pauseRecalibrage = 0;
+    if (historique?.dejaDiffuse) {
+      const dureeHisto = historique.duree || '';
+      if (dureeHisto === 'moins1mois') pauseRecalibrage = 1;
+      else if (dureeHisto === '1-3mois') pauseRecalibrage = 2;
+      else if (dureeHisto === '3-6mois') pauseRecalibrage = 3;
+      else if (dureeHisto === '6-12mois') pauseRecalibrage = 4;
+      else if (dureeHisto === 'plus12mois') pauseRecalibrage = 5;
+      else pauseRecalibrage = 2;
+    }
+
+    // Durées finales avec pause
+    const phaseDurees = {
+      phase0: (phaseDureesBase.phase0 || 1) + pauseRecalibrage,
+      phase1: phaseDureesBase.phase1 || 3,
+      phase2: phaseDureesBase.phase2 || 2,
+      phase3: phaseDureesBase.phase3 || 10
+    };
+
+    // Calcul des dates
+    const dateDebut = strat.dateDebut ? new Date(strat.dateDebut) : new Date();
+    const addWeeksPDF = (date: Date, weeks: number): Date => {
+      const result = new Date(date);
+      result.setDate(result.getDate() + weeks * 7);
+      return result;
+    };
+
+    const phase0Start = dateDebut;
+    const phase1Start = addWeeksPDF(phase0Start, phaseDurees.phase0);
+    const phase2Start = addWeeksPDF(phase1Start, phaseDurees.phase1);
+    const phase3Start = addWeeksPDF(phase2Start, phaseDurees.phase2);
+
+    // Format date court
+    const formatDateShort = (d: Date): string => {
+      const mois = ['jan', 'fev', 'mar', 'avr', 'mai', 'jun', 'jul', 'aou', 'sep', 'oct', 'nov', 'dec'];
+      return `${d.getDate()} ${mois[d.getMonth()]}`;
+    };
+
+    // Déterminer quelles phases sont actives selon le point de départ
+    const phase1Active = typeMV === 'offmarket';
+    const phase2Active = typeMV === 'offmarket' || typeMV === 'comingsoon';
+
+    // Recalculer les dates selon les phases actives
+    const phase2StartActif = phase1Active ? phase2Start : addWeeksPDF(phase0Start, phaseDurees.phase0);
+    const phase3StartActif = phase2Active ? addWeeksPDF(phase2StartActif, phaseDurees.phase2) : addWeeksPDF(phase0Start, phaseDurees.phase0);
+
+    // ===== DESSINER LES 4 PHASES =====
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(marginLeft, yPos, contentWidth, 25, 2, 2, "F");
+    doc.rect(marginLeft - 5, yPos - 5, contentWidth + 10, 55, 'F');
 
-    const colWidth4 = contentWidth / 4;
-    const timelineY = yPos + 8;
+    const phaseWidth = (contentWidth - 30) / 4;
+    const phaseY = yPos;
+
+    // Label phase 0
+    const phase0Label = pauseRecalibrage > 0 ? 'Prepa. & Recalib.' : 'Preparation';
 
     const timelinePhases = [
-      { label: "Prepa.", date: format(datePhase0, "dd MMM", { locale: fr }), duree: `${durees.phase0 || 2} sem.` },
-      { label: "Off-market", date: format(datePhase1, "dd MMM", { locale: fr }), duree: `${durees.phase1 || 2} sem.` },
-      { label: "Coming soon", date: format(datePhase2, "dd MMM", { locale: fr }), duree: `${durees.phase2 || 2} sem.` },
-      { label: "Public", date: format(datePhase3, "dd MMM", { locale: fr }), duree: `~${durees.phase3 || 4} sem.` }
+      { 
+        label: phase0Label, 
+        date: formatDateShort(phase0Start), 
+        duree: `${phaseDurees.phase0} sem.`, 
+        active: true,
+        isStart: true
+      },
+      { 
+        label: 'Off-market', 
+        date: phase1Active ? formatDateShort(phase1Start) : '—', 
+        duree: phase1Active ? `${phaseDurees.phase1} sem.` : 'Optionnel', 
+        active: phase1Active,
+        isStart: false
+      },
+      { 
+        label: 'Coming soon', 
+        date: phase2Active ? formatDateShort(phase2StartActif) : '—', 
+        duree: phase2Active ? `${phaseDurees.phase2} sem.` : 'Optionnel', 
+        active: phase2Active,
+        isStart: false
+      },
+      { 
+        label: 'Public', 
+        date: formatDateShort(phase3StartActif), 
+        duree: `~${phaseDurees.phase3} sem.`, 
+        active: true,
+        isStart: false
+      }
     ];
 
-    timelinePhases.forEach((p, idx) => {
-      const xPos = marginLeft + 10 + (idx * colWidth4);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      safeText(doc, p.label, xPos, timelineY);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(GARY_DARK);
-      doc.setFontSize(9);
-      safeText(doc, p.date, xPos, timelineY + 6);
-      doc.setFontSize(7);
-      doc.setTextColor(150, 150, 150);
-      safeText(doc, p.duree, xPos, timelineY + 12);
+    timelinePhases.forEach((phase, idx) => {
+      const xPos = marginLeft + idx * (phaseWidth + 10);
+      
+      if (phase.active) {
+        // === PHASE ACTIVE ===
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(xPos, phaseY, phaseWidth, 45, 3, 3, 'FD');
+        
+        // Bordure rouge pour phase 0 (départ)
+        if (phase.isStart) {
+          doc.setDrawColor(250, 66, 56);
+          doc.setLineWidth(2);
+          doc.roundedRect(xPos, phaseY, phaseWidth, 45, 3, 3, 'S');
+          doc.setLineWidth(0.5);
+        }
+        
+        // Label
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(26, 46, 53);
+        safeText(doc, phase.label, xPos + phaseWidth / 2, phaseY + 15, { align: 'center' });
+        
+        // Date
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(107, 114, 128);
+        safeText(doc, phase.date, xPos + phaseWidth / 2, phaseY + 28, { align: 'center' });
+        
+        // Durée
+        safeText(doc, phase.duree, xPos + phaseWidth / 2, phaseY + 38, { align: 'center' });
+        
+      } else {
+        // === PHASE INACTIVE (grisée) ===
+        doc.setFillColor(249, 250, 251);
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(xPos, phaseY, phaseWidth, 45, 3, 3, 'FD');
+        
+        // Label grisé
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(156, 163, 175);
+        safeText(doc, phase.label, xPos + phaseWidth / 2, phaseY + 15, { align: 'center' });
+        
+        // Date (tiret)
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(209, 213, 219);
+        safeText(doc, phase.date, xPos + phaseWidth / 2, phaseY + 28, { align: 'center' });
+        
+        // Durée
+        safeText(doc, phase.duree, xPos + phaseWidth / 2, phaseY + 38, { align: 'center' });
+      }
     });
 
-    yPos += 32;
+    yPos += 52;
 
-    // Estimation vente
-    const dureeTotal = (durees.phase0 || 2) + (durees.phase1 || 2) + (durees.phase2 || 2) + (durees.phase3 || 4);
-    const dateVenteEstimee = new Date(dateDebut);
-    dateVenteEstimee.setDate(dateVenteEstimee.getDate() + dureeTotal * 7);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    safeText(doc, `Vente estimee : ${format(dateVenteEstimee, "dd MMMM yyyy", { locale: fr })}`, marginLeft, yPos);
-    yPos += 15;
+    // ===== DATE DE VENTE ESTIMÉE =====
+    const dureeTotal = phaseDurees.phase0 + 
+      (phase1Active ? phaseDurees.phase1 : 0) + 
+      (phase2Active ? phaseDurees.phase2 : 0) + 
+      phaseDurees.phase3;
+    const dateVenteEstimee = addWeeksPDF(dateDebut, dureeTotal);
+
+    // Format date longue
+    const formatDateLong = (d: Date): string => {
+      const mois = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 
+                    'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+      return `${d.getDate()} ${mois[d.getMonth()]} ${d.getFullYear()}`;
+    };
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(107, 114, 128);
+    safeText(doc, 'Vente estimee : ', pageWidth / 2 - 30, yPos);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(26, 46, 53);
+    safeText(doc, formatDateLong(dateVenteEstimee), pageWidth / 2 + 15, yPos);
+
+    yPos += 10;
+
+    // ===== NOTE RECALIBRAGE (si applicable) =====
+    if (pauseRecalibrage > 0) {
+      doc.setFillColor(254, 243, 199);
+      doc.roundedRect(marginLeft, yPos, contentWidth, 18, 3, 3, 'F');
+      
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(180, 83, 9);
+      safeText(doc, `Pause de recalibrage incluse (${pauseRecalibrage} sem.) : le bien ayant deja ete expose, une periode de retrait permet de reinventer l'objet.`, marginLeft + 8, yPos + 10);
+      
+      yPos += 22;
+    }
+
+    yPos += 5;
 
     // ========== 3 COLONNES : Off-Market / Coming Soon / Public ==========
     doc.setFontSize(11);
