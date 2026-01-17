@@ -178,3 +178,191 @@ export const travLabels: Record<string, string> = {
   toiture: 'Toiture à refaire',
   facade: 'Ravalement façade'
 };
+
+/**
+ * Labels pour les sous-types de biens
+ */
+export const sousTypeLabels: Record<string, string> = {
+  // Appartements
+  standard: 'Standard',
+  studio: 'Studio',
+  duplex: 'Duplex',
+  attique: 'Attique',
+  loft: 'Loft',
+  rez_jardin: 'Rez-de-jardin',
+  // Maisons
+  villa_individuelle: 'Villa individuelle',
+  villa_mitoyenne: 'Villa mitoyenne',
+  villa_jumelle: 'Villa jumelée',
+  ferme: 'Ferme',
+  chalet: 'Chalet',
+  maison_village: 'Maison de village'
+};
+
+/**
+ * Labels pour les zones géographiques
+ */
+export const zoneLabels: Record<string, string> = {
+  geneve_centre: 'Genève Centre',
+  geneve_rive_gauche: 'Rive Gauche',
+  geneve_rive_droite: 'Rive Droite',
+  carouge: 'Carouge',
+  champel: 'Champel',
+  eaux_vives: 'Eaux-Vives',
+  plainpalais: 'Plainpalais',
+  servette: 'Servette',
+  petit_saconnex: 'Petit-Saconnex',
+  grand_saconnex: 'Grand-Saconnex',
+  vernier: 'Vernier',
+  meyrin: 'Meyrin',
+  lancy: 'Lancy',
+  onex: 'Onex',
+  bernex: 'Bernex',
+  confignon: 'Confignon',
+  plan_les_ouates: 'Plan-les-Ouates',
+  veyrier: 'Veyrier',
+  troinex: 'Troinex',
+  collonge_bellerive: 'Collonge-Bellerive',
+  cologny: 'Cologny',
+  vandoeuvres: 'Vandoeuvres',
+  chene_bougeries: 'Chêne-Bougeries',
+  chene_bourg: 'Chêne-Bourg',
+  thonex: 'Thônex',
+  presinge: 'Presinge',
+  puplinge: 'Puplinge',
+  jussy: 'Jussy',
+  gy: 'Gy',
+  hermance: 'Hermance',
+  anières: 'Anières',
+  corsier: 'Corsier',
+  bellevue: 'Bellevue',
+  genthod: 'Genthod',
+  pregny_chambesy: 'Pregny-Chambésy',
+  satigny: 'Satigny',
+  russin: 'Russin',
+  dardagny: 'Dardagny',
+  aire_la_ville: 'Aire-la-Ville',
+  avusy: 'Avusy',
+  laconnex: 'Laconnex',
+  soral: 'Soral',
+  cartigny: 'Cartigny',
+  perly_certoux: 'Perly-Certoux',
+  bardonnex: 'Bardonnex',
+  compesieres: 'Compesières',
+  france_voisine: 'France voisine',
+  vaud: 'Canton de Vaud',
+  autre: 'Autre'
+};
+
+/**
+ * Labels pour la buanderie
+ */
+export const buanderieLabels: Record<string, string> = {
+  privee: 'Privée',
+  commune: 'Commune',
+  aucune: 'Aucune',
+  dans_appartement: 'Dans l\'appartement'
+};
+
+/**
+ * Labels pour les motifs de vente
+ */
+export const motifLabels: Record<string, string> = {
+  demenagement: 'Déménagement',
+  succession: 'Succession',
+  divorce: 'Divorce/Séparation',
+  investissement: 'Investissement',
+  agrandissement: 'Agrandissement',
+  retraite: 'Retraite',
+  difficultes_financieres: 'Difficultés financières',
+  changement_vie: 'Changement de vie',
+  autre: 'Autre'
+};
+
+/**
+ * Labels pour le type de chauffage
+ */
+export const chauffageLabels: Record<string, string> = {
+  mazout: 'Mazout',
+  gaz: 'Gaz',
+  pac: 'Pompe à chaleur',
+  pellets: 'Pellets',
+  bois: 'Bois',
+  electrique: 'Électrique',
+  cad: 'CAD (chauffage à distance)',
+  solaire: 'Solaire',
+  mixte: 'Mixte',
+  autre: 'Autre'
+};
+
+/**
+ * Labels pour l'état général
+ */
+export const etatLabels: Record<string, string> = {
+  neuf: 'Neuf',
+  tres_bon: 'Très bon',
+  bon: 'Bon',
+  moyen: 'Moyen',
+  a_renover: 'À rénover',
+  a_rafraichir: 'À rafraîchir'
+};
+
+/**
+ * Labels pour l'exposition/orientation
+ */
+export const expositionLabels: Record<string, string> = {
+  nord: 'Nord',
+  nord_est: 'Nord-Est',
+  est: 'Est',
+  sud_est: 'Sud-Est',
+  sud: 'Sud',
+  sud_ouest: 'Sud-Ouest',
+  ouest: 'Ouest',
+  nord_ouest: 'Nord-Ouest',
+  traversant: 'Traversant'
+};
+
+/**
+ * Labels pour le standing
+ */
+export const standingLabels: Record<string, string> = {
+  standard: 'Standard',
+  standing: 'Standing',
+  luxe: 'Luxe',
+  prestige: 'Prestige'
+};
+
+/**
+ * Labels pour l'horizon de vente
+ */
+export const horizonLabels: Record<string, string> = {
+  urgent: 'Urgent (< 3 mois)',
+  court: 'Court terme (3-6 mois)',
+  moyen: 'Moyen terme (6-12 mois)',
+  long: 'Long terme (> 12 mois)',
+  flexible: 'Flexible'
+};
+
+/**
+ * Labels pour le type de mandat
+ */
+export const mandatLabels: Record<string, string> = {
+  exclusif: 'Exclusif',
+  semi_exclusif: 'Semi-exclusif',
+  simple: 'Simple',
+  recherche: 'Recherche'
+};
+
+/**
+ * Labels CECB
+ */
+export const cecbLabels: Record<string, string> = {
+  A: 'A - Très efficace',
+  B: 'B - Efficace',
+  C: 'C - Assez efficace',
+  D: 'D - Moyen',
+  E: 'E - Peu efficace',
+  F: 'F - Inefficace',
+  G: 'G - Très inefficace',
+  inconnu: 'Non communiqué'
+};
