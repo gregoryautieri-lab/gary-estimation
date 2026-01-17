@@ -1983,6 +1983,75 @@ async function generatePageMap(
     html += '</div>';
   }
   
+  // Section transports (si données proximités disponibles)
+  const proximites = (data.identification as any)?.proximites;
+  const arret = proximites?.arretTPG;
+  const gare = proximites?.gare;
+  
+  if (arret || gare) {
+    html += '<div style="padding:14px 24px;background:white;border-top:1px solid #e5e7eb;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+    html += ico('clock', 14, '#FF4539');
+    html += '<span style="font-size:10px;color:#1a2e35;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transports à proximité</span>';
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+    
+    // Arrêt bus/tram
+    if (arret) {
+      const arretDistance = arret.distance >= 1000 
+        ? (arret.distance / 1000).toFixed(1) + ' km' 
+        : arret.distance + ' m';
+      const arretTemps = arret.tempsMarche || arret.temps || '—';
+      
+      html += '<div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:12px;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+      html += '<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;">';
+      html += ico('bus', 16, '#1a2e35');
+      html += '</div>';
+      html += '<div>';
+      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Arrêt bus / tram</div>';
+      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (arret.nom || '—') + '</div>';
+      html += '</div></div>';
+      html += '<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:6px;">';
+      html += '<span>' + arretDistance + '</span>';
+      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">~' + arretTemps + ' min à pied</span>';
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;color:#94a3b8;font-size:9px;text-align:center;">Aucun arrêt à proximité</div>';
+    }
+    
+    // Gare
+    if (gare) {
+      const gareDistance = gare.distance >= 1000 
+        ? (gare.distance / 1000).toFixed(1) + ' km' 
+        : gare.distance + ' m';
+      const gareTemps = gare.tempsMarche || gare.temps || '—';
+      const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
+      
+      html += '<div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:12px;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+      html += '<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;">';
+      html += ico('train', 16, '#1a2e35');
+      html += '</div>';
+      html += '<div>';
+      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Gare ferroviaire</div>';
+      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (gare.nom || '—') + '</div>';
+      html += '</div></div>';
+      html += '<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:6px;">';
+      html += '<span>' + gareDistance + '</span>';
+      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">~' + gareTemps + ' min ' + gareMode + '</span>';
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;color:#94a3b8;font-size:9px;text-align:center;">Aucune gare à proximité</div>';
+    }
+    
+    html += '</div>'; // fin grid
+    html += '</div>'; // fin section transports
+  }
+  
   // Disclaimer
   html += '<div style="padding:12px 24px;background:#f8fafc;">';
   html += '<div style="font-size:8px;color:#9ca3af;text-align:center;font-style:italic;">';
