@@ -511,29 +511,40 @@ async function renderCoverPage(ctx: PDFContext): Promise<void> {
   doc.setTextColor(255, 255, 255);
   safeText(doc, "sur mesure", marginLeft, 42);
   
-  // === STATS GARY (seulement 2 stats) ===
-  const statsRightX = pageWidth - ctx.marginRight;
-  const statsTopY = 18;
-  const statLineHeight = 14;
-  
-  const mainStats = [
-    { value: GARY_STATS.vues2025, label: "VUES EN 2025" },
-    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS) GOOGLE` }
+  // ===== STATS GARY (4 stats en ligne) =====
+  const statsY = 18;
+  const statsData = [
+    { value: GARY_STATS.vues2025, label: "VUES 2025" },
+    { value: GARY_STATS.communaute, label: "COMMUNAUTE" },
+    { value: `${GARY_STATS.noteGoogle} ★`, label: `(${GARY_STATS.nbAvis} AVIS)` },
+    { value: `${GARY_STATS.delaiMoyenMois}`, label: "MOIS MOY." }
   ];
-  
-  mainStats.forEach((stat, idx) => {
-    const yLine = statsTopY + (idx * statLineHeight);
+
+  const statWidth = 40;
+  const statsStartX = pageWidth - ctx.marginRight - (statsData.length * statWidth);
+
+  statsData.forEach((stat, idx) => {
+    const xPos = statsStartX + (idx * statWidth);
     
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
+    // Valeur
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    safeText(doc, stat.value, statsRightX, yLine, { align: "right" });
+    safeText(doc, stat.value, xPos + statWidth / 2, statsY, { align: 'center' });
     
+    // Label
     doc.setFontSize(6);
-    doc.setFont("helvetica", "normal");
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(180, 180, 180);
-    safeText(doc, stat.label, statsRightX - 25, yLine, { align: "right" });
+    safeText(doc, stat.label, xPos + statWidth / 2, statsY + 5, { align: 'center' });
   });
+
+  // ===== RÉSEAUX SOCIAUX (sous les stats) =====
+  const socialY = statsY + 14;
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(150, 150, 150);
+  safeText(doc, "Instagram 33K  •  LinkedIn 3.4K  •  TikTok 4.6K", pageWidth - ctx.marginRight, socialY, { align: 'right' });
 
   // === BADGE TYPE DE BIEN (centré) ===
   yPos = 100;
@@ -2924,108 +2935,179 @@ export async function generateEstimationPDF({
 
     yPos += 5;
 
-    // ========== 3 COLONNES : Off-Market / Coming Soon / Public ==========
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(GARY_DARK);
-    safeText(doc, "CHOISISSEZ VOTRE POINT DE DEPART", marginLeft, yPos);
-    yPos += 10;
+    // ===== 3 CARTES TRAJECTOIRES AVEC STYLE AMÉLIORÉ =====
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(107, 114, 128);
+    safeText(doc, 'CHOISISSEZ VOTRE POINT DE DEPART', marginLeft, yPos);
+    yPos += 8;
 
-    const prixBase = prixMax;
+    const cardWidth = (contentWidth - 20) / 3;
+    const cardHeight = 85;
+    const cardY = yPos;
+
+    // Calculer les prix selon les pourcentages
     const pourcOffmarket = estimation.preEstimation?.pourcOffmarket || 15;
     const pourcComingsoon = estimation.preEstimation?.pourcComingsoon || 10;
     const pourcPublic = estimation.preEstimation?.pourcPublic || 6;
 
-    const colWidth3 = (contentWidth - 10) / 3;
-    const colonnes = [
+    const totalVenale = prixMax || parseFloat(estimation.preEstimation?.prixEt || '0') || 0;
+
+    // Calculer LuxMode pour adapter le vocabulaire
+    const carac: any = estimation.caracteristiques || {};
+    const contexte: any = estimation.identification?.contexte || {};
+    const isAppartement = carac.typeBien === 'appartement';
+    const isMaison = carac.typeBien === 'maison';
+    const surfaceHab = parseFloat(
+      isAppartement 
+        ? (carac.surfacePPE || '0') 
+        : (carac.surfaceHabitableMaison || '0')
+    ) || 0;
+    const surfaceTerrain = parseFloat(carac.surfaceTerrain || '0') || 0;
+    const prixM2 = parseFloat(estimation.preEstimation?.prixM2 || '0') || 0;
+    const totalVenaleCalc = surfaceHab * prixM2;
+    
+    let luxScore = 0;
+    const sousTypePremiumAppart = ['attique', 'penthouse', 'loft', 'duplex', 'triplex'];
+    const sousTypePremiumMaison = ['villa', 'propriete', 'chalet', 'manoir'];
+    if (sousTypePremiumAppart.includes(carac.sousType || '')) luxScore += 15;
+    if (sousTypePremiumMaison.includes(carac.sousType || '')) luxScore += 12;
+    if (carac.dernierEtage && isAppartement) luxScore += 8;
+    if (surfaceHab > 300) luxScore += 15;
+    else if (surfaceHab > 200) luxScore += 10;
+    else if (surfaceHab > 150) luxScore += 5;
+    if (isMaison) {
+      if (surfaceTerrain > 3000) luxScore += 15;
+      else if (surfaceTerrain > 1500) luxScore += 10;
+      else if (surfaceTerrain > 800) luxScore += 5;
+    }
+    if (carac.piscine) luxScore += 12;
+    if (contexte.confidentialite === 'confidentielle') luxScore += 12;
+    else if (contexte.confidentialite === 'discrete') luxScore += 8;
+    if (contexte.horizon === 'flexible') luxScore += 5;
+    if (contexte.prioriteVendeur === 'prixMax') luxScore += 5;
+    if (totalVenaleCalc > 10000000) luxScore += 20;
+    else if (totalVenaleCalc > 5000000) luxScore += 15;
+    else if (totalVenaleCalc > 3000000) luxScore += 10;
+    else if (totalVenaleCalc > 2000000) luxScore += 5;
+    
+    const luxMode = luxScore >= 35;
+
+    const trajectoiresCards = [
       {
-        titre: "Off-Market",
-        sousTitre: "POINT DE DEPART STRATEGIQUE",
-        objectif: "Tester la demande en toute discretion",
-        conditions: ["Cercle restreint d'acheteurs", "Aucune trace publique", "Retours confidentiels"],
-        prix: prixBase > 0 ? prixBase * (1 + pourcOffmarket / 100) : 0,
-        pourcentage: `Venale +${pourcOffmarket}%`,
-        bgColor: [254, 226, 226] as [number, number, number],
-        headerColor: [185, 28, 28] as [number, number, number]
+        id: 'offmarket',
+        nom: 'Off-Market',
+        objectif: luxMode 
+          ? "Valider l'interet sans creer de trace publique"
+          : 'Tester la demande en toute discretion, sans exposition publique',
+        conditions: ['Cercle restreint', 'Aucune trace publique', 'Retours confidentiels'],
+        pilote: luxMode ? 'GARY selectionne et approche les acquereurs qualifies' : '',
+        prix: Math.round(totalVenale * (1 + pourcOffmarket / 100) / 5000) * 5000,
+        pourcentage: `+${pourcOffmarket}%`,
+        bgHeader: typeMV === 'offmarket' ? [26, 46, 53] as [number, number, number] : [249, 250, 251] as [number, number, number],
+        textHeader: typeMV === 'offmarket' ? [255, 255, 255] as [number, number, number] : [26, 46, 53] as [number, number, number]
       },
       {
-        titre: "Coming Soon",
-        sousTitre: "ACTIVABLE",
-        objectif: "Creer l'anticipation et la tension",
-        conditions: ["Communication maitrisee", "Liste d'attente", "Teasing cible"],
-        prix: prixBase > 0 ? prixBase * (1 + pourcComingsoon / 100) : 0,
-        pourcentage: `Venale +${pourcComingsoon}%`,
-        bgColor: [254, 243, 199] as [number, number, number],
-        headerColor: [180, 83, 9] as [number, number, number]
+        id: 'comingsoon',
+        nom: luxMode ? 'Lancement maitrise' : 'Coming Soon',
+        objectif: luxMode
+          ? "Orchestrer l'anticipation avec un recit maitrise"
+          : "Creer l'anticipation et generer une premiere tension",
+        conditions: ['Communication maitrisee', "Liste d'attente", 'Teasing cible'],
+        pilote: luxMode ? 'GARY construit le recit et gere le tempo de revelation' : '',
+        prix: Math.round(totalVenale * (1 + pourcComingsoon / 100) / 5000) * 5000,
+        pourcentage: `+${pourcComingsoon}%`,
+        bgHeader: typeMV === 'comingsoon' ? [26, 46, 53] as [number, number, number] : [249, 250, 251] as [number, number, number],
+        textHeader: typeMV === 'comingsoon' ? [255, 255, 255] as [number, number, number] : [26, 46, 53] as [number, number, number]
       },
       {
-        titre: "Public",
-        sousTitre: "CONDITIONNEL",
-        objectif: "Maximiser l'exposition",
-        conditions: ["Diffusion large", "Portails immobiliers", "Visibilite maximale"],
-        prix: prixBase > 0 ? prixBase * (1 + pourcPublic / 100) : 0,
-        pourcentage: `Venale +${pourcPublic}%`,
-        bgColor: [220, 252, 231] as [number, number, number],
-        headerColor: [21, 128, 61] as [number, number, number]
+        id: 'public',
+        nom: 'Marche Public',
+        objectif: luxMode
+          ? 'Arbitrer le tempo et amplifier selon les signaux'
+          : "Maximiser l'exposition et accelerer la transaction",
+        conditions: ['Diffusion large', 'Portails immobiliers', 'Visibilite maximale'],
+        pilote: luxMode ? "GARY pilote l'exposition et filtre les demandes" : '',
+        prix: Math.round(totalVenale * (1 + pourcPublic / 100) / 5000) * 5000,
+        pourcentage: `+${pourcPublic}%`,
+        bgHeader: typeMV === 'public' ? [26, 46, 53] as [number, number, number] : [249, 250, 251] as [number, number, number],
+        textHeader: typeMV === 'public' ? [255, 255, 255] as [number, number, number] : [26, 46, 53] as [number, number, number]
       }
     ];
 
-    colonnes.forEach((col, idx) => {
-      const xPos = marginLeft + (idx * (colWidth3 + 5));
-      const cardHeight = 70;
-
-      // Fond coloré
-      doc.setFillColor(...col.bgColor);
-      doc.roundedRect(xPos, yPos, colWidth3, cardHeight, 3, 3, "F");
-
+    trajectoiresCards.forEach((card, idx) => {
+      const xPos = marginLeft + idx * (cardWidth + 10);
+      const isPointDepart = card.id === typeMV;
+      
+      // Fond carte
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(isPointDepart ? 26 : 229, isPointDepart ? 46 : 231, isPointDepart ? 53 : 235);
+      doc.setLineWidth(isPointDepart ? 2 : 0.5);
+      doc.roundedRect(xPos, cardY, cardWidth, cardHeight, 4, 4, 'FD');
+      
       // Header
-      let cardY = yPos + 8;
+      doc.setFillColor(...card.bgHeader);
+      doc.roundedRect(xPos, cardY, cardWidth, 22, 4, 4, 'F');
+      doc.setFillColor(255, 255, 255);
+      doc.rect(xPos, cardY + 18, cardWidth, 4, 'F');
+      
+      // Nom trajectoire
       doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...col.headerColor);
-      safeText(doc, col.titre, xPos + 5, cardY);
-      cardY += 5;
-
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...card.textHeader);
+      safeText(doc, card.nom, xPos + cardWidth / 2, cardY + 10, { align: 'center' });
+      
+      // Badge statut
+      const statutLabel = isPointDepart ? 'POINT DE DEPART' : 'ACTIVABLE';
       doc.setFontSize(6);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      safeText(doc, col.sousTitre, xPos + 5, cardY);
-      cardY += 8;
-
+      doc.setFont('helvetica', 'bold');
+      safeText(doc, statutLabel, xPos + cardWidth / 2, cardY + 18, { align: 'center' });
+      
       // Objectif
+      let contentY = cardY + 28;
       doc.setFontSize(7);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(60, 60, 60);
-      safeText(doc, "OBJECTIF", xPos + 5, cardY);
-      cardY += 5;
-      doc.setFont("helvetica", "normal");
-      const objLines = doc.splitTextToSize(col.objectif, colWidth3 - 10);
-      doc.text(objLines, xPos + 5, cardY);
-      cardY += objLines.length * 4 + 4;
-
-      // Prix en bas
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...col.headerColor);
-      if (col.prix > 0) {
-        safeText(doc, formatPrix(col.prix), xPos + 5, yPos + cardHeight - 12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(75, 85, 99);
+      const objLines = doc.splitTextToSize(card.objectif, cardWidth - 10);
+      doc.text(objLines, xPos + 5, contentY);
+      contentY += objLines.length * 3 + 4;
+      
+      // Ligne GARY pilote (si luxMode)
+      if (luxMode && card.pilote) {
+        doc.setFontSize(6);
+        doc.setTextColor(156, 163, 175);
+        safeText(doc, 'GARY PILOTE', xPos + 5, contentY);
+        contentY += 3;
+        doc.setFontSize(6);
+        doc.setTextColor(107, 114, 128);
+        const piloteLines = doc.splitTextToSize(card.pilote, cardWidth - 10);
+        doc.text(piloteLines, xPos + 5, contentY);
+        contentY += piloteLines.length * 2.5 + 2;
       }
-      doc.setFontSize(6);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      safeText(doc, col.pourcentage, xPos + 5, yPos + cardHeight - 6);
+      
+      // Prix en bas
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(isPointDepart ? 250 : 26, isPointDepart ? 66 : 46, isPointDepart ? 56 : 53);
+      if (card.prix > 0) {
+        safeText(doc, formatPrix(card.prix), xPos + cardWidth / 2, cardY + cardHeight - 12, { align: 'center' });
+      }
+      
+      // Pourcentage
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(156, 163, 175);
+      safeText(doc, `Venale ${card.pourcentage}`, xPos + cardWidth / 2, cardY + cardHeight - 5, { align: 'center' });
     });
 
-    yPos += 80;
+    yPos += cardHeight + 10;
 
     // Note de bas
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.setTextColor(120, 120, 120);
-    const noteText = "Un objectif de valeur n'est pas une promesse. Il depend des signaux du marche et du pilotage dans le temps.";
-    const noteLines = doc.splitTextToSize(noteText, contentWidth);
-    doc.text(noteLines, marginLeft, yPos);
-    yPos += noteLines.length * 4 + 10;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(156, 163, 175);
+    safeText(doc, "Un objectif de valeur n'est pas une promesse. Il depend des signaux du marche et du pilotage dans le temps.", marginLeft, yPos);
+    yPos += 10;
   }
 
   // ========== Pitch (si configuré) ==========
