@@ -1645,26 +1645,6 @@ export async function generateEstimationPDF({
   await renderCoverPage(ctx);
 
   // ========================================
-  // PAGE 2 : MÉTHODOLOGIE D'ESTIMATION (modulaire)
-  // ========================================
-  await renderMethodologyPage(ctx);
-
-  // ========================================
-  // PAGE 3 : ANNEXE TECHNIQUE 1/2 (modulaire)
-  // ========================================
-  await renderAnnexeTechnique1(ctx);
-
-  // ========================================
-  // PAGE 4 : ANNEXE TECHNIQUE 2/2 (modulaire)
-  // ========================================
-  await renderAnnexeTechnique2(ctx);
-
-  // ========================================
-  // PAGE 2 : QUI EST GARY (Philosophie)
-  // ========================================
-  doc.addPage();
-  yPos = 25;
-  // ========================================
   // PAGE 2 : QUI EST GARY (Philosophie)
   // ========================================
   doc.addPage();
@@ -3071,6 +3051,19 @@ export async function generateEstimationPDF({
 
   const messageContactLines = doc.splitTextToSize(messageContact, contentWidth);
   doc.text(messageContactLines, marginLeft, yPos);
+
+  // ========================================
+  // ANNEXES (À LA FIN)
+  // ========================================
+  
+  // ANNEXE : MÉTHODOLOGIE (calculs détaillés)
+  await renderMethodologyPage(ctx);
+
+  // ANNEXE TECHNIQUE 1/2
+  await renderAnnexeTechnique1(ctx);
+
+  // ANNEXE TECHNIQUE 2/2
+  await renderAnnexeTechnique2(ctx);
 
   // ================================================================
   // ANNEXE PHOTOGRAPHIQUE (A LA FIN DU DOCUMENT - MAX 50 PHOTOS)
