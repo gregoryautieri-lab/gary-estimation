@@ -59,3 +59,7 @@ export type {
   ValeursCalculees,
   LuxCopy
 } from './pdfCalculs';
+
+// Générateur PDF principal
+export { generatePDF, calculerPhasesAuto, getDureeJusquaDate, calculerAjustementsProjet } from './pdfGenerator';
+export { default as pdfGenerator } from './pdfGenerator';
