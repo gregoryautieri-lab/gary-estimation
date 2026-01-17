@@ -6,7 +6,7 @@
 import { EstimationData } from '@/types/estimation';
 import { ico } from '../pdfIcons';
 import { getLogo } from '../pdfLogos';
-import { val, nuisanceLabels, dureeLabels, typeDiffusionLabels, raisonEchecLabels } from '../pdfFormatters';
+import { nuisanceLabels, dureeLabels, typeDiffusionLabels, raisonEchecLabels } from '../pdfFormatters';
 
 interface PageAnnexeConfig {
   pageNum1: number;
@@ -23,9 +23,9 @@ export function generateAnnexeTechnique1(
   config: PageAnnexeConfig
 ): string {
   const caracteristiques = data.caracteristiques || {};
-  const carac = caracteristiques;
-  const isAppartement = data.type_bien === 'appartement';
-  const isMaison = data.type_bien === 'maison';
+  const carac = caracteristiques as any;
+  const isAppartement = data.typeBien === 'appartement';
+  const isMaison = data.typeBien === 'maison';
   
   const annexeVal = (v: any, suffix: string = ''): string => {
     if (v === undefined || v === null || v === '') return '—';
@@ -59,7 +59,7 @@ export function generateAnnexeTechnique1(
     html += '<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">' + annexeVal(carac.sousType) + '</div></div>';
   }
   if (isMaison) {
-    html += '<div class="annexe-item"><div class="annexe-item-label">Type maison</div><div class="annexe-item-value">' + annexeVal(carac.typeMaison) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Type maison</div><div class="annexe-item-value">' + annexeVal(carac.sousType) + '</div></div>';
   }
   html += '<div class="annexe-item"><div class="annexe-item-label">Standing</div><div class="annexe-item-value">' + annexeVal(carac.standing) + '</div></div>';
   html += '<div class="annexe-item"><div class="annexe-item-label">Construction</div><div class="annexe-item-value">' + annexeVal(carac.anneeConstruction) + '</div></div>';
@@ -83,7 +83,7 @@ export function generateAnnexeTechnique1(
     html += '<div class="annexe-item"><div class="annexe-item-label">Surface habitable</div><div class="annexe-item-value">' + annexeVal(carac.surfaceHabitableMaison, ' m²') + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Surface terrain</div><div class="annexe-item-value">' + annexeVal(carac.surfaceTerrain, ' m²') + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Surface utile</div><div class="annexe-item-value">' + annexeVal(carac.surfaceUtile, ' m²') + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Cubage</div><div class="annexe-item-value">' + annexeVal(carac.cubage, ' m³') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Cubage</div><div class="annexe-item-value">' + annexeVal(carac.cubageManuel, ' m³') + '</div></div>';
   }
   html += '</div>';
   
@@ -119,7 +119,7 @@ export function generateAnnexeTechnique1(
     html += '<div class="annexe-grid" style="margin-top:6px;">';
     html += '<div class="annexe-item"><div class="annexe-item-label">Étage</div><div class="annexe-item-value">' + etageText + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Étages immeuble</div><div class="annexe-item-value">' + annexeVal(carac.nombreEtagesImmeuble) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Ascenseur</div><div class="annexe-item-value">' + (carac.ascenseur === true ? 'Oui' : (carac.ascenseur === false ? 'Non' : '—')) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Ascenseur</div><div class="annexe-item-value">' + (carac.ascenseur === 'oui' ? 'Oui' : (carac.ascenseur === 'non' ? 'Non' : '—')) + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Dernier étage</div><div class="annexe-item-value">' + (carac.dernierEtage ? 'Oui' : 'Non') + '</div></div>';
     html += '</div>';
   }
@@ -199,10 +199,11 @@ export function generateAnnexeTechnique2(
   data: EstimationData,
   config: PageAnnexeConfig
 ): string {
-  const analyseTerrain = data.analyse_terrain || {};
-  const identification = data.identification || {};
+  const analyseTerrain = data.analyseTerrain as any || {};
+  const identification = data.identification as any || {};
   const historique = identification.historique || {};
   const analyse = analyseTerrain;
+  const hist = historique;
   
   const renderEtatDots = (value: any): string => {
     const v = parseInt(value) || 0;
@@ -291,16 +292,16 @@ export function generateAnnexeTechnique2(
   }
   
   // Section Historique diffusion
-  if (historique.dejaDiffuse) {
+  if (hist.dejaDiffuse) {
     html += '<div class="annexe-section">';
     html += '<div class="annexe-title">' + ico('clock', 12, '#FF4539') + ' Historique de diffusion</div>';
     html += '<div class="annexe-grid">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Durée</div><div class="annexe-item-value">' + (dureeLabels[historique.duree] || '—') + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Type diffusion</div><div class="annexe-item-value">' + (typeDiffusionLabels[historique.typeDiffusion] || '—') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Durée</div><div class="annexe-item-value">' + (dureeLabels[hist.duree] || '—') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Type diffusion</div><div class="annexe-item-value">' + (typeDiffusionLabels[hist.typeDiffusion] || '—') + '</div></div>';
     html += '</div>';
     
     // Portails utilisés
-    const portailsUtilises = historique.portails || [];
+    const portailsUtilises = hist.portails || [];
     if (portailsUtilises.length > 0) {
       const portailsLbl: Record<string, string> = {
         'immoscout': 'Immoscout', 'homegate': 'Homegate', 'acheterlouer': 'Acheter-Louer',
@@ -312,7 +313,7 @@ export function generateAnnexeTechnique2(
     }
     
     // Raisons échec
-    const raisonsEchec = historique.raisonEchec || [];
+    const raisonsEchec = hist.raisonEchec || [];
     if (raisonsEchec.length > 0) {
       html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#991b1b;">Raisons échec perçues : </span>';
       raisonsEchec.forEach((r: string) => { html += '<span class="annexe-chip negative">' + (raisonEchecLabels[r] || r) + '</span> '; });

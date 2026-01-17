@@ -91,17 +91,15 @@ export function generateMapPage(
   data: EstimationData,
   config: { pageNum: number; totalPages: number; refId: string }
 ): string {
-  const bien = data.identification?.bien || {};
+  const identification = data.identification as any || {};
+  const adresse = identification.adresse || {};
   
-  if (!bien.mapLat || !bien.mapLng) {
+  const lat = adresse.coordinates?.lat;
+  const lng = adresse.coordinates?.lng;
+  
+  if (!lat || !lng) {
     return '';
   }
-  
-  // Créer URL carte statique OpenStreetMap
-  const lat = bien.mapLat;
-  const lng = bien.mapLng;
-  const zoom = 15;
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`;
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -116,8 +114,8 @@ export function generateMapPage(
   
   // Adresse
   html += '<div style="margin-bottom:16px;padding:12px;background:#f8fafc;border-radius:6px;border:1px solid #e5e7eb;">';
-  html += '<div style="font-size:11px;font-weight:600;color:#1a2e35;">' + (bien.adresse || '-') + '</div>';
-  html += '<div style="font-size:10px;color:#6b7280;margin-top:2px;">' + (data.code_postal || '') + ' ' + (data.localite || '') + '</div>';
+  html += '<div style="font-size:11px;font-weight:600;color:#1a2e35;">' + (adresse.rue || '-') + (adresse.numero ? ' ' + adresse.numero : '') + '</div>';
+  html += '<div style="font-size:10px;color:#6b7280;margin-top:2px;">' + (adresse.codePostal || '') + ' ' + (adresse.localite || '') + '</div>';
   html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">Coordonnées : ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</div>';
   html += '</div>';
   
@@ -126,7 +124,7 @@ export function generateMapPage(
   html += '<div style="text-align:center;">';
   html += '<div style="font-size:48px;margin-bottom:8px;">🗺️</div>';
   html += '<div style="font-size:11px;color:#6b7280;">Carte de localisation</div>';
-  html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">' + (bien.adresse || '-') + '</div>';
+  html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">' + (adresse.rue || '-') + '</div>';
   html += '</div>';
   html += '</div>';
   

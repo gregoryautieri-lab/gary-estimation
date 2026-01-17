@@ -23,9 +23,9 @@ export function generateComparablesSection(
   totalVenaleArrondi: number,
   isAnnexe: boolean = false
 ): string {
-  const comparables = data.comparables || {};
-  const comparablesVendus = (comparables.vendus || []).slice(0, 6);
-  const comparablesEnVente = (comparables.enVente || []).slice(0, 6);
+  const preEstimation = data.preEstimation || {};
+  const comparablesVendus = ((preEstimation as any).comparablesVendus || []).slice(0, 6);
+  const comparablesEnVente = ((preEstimation as any).comparablesEnVente || []).slice(0, 6);
   const totalComparables = comparablesVendus.length + comparablesEnVente.length;
   
   if (totalComparables === 0) {
@@ -87,10 +87,11 @@ export function generateComparablesSection(
   }
   
   // Positionnement du bien
-  const bien = data.identification?.bien || {};
+  const identification = data.identification as any || {};
+  const adresse = identification.adresse || {};
   html += '<div style="margin-top:8px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border:1px solid #FF4539;border-radius:6px;padding:8px 10px;text-align:center;">';
   html += '<div style="font-size:7px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Votre bien</div>';
-  html += '<div style="font-size:9px;font-weight:600;color:#1a2e35;">' + val(bien.adresse) + '</div>';
+  html += '<div style="font-size:9px;font-weight:600;color:#1a2e35;">' + val(adresse.rue) + (adresse.numero ? ' ' + adresse.numero : '') + '</div>';
   html += '<div style="font-size:12px;font-weight:700;color:#FF4539;margin-top:2px;">' + formatPrice(totalVenaleArrondi) + '</div>';
   html += '</div>';
   
@@ -294,9 +295,9 @@ export function generateComparablesAnnexePage(
   data: EstimationData,
   config: PageComparablesConfig
 ): string {
-  const comparables = data.comparables || {};
-  const comparablesVendus = comparables.vendus || [];
-  const comparablesEnVente = comparables.enVente || [];
+  const preEstimation = data.preEstimation || {};
+  const comparablesVendus = (preEstimation as any).comparablesVendus || [];
+  const comparablesEnVente = (preEstimation as any).comparablesEnVente || [];
   const totalComparables = comparablesVendus.length + comparablesEnVente.length;
   
   if (totalComparables <= 7) {

@@ -24,19 +24,18 @@ export function generateCaracteristiquesPage(
 ): string {
   const identification = data.identification || {};
   const caracteristiques = data.caracteristiques || {};
-  const analyseTerrain = data.analyse_terrain || {};
-  const preEstimation = data.pre_estimation || {};
+  const analyseTerrain = data.analyseTerrain || {};
+  const preEstimation = data.preEstimation || {};
   
-  const bien = identification.bien || {};
-  const carac = caracteristiques;
-  const analyse = analyseTerrain;
+  const carac = caracteristiques as any;
+  const analyse = analyseTerrain as any;
   
-  const isAppartement = data.type_bien === 'appartement';
-  const isMaison = data.type_bien === 'maison';
+  const isAppartement = data.typeBien === 'appartement';
+  const isMaison = data.typeBien === 'maison';
   
   // Calculs surfaces
-  const surfaces = calculateSurfaces(carac, preEstimation, isAppartement, isMaison);
-  const valeurs = calculateValeurs(surfaces, carac, preEstimation, isAppartement, isMaison);
+  const surfaces = calculateSurfaces(carac, preEstimation, isAppartement);
+  const valeurs = calculateValeurs(surfaces, carac, preEstimation, isAppartement);
   
   // Labels chauffage et diffusion
   const chaufLabels: Record<string, string> = {
@@ -53,10 +52,8 @@ export function generateCaracteristiquesPage(
     lac: 'Lac', montagne: 'Montagne', ville: 'Ville', campagne: 'Campagne',
     jardin: 'Jardin', parc: 'Parc', degagee: 'Dégagée', vis_a_vis: 'Vis-à-vis'
   };
-  const vueArr = carac.vue || [];
-  const vueDisplay = Array.isArray(vueArr) && vueArr.length > 0 
-    ? vueArr.map((v: string) => vueLabels[v] || v).join(', ')
-    : '—';
+  const vueStr = carac.vue || '';
+  const vueDisplay = vueStr ? (vueLabels[vueStr] || vueStr) : '—';
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -249,156 +246,178 @@ function generateMaisonGrid(carac: any, surfaces: any, vueDisplay: string, chauf
 function generateRenovationsSection(carac: any): string {
   const renoLabels: Record<string, string> = {
     moins10ans: '< 10 ans', structure: 'Structure', technique: 'Technique',
-    cuisine: 'Cuisine', salles_eau: 'Salles eau', menuiseries: 'Fenêtres', finitions: 'Finitions'
+    cuisine: 'Cuisine', sdb: 'Salle de bain', sols: 'Sols',
+    peinture: 'Peinture', fenetres: 'Fenêtres', facade: 'Façade',
+    toiture: 'Toiture', isolation: 'Isolation'
   };
+  
   const travLabels: Record<string, string> = {
-    toiture: 'Toiture', facade: 'Façade', fenetres: 'Fenêtres', chauffage: 'Chauffage',
-    electrique: 'Électricité', plomberie: 'Plomberie', cuisine: 'Cuisine', sdb: 'SDB',
-    sols: 'Sols', isolation: 'Isolation', peinture: 'Peinture', jardin: 'Extérieurs'
+    rafraichir: 'Rafraîchir', renover_partiel: 'Rénovation partielle',
+    renover_total: 'Rénovation totale', agrandir: 'Agrandissement',
+    cuisine: 'Cuisine', sdb: 'Salle de bain', sols: 'Sols'
   };
   
-  const renoArr = carac.typeRenovation || [];
-  const travArr = carac.travauxRecents || [];
+  const renovations = carac.typeRenovation || [];
+  const travaux = carac.travauxRecents || [];
+  const travauxPrevus = carac.travauxPrevus || [];
   
-  if (!carac.anneeRenovation && renoArr.length === 0 && travArr.length === 0) {
+  if (renovations.length === 0 && travaux.length === 0 && travauxPrevus.length === 0) {
     return '';
   }
   
-  let html = '<div style="padding:12px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;display:flex;align-items:center;gap:6px;">' + ico('refresh', 14, '#6b7280') + 'Rénovations & Travaux</div>';
-  if (carac.anneeRenovation) {
-    html += '<div style="font-size:10px;color:#374151;font-weight:600;">Rénové en ' + carac.anneeRenovation + '</div>';
-  }
-  html += '</div>';
+  let html = '<div style="padding:12px 24px;background:#fafafa;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;">Rénovations & Travaux</div>';
   
-  if (renoArr.length > 0 || travArr.length > 0) {
-    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
-    for (const ri of renoArr) {
-      html += '<span style="background:white;color:#374151;padding:4px 10px;border-radius:4px;font-size:9px;border:1px solid #e5e7eb;">' + (renoLabels[ri] || ri) + '</span>';
-    }
-    for (const ti of travArr) {
-      html += '<span style="background:white;color:#374151;padding:4px 10px;border-radius:4px;font-size:9px;border:1px solid #e5e7eb;">' + (travLabels[ti] || ti) + '</span>';
-    }
+  if (renovations.length > 0) {
+    html += '<div style="margin-bottom:6px;"><span style="font-size:8px;color:#065f46;font-weight:600;">RÉNOVATIONS : </span>';
+    renovations.forEach((r: string) => {
+      html += '<span style="display:inline-block;padding:2px 6px;margin:1px;background:#d1fae5;color:#065f46;border-radius:3px;font-size:8px;">' + (renoLabels[r] || r) + '</span> ';
+    });
     html += '</div>';
   }
-  html += '</div>';
   
+  if (travaux.length > 0) {
+    html += '<div style="margin-bottom:6px;"><span style="font-size:8px;color:#1e40af;font-weight:600;">TRAVAUX RÉCENTS : </span>';
+    travaux.forEach((t: string) => {
+      html += '<span style="display:inline-block;padding:2px 6px;margin:1px;background:#dbeafe;color:#1e40af;border-radius:3px;font-size:8px;">' + (travLabels[t] || t) + '</span> ';
+    });
+    html += '</div>';
+  }
+  
+  if (travauxPrevus.length > 0) {
+    html += '<div><span style="font-size:8px;color:#92400e;font-weight:600;">TRAVAUX À PRÉVOIR : </span>';
+    travauxPrevus.forEach((t: string) => {
+      html += '<span style="display:inline-block;padding:2px 6px;margin:1px;background:#fef3c7;color:#92400e;border-radius:3px;font-size:8px;">' + (travLabels[t] || t) + '</span> ';
+    });
+    html += '</div>';
+  }
+  
+  html += '</div>';
   return html;
 }
 
 function generateEtatSection(analyse: any): string {
-  let html = '<div style="padding:16px 24px;background:#fafafa;border-top:1px solid #e5e7eb;">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
-  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;">État du bien</div>';
-  html += '<div style="font-size:8px;color:#9ca3af;display:flex;gap:12px;">';
-  html += '<span style="display:flex;align-items:center;gap:4px;">' + ico('sparkles', 12, '#3b82f6') + 'Neuf</span>';
-  html += '<span style="display:flex;align-items:center;gap:4px;">' + ico('checkCircle', 12, '#10b981') + 'Bon</span>';
-  html += '<span style="display:flex;align-items:center;gap:4px;">' + ico('refresh', 12, '#f59e0b') + 'À rafraîchir</span>';
-  html += '<span style="display:flex;align-items:center;gap:4px;">' + ico('xCircle', 12, '#ef4444') + 'À refaire</span>';
+  const hasEtat = analyse.etatCuisine || analyse.etatSDB || analyse.etatSols || 
+                  analyse.etatMurs || analyse.etatMenuiseries || analyse.etatElectricite;
+  
+  if (!hasEtat) return '';
+  
+  const renderDots = (val: number | string) => {
+    const v = parseInt(String(val)) || 0;
+    let dots = '';
+    for (let i = 1; i <= 5; i++) {
+      const color = i <= v ? '#1a2e35' : '#e5e7eb';
+      dots += '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + color + ';margin-right:2px;"></span>';
+    }
+    return dots;
+  };
+  
+  let html = '<div style="padding:12px 24px;background:white;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('eye', 12, '#9ca3af') + 'État observé</div>';
+  
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+  
+  if (analyse.etatCuisine) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Cuisine</span><span>' + renderDots(analyse.etatCuisine) + '</span></div>';
+  }
+  if (analyse.etatSDB) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Salle de bain</span><span>' + renderDots(analyse.etatSDB) + '</span></div>';
+  }
+  if (analyse.etatSols) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Sols</span><span>' + renderDots(analyse.etatSols) + '</span></div>';
+  }
+  if (analyse.etatMurs) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Murs</span><span>' + renderDots(analyse.etatMurs) + '</span></div>';
+  }
+  if (analyse.etatMenuiseries) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Menuiseries</span><span>' + renderDots(analyse.etatMenuiseries) + '</span></div>';
+  }
+  if (analyse.etatElectricite) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:9px;color:#64748b;">Électricité</span><span>' + renderDots(analyse.etatElectricite) + '</span></div>';
+  }
+  
   html += '</div></div>';
-  
-  // États
-  html += '<div style="display:flex;gap:6px;margin-bottom:12px;">';
-  const etats = [
-    {l: 'Cuisine', v: analyse.etatCuisine},
-    {l: 'Salle de bain', v: analyse.etatSDB},
-    {l: 'Sols', v: analyse.etatSols},
-    {l: 'Murs', v: analyse.etatMurs},
-    {l: 'Menuiseries', v: analyse.etatMenuiseries},
-    {l: 'Électricité', v: analyse.etatElectricite}
-  ];
-  
-  etats.forEach((e) => {
-    const icoName = e.v === 'neuf' ? 'sparkles' : (e.v === 'bon' ? 'checkCircle' : (e.v === 'rafraichir' ? 'refresh' : (e.v === 'refaire' ? 'xCircle' : 'minus')));
-    const icoColor = e.v === 'neuf' ? '#3b82f6' : (e.v === 'bon' ? '#10b981' : (e.v === 'rafraichir' ? '#f59e0b' : (e.v === 'refaire' ? '#ef4444' : '#d1d5db')));
-    html += '<div style="flex:1;text-align:center;padding:10px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">';
-    html += '<div style="margin-bottom:4px;">' + ico(icoName, 18, icoColor) + '</div>';
-    html += '<div style="font-size:8px;color:#6b7280;font-weight:500;">' + e.l + '</div>';
-    html += '</div>';
-  });
-  html += '</div>';
-  
-  // Ambiance
-  html += '<div style="display:flex;gap:10px;">';
-  const ambiances = [
-    {l: 'Luminosité', v: analyse.luminosite || 0, icoName: 'luminosite'},
-    {l: 'Calme', v: analyse.calme || 0, icoName: 'calme'},
-    {l: 'Volumes', v: analyse.volumes || 0, icoName: 'volumes'}
-  ];
-  
-  ambiances.forEach((a) => {
-    html += '<div style="flex:1;background:white;border-radius:6px;padding:10px;border:1px solid #e5e7eb;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-    html += '<span style="font-size:10px;color:#6b7280;font-weight:500;display:flex;align-items:center;gap:6px;">' + ico(a.icoName, 14, '#9ca3af') + a.l + '</span>';
-    html += '<span style="font-size:11px;font-weight:600;color:#111827;">' + a.v + '/5</span>';
-    html += '</div>';
-    html += '<div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;">';
-    html += '<div style="height:100%;width:' + (a.v * 20) + '%;background:#111827;border-radius:2px;"></div>';
-    html += '</div></div>';
-  });
-  html += '</div></div>';
-  
   return html;
 }
 
 function generateProximitesSection(identification: any): string {
-  const proximites = identification?.proximites || [];
-  const proxFilled = proximites.filter((p: any) => p.libelle && p.distance).slice(0, 6);
-  const proxIcons: Record<string, string> = {
-    '🚌': 'bus', '🚃': 'train', '🏫': 'ecole', '🛒': 'commerce', '🏥': 'sante', '🌳': 'nature'
-  };
+  const proximites = identification.proximites || [];
+  const transports = identification.transports || {};
   
-  let html = '<div style="padding:16px 24px;background:white;border-top:1px solid #e5e7eb;">';
-  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;">Proximités & Commodités</div>';
+  const hasProximites = proximites.some((p: any) => p.libelle || p.distance);
+  const hasTransports = transports.arret || transports.gare;
   
-  if (proxFilled.length > 0) {
-    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
-    proxFilled.forEach((p: any) => {
-      const distStr = String(p.distance);
-      const distDisplay = distStr + (distStr && !distStr.endsWith('m') && !distStr.endsWith('km') ? 'm' : '');
-      const proxIcoName = proxIcons[p.icone] || 'mapPin';
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #e5e7eb;border-radius:6px;">';
-      html += '<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#f9fafb;border-radius:6px;">' + ico(proxIcoName, 18, '#6b7280') + '</div>';
-      html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-size:10px;color:#374151;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.libelle + '</div>';
-      html += '<div style="font-size:12px;font-weight:700;color:#111827;">' + distDisplay + '</div>';
-      html += '</div></div>';
-    });
+  if (!hasProximites && !hasTransports) return '';
+  
+  let html = '<div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('mapPin', 12, '#9ca3af') + 'Proximités</div>';
+  
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  
+  proximites.forEach((p: any) => {
+    if (p.libelle || p.distance) {
+      html += '<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:white;border:1px solid #e5e7eb;border-radius:4px;">';
+      html += '<span style="font-size:11px;">' + (p.icone || '📍') + '</span>';
+      html += '<span style="font-size:8px;color:#1a2e35;">' + (p.libelle || p.type) + '</span>';
+      if (p.distance) {
+        html += '<span style="font-size:7px;color:#6b7280;">(' + p.distance + ')</span>';
+      }
+      html += '</div>';
+    }
+  });
+  
+  if (transports.arret) {
+    const modeIcon = transports.arret.mode === 'tram' ? '🚃' : (transports.arret.mode === 'bus_tram' ? '🚌🚃' : '🚌');
+    html += '<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:white;border:1px solid #e5e7eb;border-radius:4px;">';
+    html += '<span style="font-size:11px;">' + modeIcon + '</span>';
+    html += '<span style="font-size:8px;color:#1a2e35;">' + transports.arret.nom + '</span>';
+    html += '<span style="font-size:7px;color:#6b7280;">(' + transports.arret.distance + ')</span>';
     html += '</div>';
-  } else {
-    html += '<div style="color:#94a3b8;font-style:italic;font-size:9px;text-align:center;padding:20px;">Aucune proximité renseignée</div>';
   }
   
-  html += '</div>';
+  if (transports.gare) {
+    html += '<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:white;border:1px solid #e5e7eb;border-radius:4px;">';
+    html += '<span style="font-size:11px;">🚂</span>';
+    html += '<span style="font-size:8px;color:#1a2e35;">' + transports.gare.nom + '</span>';
+    html += '<span style="font-size:7px;color:#6b7280;">(' + transports.gare.distance + ')</span>';
+    html += '</div>';
+  }
   
+  html += '</div></div>';
   return html;
 }
 
 function generateArgumentsSection(analyse: any): string {
   const pointsForts = analyse.pointsForts || [];
+  const pointsFaibles = analyse.pointsFaibles || [];
   
-  if (pointsForts.length === 0) {
-    return '';
+  if (pointsForts.length === 0 && pointsFaibles.length === 0) return '';
+  
+  let html = '<div style="padding:12px 24px;background:white;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('star', 12, '#9ca3af') + 'Arguments de vente</div>';
+  
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+  
+  // Points forts
+  if (pointsForts.length > 0) {
+    html += '<div>';
+    html += '<div style="font-size:8px;color:#065f46;font-weight:600;margin-bottom:4px;">✓ Points forts</div>';
+    pointsForts.slice(0, 5).forEach((p: string) => {
+      html += '<div style="font-size:9px;color:#1a2e35;padding:2px 0;">• ' + p.replace(/^[\p{Emoji}\s]+/u, '') + '</div>';
+    });
+    html += '</div>';
   }
   
-  // Prendre les 4 premiers arguments
-  const topArguments = pointsForts.slice(0, 4);
-  
-  let html = '<div style="padding:14px 16px;background:linear-gradient(135deg, #1a2e35 0%, #2c3e50 50%, #34495e 100%);margin:12px 16px;border-radius:12px;box-shadow:0 4px 15px rgba(26,46,53,0.3);position:relative;overflow:hidden;">';
-  html += '<div style="content:\'\';position:absolute;top:-50%;right:-50%;width:100%;height:100%;background:radial-gradient(circle, rgba(255,69,57,0.1) 0%, transparent 70%);"></div>';
-  html += '<div style="font-size:10px;font-weight:700;color:white;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;position:relative;">✨ Arguments de vente</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;position:relative;">';
-  
-  topArguments.forEach((arg: string) => {
-    const cleanArg = arg.replace(/^[^\s]+\s/, ''); // Remove emoji
-    html += '<div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:10px;display:flex;align-items:flex-start;gap:10px;border:1px solid rgba(255,255,255,0.1);">';
-    html += '<div style="font-size:16px;background:rgba(255,69,57,0.2);width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;">✓</div>';
-    html += '<div style="font-size:10px;color:white;line-height:1.4;font-weight:500;">' + cleanArg + '</div>';
+  // Points faibles
+  if (pointsFaibles.length > 0) {
+    html += '<div>';
+    html += '<div style="font-size:8px;color:#991b1b;font-weight:600;margin-bottom:4px;">✗ Points d\'attention</div>';
+    pointsFaibles.slice(0, 5).forEach((p: string) => {
+      html += '<div style="font-size:9px;color:#1a2e35;padding:2px 0;">• ' + p.replace(/^[\p{Emoji}\s]+/u, '') + '</div>';
+    });
     html += '</div>';
-  });
+  }
   
   html += '</div></div>';
-  
   return html;
 }
