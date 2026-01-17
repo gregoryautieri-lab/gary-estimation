@@ -438,35 +438,37 @@ interface CapitalVisibilite {
 }
 
 function calculerCapitalVisibilite(data: EstimationData, totalVenale: number): CapitalVisibilite {
-  const historique = data.identification?.historique || {};
+  const historique = data.identification?.historique;
   let capitalPct = 100;
   const capitalAlerts: Array<{ type: string; msg: string }> = [];
   let pauseRecommandee = false;
   
-  if (historique.dejaDiffuse) {
+  if (historique?.dejaDiffuse) {
     // Impact de la durée
     let dureeImpact = 0;
-    if (historique.duree === 'moins1mois') dureeImpact = 5;
-    else if (historique.duree === '1-3mois') dureeImpact = 15;
-    else if (historique.duree === '3-6mois') dureeImpact = 30;
-    else if (historique.duree === '6-12mois') dureeImpact = 50;
-    else if (historique.duree === 'plus12mois') dureeImpact = 65;
+    const duree = historique.duree || '';
+    if (duree === 'moins1mois') dureeImpact = 5;
+    else if (duree === '1-3mois') dureeImpact = 15;
+    else if (duree === '3-6mois') dureeImpact = 30;
+    else if (duree === '6-12mois') dureeImpact = 50;
+    else if (duree === 'plus12mois') dureeImpact = 65;
     
     // Impact du type de diffusion
     let diffusionImpact = 0;
-    if (historique.typeDiffusion === 'discrete') diffusionImpact = 5;
-    else if (historique.typeDiffusion === 'moderee') diffusionImpact = 15;
-    else if (historique.typeDiffusion === 'massive') diffusionImpact = 30;
+    const typeDiff = historique.typeDiffusion || '';
+    if (typeDiff === 'discrete') diffusionImpact = 5;
+    else if (typeDiff === 'moderee') diffusionImpact = 15;
+    else if (typeDiff === 'massive') diffusionImpact = 30;
     
     capitalPct = 100 - dureeImpact - diffusionImpact;
     
     // Bonus si diffusion discrète longue
-    if (historique.typeDiffusion === 'discrete' && dureeImpact > 15) {
+    if (typeDiff === 'discrete' && dureeImpact > 15) {
       capitalPct += 10;
     }
     
     // Malus si diffusion massive longue
-    if (historique.typeDiffusion === 'massive' && ['3-6mois', '6-12mois', 'plus12mois'].includes(historique.duree || '')) {
+    if (typeDiff === 'massive' && ['3-6mois', '6-12mois', 'plus12mois'].includes(duree)) {
       capitalPct -= 10;
     }
     
@@ -506,50 +508,52 @@ interface LuxMode {
 }
 
 function calculerLuxMode(data: EstimationData, totalVenaleArrondi: number): LuxMode {
-  const carac = data.caracteristiques || {};
-  const contexte = data.identification?.contexte || {};
-  const historique = data.identification?.historique || {};
-  const isAppartement = carac.typeBien === 'appartement';
-  const isMaison = carac.typeBien === 'maison';
+  const carac = data.caracteristiques;
+  const contexte = data.identification?.contexte;
+  const historique = data.identification?.historique;
+  const isAppartement = carac?.typeBien === 'appartement';
+  const isMaison = carac?.typeBien === 'maison';
   
   let luxScore = 0;
   
   // Type de bien premium
-  const sousTypePremium = ['attique', 'penthouse', 'loft', 'duplex'].includes(carac.sousType || '');
-  const sousTypeMaisonPremium = ['villa', 'propriete', 'chalet'].includes(carac.sousType || '');
+  const sousType = carac?.sousType || '';
+  const sousTypePremium = ['attique', 'penthouse', 'loft', 'duplex'].includes(sousType);
+  const sousTypeMaisonPremium = ['villa', 'propriete', 'chalet'].includes(sousType);
   if (sousTypePremium) luxScore += 15;
   if (sousTypeMaisonPremium) luxScore += 12;
-  if (carac.dernierEtage && isAppartement) luxScore += 8;
+  if (carac?.dernierEtage && isAppartement) luxScore += 8;
   
   // Surfaces hors norme
-  const surfacePonderee = parseNum(carac.surfacePPE) + (parseNum(carac.surfaceNonHabitable) * 0.5);
-  const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
+  const surfacePonderee = parseNum(carac?.surfacePPE) + (parseNum(carac?.surfaceNonHabitable) * 0.5);
+  const surfaceHabMaison = parseNum(carac?.surfaceHabitableMaison);
   const surfaceHab = isAppartement ? surfacePonderee : surfaceHabMaison;
   if (surfaceHab > 300) luxScore += 15;
   else if (surfaceHab > 200) luxScore += 10;
   else if (surfaceHab > 150) luxScore += 5;
   
   // Terrain (maison)
-  const surfaceTerrain = parseNum(carac.surfaceTerrain);
+  const surfaceTerrain = parseNum(carac?.surfaceTerrain);
   if (isMaison && surfaceTerrain > 3000) luxScore += 15;
   else if (isMaison && surfaceTerrain > 1500) luxScore += 10;
   else if (isMaison && surfaceTerrain > 800) luxScore += 5;
   
   // Annexes premium
-  if (carac.piscine) luxScore += 12;
-  const annexesPremium = (carac.annexesAppart || []).filter(a => 
+  if (carac?.piscine) luxScore += 12;
+  const annexesPremium = (carac?.annexesAppart || []).filter(a => 
     ['piscine_int', 'piscine_ext', 'hammam', 'sauna', 'jacuzzi'].includes(a)
   );
   luxScore += annexesPremium.length * 5;
   
   // Contexte vendeur
-  if (contexte.confidentialite === 'confidentielle') luxScore += 12;
-  else if (contexte.confidentialite === 'discrete') luxScore += 8;
-  if (contexte.horizon === 'flexible') luxScore += 5;
-  if (contexte.prioriteVendeur === 'prixMax') luxScore += 5;
+  const confidentialite = contexte?.confidentialite || '';
+  if (confidentialite === 'confidentielle') luxScore += 12;
+  else if (confidentialite === 'discrete') luxScore += 8;
+  if (contexte?.horizon === 'flexible') luxScore += 5;
+  if (contexte?.prioriteVendeur === 'prixMax') luxScore += 5;
   
   // Bien déjà exposé + volonté de protéger
-  if (historique.dejaDiffuse && contexte.confidentialite !== 'normale') luxScore += 8;
+  if (historique?.dejaDiffuse && confidentialite !== 'normale') luxScore += 8;
   
   // Valeur vénale
   if (totalVenaleArrondi > 10000000) luxScore += 20;
@@ -603,9 +607,9 @@ function getCopy(isLux: boolean): LuxCopy {
 // ============================================
 
 function calculerNiveauContrainte(data: EstimationData): number {
-  const projetPV = data.identification?.projetPostVente || {};
-  const hasProjetAchat = projetPV.nature === 'achat';
-  const avancement = projetPV.avancement || '';
+  const projetPV = data.identification?.projetPostVente;
+  const hasProjetAchat = projetPV?.nature === 'achat';
+  const avancement = projetPV?.avancement || '';
   
   if (!hasProjetAchat) return 0;
   
@@ -822,12 +826,12 @@ function getStyles(): string {
 // ============================================
 
 function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateStr: string, _heureStr: string, totalPages: number): string {
-  const identification = data.identification || {};
-  const bien = identification.adresse || {};
-  const vendeur = identification.vendeur || {};
-  const carac = data.caracteristiques || {};
-  const isAppartement = carac.typeBien === 'appartement';
-  const typeBien = isAppartement ? 'Appartement' : (carac.typeBien === 'maison' ? 'Maison' : '–');
+  const identification = data.identification;
+  const bien = identification?.adresse;
+  const vendeur = identification?.vendeur;
+  const carac = data.caracteristiques;
+  const isAppartement = carac?.typeBien === 'appartement';
+  const typeBien = isAppartement ? 'Appartement' : (carac?.typeBien === 'maison' ? 'Maison' : '–');
   
   let html = '<div class="page">';
   
@@ -874,16 +878,16 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
   html += '</div></div>';
   
   // Tags contexte
-  const contexte = identification.contexte || {};
+  const contexte = identification?.contexte;
   const ctxItems: Array<{ icon: string; text: string }> = [];
   
-  if (contexte.motifVente) ctxItems.push({ icon: 'target', text: motifLabels[contexte.motifVente] || contexte.motifVente });
-  if (contexte.horizon) ctxItems.push({ icon: 'clock', text: horizonLabels[contexte.horizon] || contexte.horizon });
-  if (contexte.confidentialite === 'discrete') ctxItems.push({ icon: 'eye', text: 'Vente discrète' });
-  else if (contexte.confidentialite === 'confidentielle') ctxItems.push({ icon: 'lock', text: 'Off-market' });
-  if (contexte.prioriteVendeur === 'prixMax') ctxItems.push({ icon: 'trendingUp', text: 'Priorité prix' });
-  else if (contexte.prioriteVendeur === 'venteRapide') ctxItems.push({ icon: 'zap', text: 'Priorité rapidité' });
-  if (carac.dernierEtage) ctxItems.push({ icon: 'mountain', text: 'Dernier étage' });
+  if (contexte?.motifVente) ctxItems.push({ icon: 'target', text: motifLabels[contexte.motifVente] || contexte.motifVente });
+  if (contexte?.horizon) ctxItems.push({ icon: 'clock', text: horizonLabels[contexte.horizon] || contexte.horizon });
+  if (contexte?.confidentialite === 'discrete') ctxItems.push({ icon: 'eye', text: 'Vente discrète' });
+  else if (contexte?.confidentialite === 'confidentielle') ctxItems.push({ icon: 'lock', text: 'Off-market' });
+  if (contexte?.prioriteVendeur === 'prixMax') ctxItems.push({ icon: 'trendingUp', text: 'Priorité prix' });
+  else if (contexte?.prioriteVendeur === 'venteRapide') ctxItems.push({ icon: 'zap', text: 'Priorité rapidité' });
+  if (carac?.dernierEtage) ctxItems.push({ icon: 'mountain', text: 'Dernier étage' });
   
   if (ctxItems.length > 0) {
     html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#fafafa;border-bottom:1px solid #e5e7eb;">';
@@ -906,14 +910,14 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
   html += '<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;">';
   html += '<div style="display:flex;align-items:center;justify-content:center;gap:10px;">';
   html += '<div>' + ico('pieces', 20, '#9ca3af') + '</div>';
-  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac.nombrePieces) + '</div>';
+  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac?.nombrePieces) + '</div>';
   html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">pièces</div></div>';
   html += '</div></div>';
   
   html += '<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;">';
   html += '<div style="display:flex;align-items:center;justify-content:center;gap:10px;">';
   html += '<div>' + ico('chambres', 20, '#9ca3af') + '</div>';
-  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac.nombreChambres) + '</div>';
+  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac?.nombreChambres) + '</div>';
   html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">chambres</div></div>';
   html += '</div></div>';
   
@@ -921,7 +925,7 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
     html += '<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;">';
     html += '<div style="display:flex;align-items:center;justify-content:center;gap:10px;">';
     html += '<div>' + ico('etage', 20, '#9ca3af') + '</div>';
-    html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac.etage) + '</div>';
+    html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac?.etage) + '</div>';
     html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">étage</div></div>';
     html += '</div></div>';
   } else {
@@ -936,7 +940,7 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
   html += '<div style="flex:1;padding:12px 8px;text-align:center;">';
   html += '<div style="display:flex;align-items:center;justify-content:center;gap:10px;">';
   html += '<div>' + ico('construction', 20, '#9ca3af') + '</div>';
-  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac.anneeConstruction) + '</div>';
+  html += '<div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">' + val(carac?.anneeConstruction) + '</div>';
   html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">construction</div></div>';
   html += '</div></div>';
   
@@ -947,7 +951,7 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
   html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
   html += '<div>';
   html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;">Type de bien</div>';
-  html += '<div style="font-size:18px;font-weight:600;color:#1a2e35;margin-top:4px;">' + typeBien + (carac.sousType ? ' • ' + (sousTypeLabels[carac.sousType] || carac.sousType) : '') + '</div>';
+  html += '<div style="font-size:18px;font-weight:600;color:#1a2e35;margin-top:4px;">' + typeBien + (carac?.sousType ? ' • ' + (sousTypeLabels[carac.sousType] || carac.sousType) : '') + '</div>';
   html += '</div>';
   html += '<div style="text-align:right;">';
   html += '<div style="font-size:9px;color:#6b7280;">Réf. interne</div>';
@@ -982,15 +986,15 @@ function generatePage2Strategie(
   totalPages: number
 ): string {
   const copy = getCopy(luxModeData.luxMode);
-  const pre = data.pre_estimation || {};
-  const projetPV = data.identification?.projetPostVente || {};
-  const hasProjetAchat = projetPV.nature === 'achat';
+  const pre = data.preEstimation;
+  const projetPV = data.identification?.projetPostVente;
+  const hasProjetAchat = projetPV?.nature === 'achat';
   const niveauContrainte = calculerNiveauContrainte(data);
   
   // Pourcentages dynamiques
-  const pourcOffmarket = parseNum(pre.pourcOffmarket) || 15;
-  const pourcComingsoon = parseNum(pre.pourcComingsoon) || 10;
-  const pourcPublic = parseNum(pre.pourcPublic) || 6;
+  const pourcOffmarket = parseNum(pre?.pourcOffmarket) || 15;
+  const pourcComingsoon = parseNum(pre?.pourcComingsoon) || 10;
+  const pourcPublic = parseNum(pre?.pourcPublic) || 6;
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -1142,13 +1146,13 @@ function generatePage3PlanAction(
   _heureStr: string, 
   totalPages: number
 ): string {
-  const identification = data.identification || {};
-  const historique = identification.historique || {};
-  const analyse = data.analyse_terrain || {};
-  const strat = data.strategie || {};
+  const identification = data.identification;
+  const historique = identification?.historique;
+  const analyse = data.analyseTerrain;
+  const strat = data.strategiePitch;
   
   // Courtier
-  const courtierData = COURTIERS_GARY.find(c => c.id === identification.courtierAssigne);
+  const courtierData = COURTIERS_GARY.find(c => c.id === identification?.courtierAssigne);
   const courtierNom = courtierData ? `${courtierData.prenom} ${courtierData.nom}` : 'Votre courtier GARY';
   const courtierInitiales = courtierData ? courtierData.initiales : 'GA';
   const courtierEmail = courtierData ? courtierData.email : 'contact@gary.ch';
@@ -1318,9 +1322,9 @@ function generatePage4Methodologie(
   dateStr: string,
   totalPages: number
 ): string {
-  const pre = data.pre_estimation || {};
-  const carac = data.caracteristiques || {};
-  const isAppartement = carac.typeBien === 'appartement';
+  const pre = data.preEstimation;
+  const carac = data.caracteristiques;
+  const isAppartement = carac?.typeBien === 'appartement';
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -1445,11 +1449,11 @@ function generatePageAnnexeTechnique1(
   pageNum: number,
   totalPages: number
 ): string {
-  const identification = data.identification || {};
-  const bien = identification.adresse || {};
-  const vendeur = identification.vendeur || {};
-  const carac = data.caracteristiques || {};
-  const isAppartement = carac.typeBien === 'appartement';
+  const identification = data.identification;
+  const bien = identification?.adresse;
+  const vendeur = identification?.vendeur;
+  const carac = data.caracteristiques;
+  const isAppartement = carac?.typeBien === 'appartement';
   
   const annexeVal = (v: unknown, suffix: string = ''): string => {
     if (v === null || v === undefined || v === '' || v === 0) return '–';
@@ -1480,16 +1484,16 @@ function generatePageAnnexeTechnique1(
   
   if (isAppartement) {
     html += '<div class="annexe-grid">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Surface PPE</div><div class="annexe-item-value">' + annexeVal(carac.surfacePPE, ' m²') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Surface PPE</div><div class="annexe-item-value">' + annexeVal(carac?.surfacePPE, ' m²') + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Surface pondérée</div><div class="annexe-item-value">' + calculs.surfacePonderee.toFixed(1) + ' m²</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Balcon</div><div class="annexe-item-value">' + annexeVal(carac.surfaceBalcon, ' m²') + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Terrasse</div><div class="annexe-item-value">' + annexeVal(carac.surfaceTerrasse, ' m²') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Balcon</div><div class="annexe-item-value">' + annexeVal(carac?.surfaceBalcon, ' m²') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Terrasse</div><div class="annexe-item-value">' + annexeVal(carac?.surfaceTerrasse, ' m²') + '</div></div>';
     html += '</div>';
   } else {
     html += '<div class="annexe-grid">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Surface habitable</div><div class="annexe-item-value">' + annexeVal(carac.surfaceHabitableMaison, ' m²') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Surface habitable</div><div class="annexe-item-value">' + annexeVal(carac?.surfaceHabitableMaison, ' m²') + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Surface terrain</div><div class="annexe-item-value">' + calculs.surfaceTerrain.toFixed(0) + ' m²</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Surface utile</div><div class="annexe-item-value">' + annexeVal(carac.surfaceUtile, ' m²') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Surface utile</div><div class="annexe-item-value">' + annexeVal(carac?.surfaceUtile, ' m²') + '</div></div>';
     html += '<div class="annexe-item"><div class="annexe-item-label">Cubage SIA</div><div class="annexe-item-value">' + calculs.cubage.toFixed(0) + ' m³</div></div>';
     html += '</div>';
   }
@@ -1499,31 +1503,31 @@ function generatePageAnnexeTechnique1(
   html += '<div class="annexe-section">';
   html += '<div class="annexe-title">' + ico('pieces', 12, '#FF4539') + ' Pièces & Configuration</div>';
   html += '<div class="annexe-grid">';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Nombre de pièces</div><div class="annexe-item-value">' + annexeVal(carac.nombrePieces) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Chambres</div><div class="annexe-item-value">' + annexeVal(carac.nombreChambres) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Salles de bain</div><div class="annexe-item-value">' + annexeVal(carac.nombreSDB) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">WC</div><div class="annexe-item-value">' + annexeVal(carac.nombreWC) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Nombre de pièces</div><div class="annexe-item-value">' + annexeVal(carac?.nombrePieces) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Chambres</div><div class="annexe-item-value">' + annexeVal(carac?.nombreChambres) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Salles de bain</div><div class="annexe-item-value">' + annexeVal(carac?.nombreSDB) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">WC</div><div class="annexe-item-value">' + annexeVal(carac?.nombreWC) + '</div></div>';
   html += '</div>';
   
   if (isAppartement) {
     html += '<div class="annexe-grid" style="margin-top:6px;">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Étage</div><div class="annexe-item-value">' + annexeVal(carac.etage) + '/' + annexeVal(carac.nombreEtagesImmeuble) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Ascenseur</div><div class="annexe-item-value">' + (carac.ascenseur === 'oui' ? 'Oui' : (carac.ascenseur === 'non' ? 'Non' : '–')) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Dernier étage</div><div class="annexe-item-value">' + (carac.dernierEtage ? 'Oui' : 'Non') + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">' + annexeVal(sousTypeLabels[carac.sousType || ''] || carac.sousType) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Étage</div><div class="annexe-item-value">' + annexeVal(carac?.etage) + '/' + annexeVal(carac?.nombreEtagesImmeuble) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Ascenseur</div><div class="annexe-item-value">' + (carac?.ascenseur === 'oui' ? 'Oui' : (carac?.ascenseur === 'non' ? 'Non' : '–')) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Dernier étage</div><div class="annexe-item-value">' + (carac?.dernierEtage ? 'Oui' : 'Non') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">' + annexeVal(sousTypeLabels[carac?.sousType || ''] || carac?.sousType) + '</div></div>';
     html += '</div>';
   } else {
     html += '<div class="annexe-grid" style="margin-top:6px;">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Niveaux</div><div class="annexe-item-value">' + annexeVal(carac.nombreNiveaux) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">' + annexeVal(sousTypeLabels[carac.sousType || ''] || carac.sousType) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Niveaux</div><div class="annexe-item-value">' + annexeVal(carac?.nombreNiveaux) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">' + annexeVal(sousTypeLabels[carac?.sousType || ''] || carac?.sousType) + '</div></div>';
     html += '</div>';
   }
   
   // Exposition et vue
-  const expositionText = (carac.exposition || []).length > 0 ? carac.exposition.join(', ') : '–';
+  const expositionText = (carac?.exposition || []).length > 0 ? carac!.exposition.join(', ') : '–';
   html += '<div class="annexe-grid-2" style="margin-top:6px;">';
   html += '<div class="annexe-item"><div class="annexe-item-label">Exposition</div><div class="annexe-item-value">' + expositionText + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Vue</div><div class="annexe-item-value">' + annexeVal(vueLabels[carac.vue || ''] || carac.vue) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Vue</div><div class="annexe-item-value">' + annexeVal(vueLabels[carac?.vue || ''] || carac?.vue) + '</div></div>';
   html += '</div>';
   
   html += '</div>'; // fin section
@@ -1532,14 +1536,14 @@ function generatePageAnnexeTechnique1(
   html += '<div class="annexe-section">';
   html += '<div class="annexe-title">' + ico('zap', 12, '#FF4539') + ' Énergie & Charges</div>';
   html += '<div class="annexe-grid">';
-  html += '<div class="annexe-item"><div class="annexe-item-label">CECB</div><div class="annexe-item-value">' + annexeVal(carac.cecb) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Vitrage</div><div class="annexe-item-value">' + annexeVal(carac.vitrage) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Chauffage</div><div class="annexe-item-value">' + annexeVal(chauffageLabels[carac.chauffage || ''] || carac.chauffage) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Charges mensuelles</div><div class="annexe-item-value">' + annexeVal(carac.chargesMensuelles, ' CHF') + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">CECB</div><div class="annexe-item-value">' + annexeVal(carac?.cecb) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Vitrage</div><div class="annexe-item-value">' + annexeVal(carac?.vitrage) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Chauffage</div><div class="annexe-item-value">' + annexeVal(chauffageLabels[carac?.chauffage || ''] || carac?.chauffage) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Charges mensuelles</div><div class="annexe-item-value">' + annexeVal(carac?.chargesMensuelles, ' CHF') + '</div></div>';
   html += '</div>';
   
   // Diffusion chaleur
-  const diffusionArr = isAppartement ? (carac.diffusion || []) : (carac.diffusionMaison || []);
+  const diffusionArr = isAppartement ? (carac?.diffusion || []) : (carac?.diffusionMaison || []);
   if (diffusionArr.length > 0) {
     html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Diffusion : </span>';
     diffusionArr.forEach(d => { html += '<span class="annexe-chip">' + (diffusionLabels[d] || d) + '</span> '; });
@@ -1551,25 +1555,25 @@ function generatePageAnnexeTechnique1(
   html += '<div class="annexe-section">';
   html += '<div class="annexe-title">' + ico('parking', 12, '#FF4539') + ' Annexes & Stationnement</div>';
   html += '<div class="annexe-grid">';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Parking intérieur</div><div class="annexe-item-value">' + annexeVal(carac.parkingInterieur) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Parking extérieur</div><div class="annexe-item-value">' + annexeVal(carac.parkingExterieur) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Place couverte</div><div class="annexe-item-value">' + annexeVal(carac.parkingCouverte) + '</div></div>';
-  html += '<div class="annexe-item"><div class="annexe-item-label">Box</div><div class="annexe-item-value">' + annexeVal(carac.box) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Parking intérieur</div><div class="annexe-item-value">' + annexeVal(carac?.parkingInterieur) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Parking extérieur</div><div class="annexe-item-value">' + annexeVal(carac?.parkingExterieur) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Place couverte</div><div class="annexe-item-value">' + annexeVal(carac?.parkingCouverte) + '</div></div>';
+  html += '<div class="annexe-item"><div class="annexe-item-label">Box</div><div class="annexe-item-value">' + annexeVal(carac?.box) + '</div></div>';
   html += '</div>';
   
   if (isAppartement) {
     html += '<div class="annexe-grid" style="margin-top:6px;">';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Cave</div><div class="annexe-item-value">' + (carac.cave === true ? 'Oui' : (carac.cave === false ? 'Non' : '–')) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Buanderie</div><div class="annexe-item-value">' + annexeVal(buanderieLabels[carac.buanderie || '']) + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Piscine</div><div class="annexe-item-value">' + (carac.piscine ? 'Oui' : 'Non') + '</div></div>';
-    html += '<div class="annexe-item"><div class="annexe-item-label">Autres</div><div class="annexe-item-value">' + annexeVal(carac.autresAnnexes) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Cave</div><div class="annexe-item-value">' + (carac?.cave === true ? 'Oui' : (carac?.cave === false ? 'Non' : '–')) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Buanderie</div><div class="annexe-item-value">' + annexeVal(buanderieLabels[carac?.buanderie || '']) + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Piscine</div><div class="annexe-item-value">' + (carac?.piscine ? 'Oui' : 'Non') + '</div></div>';
+    html += '<div class="annexe-item"><div class="annexe-item-label">Autres</div><div class="annexe-item-value">' + annexeVal(carac?.autresAnnexes) + '</div></div>';
     html += '</div>';
   }
   
   // Espaces maison
-  if (!isAppartement && (carac.espacesMaison || []).length > 0) {
+  if (!isAppartement && (carac?.espacesMaison || []).length > 0) {
     html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Espaces : </span>';
-    (carac.espacesMaison || []).forEach(e => { 
+    (carac!.espacesMaison || []).forEach(e => { 
       html += '<span class="annexe-chip">' + (espaceLabels[e] || e) + '</span> '; 
     });
     html += '</div>';
@@ -1592,9 +1596,9 @@ function generatePageAnnexeTechnique2(
   pageNum: number,
   totalPages: number
 ): string {
-  const identification = data.identification || {};
-  const historique = identification.historique || {};
-  const analyse = data.analyse_terrain || {};
+  const identification = data.identification;
+  const historique = identification?.historique;
+  const analyse = data.analyseTerrain;
   
   const renderEtatDots = (value: number | string | undefined): string => {
     const num = typeof value === 'number' ? value : (parseInt(String(value)) || 0);
@@ -1778,9 +1782,9 @@ async function generatePageMap(
   totalPages: number,
   googleMapsKey?: string
 ): Promise<string> {
-  const identification = data.identification || {};
-  const bien = identification.adresse || {};
-  const coords = bien.coordinates;
+  const identification = data.identification;
+  const bien = identification?.adresse;
+  const coords = bien?.coordinates;
   
   let html = '<div class="page" style="page-break-before:always;">';
   
