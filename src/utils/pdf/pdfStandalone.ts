@@ -1984,9 +1984,11 @@ async function generatePageMap(
   }
   
   // Section transports (si données proximités disponibles)
-  const proximites = (data.identification as any)?.proximites;
-  const arret = proximites?.arretTPG;
-  const gare = proximites?.gare;
+  const proximitesArray = (data.identification as any)?.proximites || [];
+  
+  // Trouver les transports dans le tableau
+  const arret = proximitesArray.find((p: any) => p.type === 'transport_bus' && p.libelle);
+  const gare = proximitesArray.find((p: any) => (p.type === 'transport_tram' || p.type === 'gare') && p.libelle);
   
   if (arret || gare) {
     html += '<div style="padding:14px 24px;background:white;border-top:1px solid #e5e7eb;">';
@@ -1999,10 +2001,8 @@ async function generatePageMap(
     
     // Arrêt bus/tram
     if (arret) {
-      const arretDistance = arret.distance >= 1000 
-        ? (arret.distance / 1000).toFixed(1) + ' km' 
-        : arret.distance + ' m';
-      const arretTemps = arret.tempsMarche || arret.temps || '—';
+      const arretDistance = arret.distance || '—';
+      const arretTemps = arret.tempsMarche || '—';
       
       html += '<div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:12px;">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
@@ -2011,24 +2011,22 @@ async function generatePageMap(
       html += '</div>';
       html += '<div>';
       html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Arrêt bus / tram</div>';
-      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (arret.nom || '—') + '</div>';
+      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (arret.libelle || '—') + '</div>';
       html += '</div></div>';
       html += '<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:6px;">';
       html += '<span>' + arretDistance + '</span>';
-      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">~' + arretTemps + ' min à pied</span>';
+      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">' + arretTemps + '</span>';
       html += '</div>';
       html += '</div>';
     } else {
       html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;color:#94a3b8;font-size:9px;text-align:center;">Aucun arrêt à proximité</div>';
     }
     
-    // Gare
+    // Gare/Tram
     if (gare) {
-      const gareDistance = gare.distance >= 1000 
-        ? (gare.distance / 1000).toFixed(1) + ' km' 
-        : gare.distance + ' m';
-      const gareTemps = gare.tempsMarche || gare.temps || '—';
-      const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
+      const gareDistance = gare.distance || '—';
+      const gareTemps = gare.tempsMarche || '—';
+      const gareType = gare.type === 'gare' ? 'Gare ferroviaire' : 'Tram / Train';
       
       html += '<div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:12px;">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
@@ -2036,12 +2034,12 @@ async function generatePageMap(
       html += ico('train', 16, '#1a2e35');
       html += '</div>';
       html += '<div>';
-      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Gare ferroviaire</div>';
-      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (gare.nom || '—') + '</div>';
+      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">' + gareType + '</div>';
+      html += '<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-top:2px;">' + (gare.libelle || '—') + '</div>';
       html += '</div></div>';
       html += '<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:6px;">';
       html += '<span>' + gareDistance + '</span>';
-      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">~' + gareTemps + ' min ' + gareMode + '</span>';
+      html += '<span style="background:#FA4238;color:white;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;">' + gareTemps + '</span>';
       html += '</div>';
       html += '</div>';
     } else {
