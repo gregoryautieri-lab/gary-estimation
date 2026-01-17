@@ -1971,31 +1971,50 @@ async function generatePageMap(
   const markerPos = savedMapState?.markerPosition || coords;
   const mapCenter = savedMapState?.center || coords;
   
-  // Carte Google (static) — taille max 640px côté API, on utilise scale=2 pour la netteté
-  if (coords && coords.lat && coords.lng && googleMapsKey) {
+  // Carte Google via proxy backend (base64)
+  if (coords && coords.lat && coords.lng) {
     const centerLat = mapCenter?.lat || coords.lat;
     const centerLng = mapCenter?.lng || coords.lng;
     const markerLat = markerPos?.lat || coords.lat;
     const markerLng = markerPos?.lng || coords.lng;
     
-    // Construire l'URL avec les paramètres sauvegardés
-    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${centerLat},${centerLng}&zoom=${Math.min(mapZoom, 20)}&size=640x400&scale=2&format=png&maptype=${mapType}&markers=color:red%7C${markerLat},${markerLng}&key=${googleMapsKey}`;
-    
-    html += '<div style="padding:16px 24px 8px;">';
-    html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Vue satellite</div>';
-    html += '<img src="' + mapUrl + '" style="width:100%;border-radius:8px;border:1px solid #e5e7eb;" alt="Carte satellite" crossorigin="anonymous" />';
-    html += '</div>';
-    
-    // Coordonnées
-    html += '<div style="padding:4px 24px 12px;text-align:center;">';
-    html += '<span style="font-size:8px;color:#9ca3af;">Coordonnées : ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6) + '</span>';
-    html += '</div>';
-  } else if (coords && coords.lat && coords.lng) {
-    // Si pas de clé Google mais coordonnées disponibles
-    html += '<div style="padding:16px 24px;text-align:center;background:#f9fafb;border-radius:8px;margin:16px 24px;">';
-    html += '<div style="font-size:11px;color:#6b7280;">Carte satellite non disponible</div>';
-    html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">Coordonnées : ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6) + '</div>';
-    html += '</div>';
+    try {
+      console.log('[PDF] Fetching Google map via proxy...');
+      const { data: googleData, error: googleError } = await supabase.functions.invoke('static-map-proxy', {
+        body: {
+          type: 'google',
+          lat: centerLat,
+          lng: centerLng,
+          zoom: mapZoom,
+          mapType: mapType,
+          markerLat: markerLat,
+          markerLng: markerLng
+        }
+      });
+      
+      if (googleError) {
+        console.warn('[PDF] Google proxy error:', googleError);
+      } else if (googleData?.image) {
+        html += '<div style="padding:16px 24px 8px;">';
+        html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Vue satellite</div>';
+        html += '<img src="' + googleData.image + '" style="width:100%;border-radius:8px;border:1px solid #e5e7eb;" alt="Carte satellite" />';
+        html += '</div>';
+        
+        html += '<div style="padding:4px 24px 12px;text-align:center;">';
+        html += '<span style="font-size:8px;color:#9ca3af;">Coordonnées : ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6) + '</span>';
+        html += '</div>';
+      } else {
+        console.warn('[PDF] No Google image returned');
+        html += '<div style="padding:16px 24px;text-align:center;background:#f9fafb;border-radius:8px;margin:16px 24px;">';
+        html += '<div style="font-size:11px;color:#6b7280;">Carte satellite non disponible</div>';
+        html += '</div>';
+      }
+    } catch (err) {
+      console.error('[PDF] Google map proxy error:', err);
+      html += '<div style="padding:16px 24px;text-align:center;background:#f9fafb;border-radius:8px;margin:16px 24px;">';
+      html += '<div style="font-size:11px;color:#6b7280;">Carte satellite non disponible</div>';
+      html += '</div>';
+    }
   } else {
     html += '<div style="padding:40px 24px;text-align:center;background:#f9fafb;">';
     html += '<div style="color:#9ca3af;">' + ico('mapPin', 48, '#d1d5db') + '</div>';
@@ -2004,47 +2023,37 @@ async function generatePageMap(
     html += '</div>';
   }
   
-  // Carte cadastre (Swisstopo WMTS) — utilise le même système de tuiles que Leaflet
+  // Carte cadastre via WMS geo.admin (base64)
   if (coords && coords.lat && coords.lng) {
-    // Zoom 19 comme dans CadastreMap.tsx
-    const zoom = 19;
-    const n = Math.pow(2, zoom);
-    
-    // Conversion lat/lng vers tuile XY (Web Mercator / EPSG:3857)
-    const xtile = Math.floor(((coords.lng + 180) / 360) * n);
-    const latRad = (coords.lat * Math.PI) / 180;
-    const ytile = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
-    
-    // Calculer la position du marqueur dans la grille
-    const xFrac = (((coords.lng + 180) / 360) * n) - xtile;
-    const yFrac = (((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n) - ytile;
-    
-    // Position du marqueur en % dans la grille 3x3 (tuile centrale = 33-66%)
-    const markerLeftPct = ((1 + xFrac) / 3) * 100;
-    const markerTopPct = ((1 + yFrac) / 3) * 100;
-
-    const cadastreBase = 'https://wmts.geo.admin.ch/1.0.0/ch.kantone.cadastralwebmap-farbe/default/current/3857';
-
-    html += '<div style="padding:0 24px 16px;">';
-    html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Plan cadastral (parcelles)</div>';
-    html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;height:260px;background:#f0f4f0;">';
-    html += '<div style="display:grid;grid-template-columns:repeat(3, 1fr);grid-template-rows:repeat(3, 1fr);width:100%;height:100%;">';
-
-    // Grille 3x3 centrée sur la tuile contenant le point
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const x = xtile + dx;
-        const y = ytile + dy;
-        const tileUrl = `${cadastreBase}/${zoom}/${x}/${y}.png`;
-        html += '<img src="' + tileUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;" alt="" crossorigin="anonymous" />';
+    try {
+      console.log('[PDF] Fetching cadastre map via proxy...');
+      const { data: cadastreData, error: cadastreError } = await supabase.functions.invoke('static-map-proxy', {
+        body: {
+          type: 'cadastre',
+          lat: coords.lat,
+          lng: coords.lng,
+          width: 800,
+          height: 400
+        }
+      });
+      
+      if (cadastreError) {
+        console.warn('[PDF] Cadastre proxy error:', cadastreError);
+      } else if (cadastreData?.image) {
+        html += '<div style="padding:0 24px 16px;">';
+        html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Plan cadastral (parcelles)</div>';
+        html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">';
+        html += '<img src="' + cadastreData.image + '" style="width:100%;display:block;" alt="Cadastre" />';
+        // Marqueur au centre
+        html += '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#FA4238;border:3px solid #ffffff;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>';
+        html += '</div>';
+        html += '</div>';
+      } else {
+        console.warn('[PDF] No cadastre image returned');
       }
+    } catch (err) {
+      console.error('[PDF] Cadastre map proxy error:', err);
     }
-
-    html += '</div>'; // grid
-    // Marqueur positionné précisément
-    html += '<div style="position:absolute;left:' + markerLeftPct.toFixed(2) + '%;top:' + markerTopPct.toFixed(2) + '%;transform:translate(-50%,-50%);width:16px;height:16px;background:#FA4238;border:3px solid #ffffff;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>';
-    html += '</div>'; // map container
-    html += '</div>'; // padding
   }
   
   // Section transports (si données proximités disponibles)

@@ -2,3 +2,6 @@ project_id = "xuukkofrvxhxqspmltlj"
 
 [functions.generate-pitch]
 verify_jwt = false
+
+[functions.static-map-proxy]
+verify_jwt = false
