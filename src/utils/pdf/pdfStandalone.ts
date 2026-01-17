@@ -1538,6 +1538,51 @@ function generatePage5Methodologie(
   
   html += '</div>';
   
+  // Section comparables
+  const comparablesVendus = (pre as any)?.comparablesVendus || [];
+  const comparablesEnVente = (pre as any)?.comparablesEnVente || [];
+  
+  if (comparablesVendus.length > 0 || comparablesEnVente.length > 0) {
+    html += '<div style="padding:16px 24px;background:white;border-top:1px solid #e5e7eb;">';
+    html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Positionnement marché</div>';
+    
+    // Comparables vendus
+    if (comparablesVendus.length > 0) {
+      html += '<div style="margin-bottom:12px;">';
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
+      html += ico('checkCircle', 12, '#10b981');
+      html += '<span style="font-size:9px;color:#10b981;font-weight:600;">TRANSACTIONS RÉCENTES</span>';
+      html += '</div>';
+      
+      comparablesVendus.forEach((comp: any) => {
+        html += '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f0fdf4;border-left:2px solid #10b981;margin-bottom:4px;border-radius:0 4px 4px 0;">';
+        html += '<span style="font-size:9px;color:#065f46;">' + (comp.adresse || '—') + '</span>';
+        html += '<span style="font-size:9px;font-weight:600;color:#10b981;">' + (comp.prix || '—') + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    
+    // Comparables en vente
+    if (comparablesEnVente.length > 0) {
+      html += '<div>';
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
+      html += ico('circle', 12, '#6b7280');
+      html += '<span style="font-size:9px;color:#6b7280;font-weight:600;">ACTUELLEMENT EN VENTE</span>';
+      html += '</div>';
+      
+      comparablesEnVente.forEach((comp: any) => {
+        html += '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f9fafb;border-left:2px solid #9ca3af;margin-bottom:4px;border-radius:0 4px 4px 0;">';
+        html += '<span style="font-size:9px;color:#4b5563;">' + (comp.adresse || '—') + '</span>';
+        html += '<span style="font-size:9px;font-weight:600;color:#6b7280;">' + (comp.prix || '—') + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  }
+  
   // Note méthodologie
   html += '<div style="padding:12px 24px;background:white;">';
   html += '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;">';
