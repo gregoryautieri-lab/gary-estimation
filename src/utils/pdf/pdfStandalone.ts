@@ -974,11 +974,127 @@ function generatePage1Cover(data: EstimationData, calculs: CalculsResult, dateSt
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
+html += '</div>'; // page
+  return html;
+}
+
+// ============================================
+// PAGE 2 : QUI EST GARY
+// ============================================
+
+function generatePage2Gary(
+  dateStr: string,
+  totalPages: number
+): string {
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += '<div>' + logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox') + '</div>';
+  html += '<div class="header-date">Qui est GARY ?</div>';
+  html += '</div>';
+  
+  // Hero section avec logo
+  html += '<div style="padding:30px 24px;background:white;text-align:center;">';
+  html += '<div style="margin-bottom:20px;">' + logoRed.replace('viewBox', 'style="height:60px;width:auto;" viewBox') + '</div>';
+  html += '<div style="font-size:14px;color:#1a2e35;font-weight:600;margin-bottom:8px;">Agence immobilière premium à Genève</div>';
+  html += '<div style="font-size:10px;color:#6b7280;line-height:1.6;max-width:450px;margin:0 auto;">';
+  html += 'GARY accompagne vendeurs et acquéreurs avec une approche sur-mesure, ';
+  html += 'combinant expertise locale, outils technologiques et service personnalisé.';
+  html += '</div>';
+  html += '</div>';
+  
+  // Section valeurs
+  html += '<div style="padding:20px 24px;background:#f8fafc;">';
+  html += '<div style="font-size:10px;color:#1a2e35;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;text-align:center;">Nos engagements</div>';
+  
+  html += '<div style="display:flex;gap:16px;">';
+  
+  // Engagement 1
+  html += '<div style="flex:1;background:white;border-radius:8px;padding:16px;text-align:center;border:1px solid #e5e7eb;">';
+  html += '<div style="margin-bottom:8px;">' + ico('shield', 28, '#1a2e35') + '</div>';
+  html += '<div style="font-size:11px;font-weight:600;color:#1a2e35;margin-bottom:4px;">Transparence</div>';
+  html += '<div style="font-size:9px;color:#6b7280;line-height:1.4;">Méthodologie claire, pas de promesses exagérées</div>';
+  html += '</div>';
+  
+  // Engagement 2
+  html += '<div style="flex:1;background:white;border-radius:8px;padding:16px;text-align:center;border:1px solid #e5e7eb;">';
+  html += '<div style="margin-bottom:8px;">' + ico('users', 28, '#1a2e35') + '</div>';
+  html += '<div style="font-size:11px;font-weight:600;color:#1a2e35;margin-bottom:4px;">Accompagnement</div>';
+  html += '<div style="font-size:9px;color:#6b7280;line-height:1.4;">Suivi personnalisé à chaque étape</div>';
+  html += '</div>';
+  
+  // Engagement 3
+  html += '<div style="flex:1;background:white;border-radius:8px;padding:16px;text-align:center;border:1px solid #e5e7eb;">';
+  html += '<div style="margin-bottom:8px;">' + ico('compass', 28, '#1a2e35') + '</div>';
+  html += '<div style="font-size:11px;font-weight:600;color:#1a2e35;margin-bottom:4px;">Stratégie</div>';
+  html += '<div style="font-size:9px;color:#6b7280;line-height:1.4;">Pilotage adaptatif selon le marché</div>';
+  html += '</div>';
+  
+  html += '</div>'; // fin flex
+  html += '</div>'; // fin section valeurs
+  
+  // Section chiffres clés
+  html += '<div style="padding:20px 24px;background:white;">';
+  html += '<div style="font-size:10px;color:#1a2e35;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;text-align:center;">En chiffres</div>';
+  
+  html += '<div style="display:flex;gap:12px;">';
+  
+  const chiffres = [
+    { value: '80+', label: 'Transactions 2025', icon: 'checkCircle' },
+    { value: '3.5', label: 'Mois en moyenne', icon: 'clock' },
+    { value: '95%', label: 'Satisfaction client', icon: 'star' },
+    { value: '6.6M+', label: 'Vues annuelles', icon: 'eye' }
+  ];
+  
+  chiffres.forEach(c => {
+    html += '<div style="flex:1;text-align:center;padding:12px;background:#f8fafc;border-radius:6px;">';
+    html += '<div style="margin-bottom:6px;">' + ico(c.icon, 20, '#9ca3af') + '</div>';
+    html += '<div style="font-size:18px;font-weight:600;color:#1a2e35;">' + c.value + '</div>';
+    html += '<div style="font-size:8px;color:#6b7280;margin-top:2px;">' + c.label + '</div>';
+    html += '</div>';
+  });
+  
+  html += '</div>'; // fin flex chiffres
+  html += '</div>'; // fin section chiffres
+  
+  // Section approche
+  html += '<div style="padding:16px 24px;background:#f8fafc;">';
+  html += '<div style="font-size:10px;color:#1a2e35;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;text-align:center;">Notre approche</div>';
+  html += '<div style="font-size:9px;color:#4b5563;line-height:1.6;text-align:center;max-width:500px;margin:0 auto;">';
+  html += 'Nous croyons que chaque bien mérite une stratégie unique. ';
+  html += 'Plutôt que d\'imposer une méthode standard, nous adaptons notre approche à votre situation, ';
+  html += 'vos priorités et votre horizon temporel. Vous gardez le contrôle des décisions, ';
+  html += 'nous assurons le pilotage stratégique et opérationnel.';
+  html += '</div>';
+  html += '</div>';
+  
+  // Contact
+  html += '<div style="padding:16px 24px;background:#1a2e35;">';
+  html += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('phone', 16, '#ffffff') + '<span style="font-size:10px;color:white;">' + GARY_TEL + '</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('mail', 16, '#ffffff') + '<span style="font-size:10px;color:white;">contact@gary.ch</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('globe', 16, '#ffffff') + '<span style="font-size:10px;color:white;">www.gary.ch</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('mapPin', 16, '#ffffff') + '<span style="font-size:10px;color:white;">' + GARY_ADDRESS + '</span></div>';
+  html += '</div>';
+  html += '</div>';
+  
+  // Footer
+  html += '<div class="footer">';
+  html += '<div>' + logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox') + '</div>';
+  html += '<div class="footer-ref">Page 2/' + totalPages + ' • Qui est GARY</div>';
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
   html += '</div>'; // page
   return html;
 }
 
-function generatePage2Strategie(
+// ============================================
+// PAGE 3 : STRATÉGIE
+// ============================================
+
+function generatePage3Strategie(
   data: EstimationData, 
   calculs: CalculsResult, 
   capitalVis: CapitalVisibilite, 
@@ -1130,7 +1246,7 @@ function generatePage2Strategie(
   // Footer
   html += '<div class="footer">';
   html += '<div>' + logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox') + '</div>';
-  html += '<div class="footer-ref">Page 2/' + totalPages + ' • ' + copy.pageTitle + '</div>';
+  html += '<div class="footer-ref">Page 3/' + totalPages + ' • ' + copy.pageTitle + '</div>';
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -1138,7 +1254,7 @@ function generatePage2Strategie(
   return html;
 }
 
-function generatePage3PlanAction(
+function generatePage4PlanAction(
   data: EstimationData, 
   calculs: CalculsResult, 
   capitalVis: CapitalVisibilite,
@@ -1308,7 +1424,7 @@ function generatePage3PlanAction(
   // Footer
   html += '<div class="footer">';
   html += '<div>' + logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox') + '</div>';
-  html += '<div class="footer-ref">Page 3/' + totalPages + ' • ' + dateStr + '</div>';
+  html += '<div class="footer-ref">Page 4/' + totalPages + ' • ' + dateStr + '</div>';
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -1316,7 +1432,7 @@ function generatePage3PlanAction(
   return html;
 }
 
-function generatePage4Methodologie(
+function generatePage5Methodologie(
   data: EstimationData,
   calculs: CalculsResult,
   dateStr: string,
@@ -1435,7 +1551,7 @@ function generatePage4Methodologie(
   // Footer
   html += '<div class="footer">';
   html += '<div>' + logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox') + '</div>';
-  html += '<div class="footer-ref">Page 4/' + totalPages + ' • Méthodologie</div>';
+  html += '<div class="footer-ref">Page 5/' + totalPages + ' • Méthodologie</div>';
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -1954,7 +2070,7 @@ export async function generatePDFStandalone(
     }
     
     // Calculer nombre total de pages
-    let totalPages = 6; // Pages de base (1-4 + 2 annexes techniques)
+    let totalPages = 7; // Pages de base (1-5 + 2 annexes techniques)
     if (photoItems.length > 0) totalPages += photoPagesCount;
     if (inclureCarte && data.identification?.adresse?.coordinates) totalPages += 1;
     
@@ -1972,25 +2088,29 @@ export async function generatePDFStandalone(
     notify('Génération page 1 (Couverture)...', 40);
     html += generatePage1Cover(data, calculs, dateStr, heureStr, totalPages);
     
-    // Page 2 : Stratégie / Trajectoires
-    notify('Génération page 2 (Stratégie)...', 50);
-    html += generatePage2Strategie(data, calculs, capitalVis, luxModeData, totalPages);
+    // Page 2 : Qui est GARY
+    notify('Génération page 2 (Qui est GARY)...', 45);
+    html += generatePage2Gary(dateStr, totalPages);
     
-    // Page 3 : Plan d'action
-    notify('Génération page 3 (Plan d\'action)...', 55);
-    html += generatePage3PlanAction(data, calculs, capitalVis, dateStr, heureStr, totalPages);
+    // Page 3 : Stratégie / Trajectoires
+    notify('Génération page 3 (Stratégie)...', 50);
+    html += generatePage3Strategie(data, calculs, capitalVis, luxModeData, totalPages);
     
-    // Page 4 : Méthodologie
-    notify('Génération page 4 (Méthodologie)...', 60);
-    html += generatePage4Methodologie(data, calculs, dateStr, totalPages);
+    // Page 4 : Plan d'action
+    notify('Génération page 4 (Plan d\'action)...', 55);
+    html += generatePage4PlanAction(data, calculs, capitalVis, dateStr, heureStr, totalPages);
     
-    // Page 5-6 : Annexes techniques
+    // Page 5 : Méthodologie
+    notify('Génération page 5 (Méthodologie)...', 60);
+    html += generatePage5Methodologie(data, calculs, dateStr, totalPages);
+    
+    // Page 6-7 : Annexes techniques
     notify('Génération annexes techniques...', 65);
-    html += generatePageAnnexeTechnique1(data, calculs, 5, totalPages);
-    html += generatePageAnnexeTechnique2(data, 6, totalPages);
+    html += generatePageAnnexeTechnique1(data, calculs, 6, totalPages);
+    html += generatePageAnnexeTechnique2(data, 7, totalPages);
     
     // Pages photos
-    let currentPage = 7;
+    let currentPage = 8;
     if (photoItems.length > 0) {
       notify('Génération pages photos...', 75);
       for (let i = 0; i < photoPagesCount; i++) {
