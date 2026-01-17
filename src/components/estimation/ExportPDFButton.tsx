@@ -6,8 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Download, Share2, Loader2 } from "lucide-react";
-import { downloadEstimationPDF, getEstimationPDFBlob } from "@/utils/pdfExport";
+import { FileText, Download, Loader2 } from "lucide-react";
+import { generatePDFStandalone } from "@/utils/pdf/pdfStandalone";
 import { EstimationData, PDFConfig } from "@/types/estimation";
 import { toast } from "sonner";
 
@@ -23,42 +23,17 @@ export function ExportPDFButton({ estimation, config, className }: ExportPDFButt
   const handleDownload = async () => {
     setExporting(true);
     try {
-      await downloadEstimationPDF({ estimation, config });
-      toast.success("PDF téléchargé !");
+      await generatePDFStandalone(estimation, {
+        inclurePhotos: config?.inclurePhotos ?? true,
+        inclureCarte: config?.inclureCarte ?? true,
+        onProgress: (msg, pct) => {
+          console.log(`[PDF] ${msg} (${pct}%)`);
+        }
+      });
+      toast.success("PDF généré ! Utilisez l'impression pour sauvegarder.");
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Erreur lors de l'export PDF");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!navigator.share) {
-      toast.error("Le partage n'est pas supporté sur ce navigateur");
-      return;
-    }
-
-    setExporting(true);
-    try {
-      const blob = await getEstimationPDFBlob({ estimation, config });
-      const file = new File(
-        [blob],
-        `estimation-${estimation.id?.slice(0, 8) || "export"}.pdf`,
-        { type: "application/pdf" }
-      );
-
-      await navigator.share({
-        title: "Estimation GARY",
-        text: `Estimation pour ${estimation.identification?.adresse?.rue || "Bien immobilier"}`,
-        files: [file],
-      });
-      toast.success("Document partagé !");
-    } catch (error) {
-      if ((error as Error).name !== "AbortError") {
-        console.error("Error sharing PDF:", error);
-        toast.error("Erreur lors du partage");
-      }
     } finally {
       setExporting(false);
     }
@@ -84,14 +59,8 @@ export function ExportPDFButton({ estimation, config, className }: ExportPDFButt
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleDownload}>
           <Download className="h-4 w-4 mr-2" />
-          Télécharger
+          Générer PDF
         </DropdownMenuItem>
-        {typeof navigator !== "undefined" && navigator.share && (
-          <DropdownMenuItem onClick={handleShare}>
-            <Share2 className="h-4 w-4 mr-2" />
-            Partager
-          </DropdownMenuItem>
-        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
