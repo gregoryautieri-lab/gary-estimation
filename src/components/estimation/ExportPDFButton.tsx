@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FileText, Download, Loader2 } from "lucide-react";
-import { generatePDFStandalone } from "@/utils/pdf/pdfStandalone";
+import { generatePDFHtml } from "@/utils/pdf/pdfHtmlGenerator";
 import { EstimationData, PDFConfig } from "@/types/estimation";
 import { toast } from "sonner";
 
@@ -23,7 +23,7 @@ export function ExportPDFButton({ estimation, config, className }: ExportPDFButt
   const handleDownload = async () => {
     setExporting(true);
     try {
-      await generatePDFStandalone(estimation, {
+      await generatePDFHtml(estimation, {
         inclurePhotos: config?.inclurePhotos ?? true,
         inclureCarte: config?.inclureCarte ?? true,
         onProgress: (msg, pct) => {
