@@ -2253,9 +2253,9 @@ function generateMapPage(estimation: EstimationData): string {
   html += '<div style="padding:0 24px;display:flex;flex-direction:column;gap:8px;">';
   
   // Carte Google Maps
-  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;max-width:360px;margin:0 auto;">';
+  html += '<div style="background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;max-width:450px;margin:0 auto;">';
   html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGlobe} Vue satellite</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
+  html += '<div style="width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
   if (googleMapImage) {
     html += `<img src="${googleMapImage}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   } else {
@@ -2265,9 +2265,9 @@ function generateMapPage(estimation: EstimationData): string {
   html += '</div>';
   
   // Carte Swisstopo
-  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;max-width:360px;margin:0 auto;">';
+  html += '<div style="background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;max-width:450px;margin:0 auto;">';
   html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGrid} Plan cadastral officiel</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
+  html += '<div style="width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;">';
   html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   html += '</div>';
   html += '</div>';
