@@ -1270,6 +1270,7 @@ function generatePlanActionPage(estimation: EstimationData): string {
   
   const dateNow = new Date();
   const dateStr = dateNow.toLocaleDateString('fr-CH');
+  const heureStr = dateNow.toLocaleTimeString('fr-CH', {hour: '2-digit', minute: '2-digit'});
   
   // === CAPITAL-VISIBILITÉ (calcul simplifié) ===
   let capitalPct = 100;
@@ -1450,7 +1451,7 @@ function generatePlanActionPage(estimation: EstimationData): string {
   // Footer
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page 3/X • ${dateStr}</div>`;
+  html += `<div class="footer-ref">Page 3/X • ${dateStr} • ${heureStr}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
