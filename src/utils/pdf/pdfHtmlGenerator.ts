@@ -2161,6 +2161,17 @@ function parseTemps(tempsStr: string | undefined): number {
   return numMatch ? parseInt(numMatch[0]) : 0;
 }
 
+// Variable globale pour stocker l'image Google Maps pré-chargée
+let cachedGoogleMapImage: string | null = null;
+
+export function setCachedGoogleMapImage(imageData: string | null) {
+  cachedGoogleMapImage = imageData;
+}
+
+export function getCachedGoogleMapImage(): string | null {
+  return cachedGoogleMapImage;
+}
+
 function generateMapPage(estimation: EstimationData): string {
   const identification = (estimation.identification as any) || {};
   const adresse = identification.adresse || {};
@@ -2179,9 +2190,6 @@ function generateMapPage(estimation: EstimationData): string {
   const swissZoom = 19;
   const swissLat = mapLat;
   const swissLng = mapLng;
-  
-  // URL Google Maps (format 4:3)
-  const googleMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${mapLat},${mapLng}&zoom=${mapZoom}&size=600x450&scale=2&maptype=${mapType}&markers=color:red%7C${mapLat},${mapLng}&key=AIzaSyBthk0_ku_S3E3_0ItEqCNXtHW84ve_jmE`;
   
   // Calcul BBOX pour Swisstopo (format 4:3)
   const metersPerPx = 156543.03392 * Math.cos(swissLat * Math.PI / 180) / Math.pow(2, swissZoom);
@@ -2224,6 +2232,9 @@ function generateMapPage(estimation: EstimationData): string {
   const dateNow = new Date();
   const dateStr = dateNow.toLocaleDateString('fr-CH');
   
+  // Récupérer l'image Google Maps depuis le cache (pré-chargée via static-map-proxy)
+  const googleMapImage = cachedGoogleMapImage;
+  
   let html = '<div class="page" style="page-break-before:always;">';
   
   // Header
@@ -2244,8 +2255,12 @@ function generateMapPage(estimation: EstimationData): string {
   // Carte Google Maps
   html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;max-width:360px;margin:0 auto;">';
   html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGlobe} Vue satellite</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
-  html += `<img src="${googleMapUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
+  if (googleMapImage) {
+    html += `<img src="${googleMapImage}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  } else {
+    html += '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;">Image satellite non disponible</div>';
+  }
   html += '</div>';
   html += '</div>';
   
@@ -2321,6 +2336,39 @@ export interface PDFGeneratorOptions {
   onProgress?: (message: string, percent: number) => void;
 }
 
+// Fonction pour pré-charger l'image Google Maps via le proxy
+async function preloadGoogleMapImage(lat: number, lng: number, zoom: number, mapType: string): Promise<string | null> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase.functions.invoke('static-map-proxy', {
+      body: {
+        type: 'google',
+        lat,
+        lng,
+        zoom: Math.min(zoom, 20),
+        mapType,
+        markerLat: lat,
+        markerLng: lng
+      }
+    });
+    
+    if (error) {
+      console.error('[PDF] Erreur static-map-proxy:', error);
+      return null;
+    }
+    
+    if (data?.image) {
+      return data.image;
+    }
+    
+    return null;
+  } catch (err) {
+    console.error('[PDF] Exception lors du chargement Google Maps:', err);
+    return null;
+  }
+}
+
 export async function generatePDFHtml(
   estimation: EstimationData,
   options: PDFGeneratorOptions = {}
@@ -2330,6 +2378,21 @@ export async function generatePDFHtml(
   onProgress?.('Génération de la couverture...', 10);
   
   const vendeur = (estimation.identification as any)?.vendeur || {};
+  
+  // Pré-charger l'image Google Maps si des coordonnées sont disponibles
+  const adresseCheck = (estimation.identification as any)?.adresse || {};
+  const coordsCheck = adresseCheck.coordinates || {};
+  const mapStateCheck = adresseCheck.mapState || {};
+  
+  if (coordsCheck.lat && coordsCheck.lng) {
+    onProgress?.('Chargement de la carte satellite...', 15);
+    const mapZoom = mapStateCheck.zoom || 18;
+    const mapType = mapStateCheck.mapType || 'hybrid';
+    const googleMapImage = await preloadGoogleMapImage(coordsCheck.lat, coordsCheck.lng, mapZoom, mapType);
+    setCachedGoogleMapImage(googleMapImage);
+  } else {
+    setCachedGoogleMapImage(null);
+  }
   
   let html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
   html += `<title>GARY - Estimation ${val(vendeur.nom)}</title>`;
@@ -2368,8 +2431,6 @@ export async function generatePDFHtml(
   html += generateAnnexeTechnique2Page(estimation);
   
   // Page 9: Carte (conditionnelle)
-  const adresseCheck = (estimation.identification as any)?.adresse || {};
-  const coordsCheck = adresseCheck.coordinates || {};
   if (coordsCheck.lat && coordsCheck.lng) {
     onProgress?.('Génération page Carte...', 85);
     html += generateMapPage(estimation);
@@ -2394,4 +2455,7 @@ export async function generatePDFHtml(
   }
   
   onProgress?.('PDF prêt !', 100);
+  
+  // Nettoyer le cache
+  setCachedGoogleMapImage(null);
 }
