@@ -1060,7 +1060,7 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   
   // Note recalibrage
   if (pauseRecalibrage > 0) {
-    html += `<div style="text-align:center;margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:4px;font-size:8px;color:#92400e;">${ico('refresh', 12, '#92400e')} <strong>Phase de recalibrage marché (${pauseRecalibrage} sem.)</strong> — Le bien ayant déjà été exposé, cette période permet au marché de se renouveler.</div>`;
+    html += `<div style="text-align:center;margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:4px;font-size:8px;color:#92400e;">${ico('refresh', 12, '#92400e')} <strong>Phase de recalibrage marché (${pauseRecalibrage} sem.)</strong> — Le bien ayant déjà été exposé, cette période permet au marché de se renouveler et de repartir avec un positionnement optimal.</div>`;
   }
   
   html += '</div>'; // timeline section
