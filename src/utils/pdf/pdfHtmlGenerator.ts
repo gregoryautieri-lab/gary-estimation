@@ -309,7 +309,7 @@ function generateCoverPage(estimation: EstimationData): string {
 }
 
 // ==================== GÉNÉRATION PAGE QUI EST GARY ====================
-function generateGaryPage(estimation: EstimationData): string {
+function generateGaryPage(estimation: EstimationData, pageNum: number = 2, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const projetPostVente = identification.projetPostVente || {};
   
@@ -407,8 +407,11 @@ function generateGaryPage(estimation: EstimationData): string {
   
   // Footer
   html += '<div class="gary-footer">';
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
+  html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += '<div class="gary-footer-text">gary.ch</div>';
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
   html += '</div>'; // page gary
@@ -417,7 +420,7 @@ function generateGaryPage(estimation: EstimationData): string {
 }
 
 // ==================== GÉNÉRATION PAGE CARACTÉRISTIQUES ====================
-function generateCaracteristiquesPage(estimation: EstimationData): string {
+function generateCaracteristiquesPage(estimation: EstimationData, pageNum: number = 3, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const caracteristiques = estimation.caracteristiques as any || {};
   const analyseTerrain = estimation.analyseTerrain as any || {};
@@ -678,9 +681,10 @@ function generateCaracteristiquesPage(estimation: EstimationData): string {
   html += '</div>';
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page 1/X • ${val(bien.adresse || estimation.adresse)}</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -690,7 +694,7 @@ function generateCaracteristiquesPage(estimation: EstimationData): string {
 }
 
 // ==================== PAGE 4: TRAJECTOIRES DE VENTE ====================
-function generateTrajectoiresPage(estimation: EstimationData): string {
+function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 4, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const historique = identification.historique || {};
   const contexte = identification.contexte || {};
@@ -1240,9 +1244,10 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   }
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page 2/X • ${copy.pageTitle}</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -1261,7 +1266,7 @@ const COURTIERS = [
   { id: 'amelie', nom: 'Amélie Dupont', initiales: 'AD', email: 'amelie@gary.ch' },
 ];
 
-function generatePlanActionPage(estimation: EstimationData): string {
+function generatePlanActionPage(estimation: EstimationData, pageNum: number = 5, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const historique = identification.historique || {};
   const analyse = (estimation as any).analyseTerrain || (estimation as any).analyse_terrain || {};
@@ -1449,9 +1454,10 @@ function generatePlanActionPage(estimation: EstimationData): string {
   html += '</div></div>';
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page 3/X • ${dateStr} • ${heureStr}</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -1848,9 +1854,10 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
   }
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: EST-${dateNow.getTime().toString().slice(-8)}</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2126,9 +2133,10 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
   html += '</div>';
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Annexe Technique (1/2)</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2282,9 +2290,10 @@ function generateAnnexeTechnique2Page(estimation: EstimationData, pageNum: numbe
   }
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Annexe Technique (2/2)</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2323,7 +2332,7 @@ export function getCachedGoogleMapImage(): string | null {
 }
 
 // ==================== GÉNÉRATION PAGES PHOTOS ====================
-function generatePhotosPages(estimation: EstimationData): string {
+function generatePhotosPages(estimation: EstimationData, startPageNum: number = 9, totalPages: number = 9): string {
   const photos = (estimation.photos as any) || {};
   const photoItems = photos.items || [];
   
@@ -2378,9 +2387,11 @@ function generatePhotosPages(estimation: EstimationData): string {
     html += '</div>';
     
     // Footer
+    const refId = 'EST-' + (estimation.id || '').slice(-8);
+    const currentPageNum = startPageNum + pagePhotoIdx;
     html += '<div class="footer">';
     html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-    html += `<div class="footer-ref">Annexe photos${photoPagesCount > 1 ? ` (${pagePhotoIdx + 1}/${photoPagesCount})` : ''}</div>`;
+    html += `<div class="footer-ref">Page ${currentPageNum}/${totalPages} • Réf: ${refId}</div>`;
     html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
     html += '</div>';
     
@@ -2390,7 +2401,7 @@ function generatePhotosPages(estimation: EstimationData): string {
   return html;
 }
 
-function generateMapPage(estimation: EstimationData): string {
+function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalPages: number = 9): string {
   const identification = (estimation.identification as any) || {};
   const adresse = identification.adresse || {};
   const mapState = adresse.mapState || {};
@@ -2536,9 +2547,10 @@ function generateMapPage(estimation: EstimationData): string {
   }
   
   // Footer
+  const refId = 'EST-' + (estimation.id || '').slice(-8);
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += '<div class="footer-ref">Annexe cartographie</div>';
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refId}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2635,19 +2647,19 @@ export async function generatePDFHtml(
   
   // Page 2: Qui est GARY
   onProgress?.('Génération page GARY...', 20);
-  html += generateGaryPage(estimation);
+  html += generateGaryPage(estimation, 2, totalPages);
   
   // Page 3: Caractéristiques
   onProgress?.('Génération page Caractéristiques...', 30);
-  html += generateCaracteristiquesPage(estimation);
+  html += generateCaracteristiquesPage(estimation, 3, totalPages);
   
   // Page 4: Trajectoires de vente
   onProgress?.('Génération page Trajectoires...', 40);
-  html += generateTrajectoiresPage(estimation);
+  html += generateTrajectoiresPage(estimation, 4, totalPages);
   
   // Page 5: Plan d'action
   onProgress?.('Génération page Plan d\'action...', 50);
-  html += generatePlanActionPage(estimation);
+  html += generatePlanActionPage(estimation, 5, totalPages);
   
   // Page 6: Méthodologie
   onProgress?.('Génération page Méthodologie...', 55);
@@ -2661,16 +2673,20 @@ export async function generatePDFHtml(
   onProgress?.('Génération page Annexe Technique 2/2...', 75);
   html += generateAnnexeTechnique2Page(estimation, 8, totalPages);
   
-  // Page 9: Carte (conditionnelle)
+  // Calcul des numéros de page pour carte et photos
+  let nextPageNum = 9;
+  
+  // Page Carte (conditionnelle)
   if (hasMap) {
     onProgress?.('Génération page Carte...', 80);
-    html += generateMapPage(estimation);
+    html += generateMapPage(estimation, nextPageNum, totalPages);
+    nextPageNum++;
   }
   
   // Pages Photos (conditionnelles, 9 photos par page)
   if (hasPhotos) {
     onProgress?.('Génération pages Photos...', 85);
-    html += generatePhotosPages(estimation);
+    html += generatePhotosPages(estimation, nextPageNum, totalPages);
   }
   
   html += '</body></html>';
