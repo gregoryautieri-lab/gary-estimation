@@ -59,6 +59,19 @@ const iconPaths: Record<string, string> = {
   instagram: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>',
   linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
   tiktok: '<path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>',
+  // Timeline & Stratégie
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+  alertCircle: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  circle: '<circle cx="12" cy="12" r="10"/>',
 };
 
 export function ico(name: string, size: number = 20, color: string = '#64748b'): string {
@@ -664,6 +677,419 @@ function generateCaracteristiquesPage(estimation: EstimationData): string {
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
   html += `<div class="footer-ref">Page 1/X • ${val(bien.adresse || estimation.adresse)}</div>`;
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // page
+  
+  return html;
+}
+
+// ==================== PAGE 4: TRAJECTOIRES DE VENTE ====================
+function generateTrajectoiresPage(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const historique = identification.historique || {};
+  const contexte = identification.contexte || {};
+  const carac = estimation.caracteristiques as any || {};
+  const pre = (estimation as any).preEstimation || (estimation as any).pre_estimation || {};
+  const strat = (estimation as any).strategie || {};
+  const bien = identification.bien || {};
+  
+  const isAppartement = (estimation as any).typeBien === 'appartement' || (estimation as any).type_bien === 'appartement';
+  const isMaison = (estimation as any).typeBien === 'maison' || (estimation as any).type_bien === 'maison';
+  
+  // === CALCULS SURFACES & VALEURS ===
+  const surfacePPE = parseNum(carac.surfacePPE);
+  const surfaceNonHab = parseNum(carac.surfaceNonHabitable);
+  const surfaceBalcon = parseNum(carac.surfaceBalcon);
+  const surfaceTerrasse = parseNum(carac.surfaceTerrasse);
+  const surfaceJardin = parseNum(carac.surfaceJardin);
+  const surfacePonderee = surfacePPE + (surfaceNonHab * 0.5) + (surfaceBalcon * 0.5) + (surfaceTerrasse * 0.33) + (surfaceJardin * 0.1);
+  const surfaceTerrain = parseNum(carac.surfaceTerrain);
+  const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
+  
+  // Calculs valeurs
+  const nbPlaceInt = parseInt(carac.parkingInterieur) || 0;
+  const nbPlaceExt = parseInt(carac.parkingExterieur) || 0;
+  const nbBox = parseInt(carac.box) || 0;
+  const hasCave = carac.cave ? 1 : 0;
+  
+  const prixM2 = parseNum(pre.prixM2);
+  const tauxVetuste = parseNum(pre.tauxVetuste);
+  const prixM2Ajuste = prixM2 * (1 - tauxVetuste / 100);
+  const prixPlaceInt = parseNum(pre.prixPlaceInt);
+  const prixPlaceExt = parseNum(pre.prixPlaceExt);
+  const prixBox = parseNum(pre.prixBox);
+  const prixCave = parseNum(pre.prixCave);
+  const prixM2Terrain = parseNum(pre.prixM2Terrain);
+  const prixM3 = parseNum(pre.prixM3);
+  const tauxVetusteMaison = parseNum(pre.tauxVetusteMaison);
+  const prixM3Ajuste = prixM3 * (1 - tauxVetusteMaison / 100);
+  const prixM2Amenagement = parseNum(pre.prixM2Amenagement);
+  
+  const surfaceUtile = parseNum(carac.surfaceUtile);
+  const cubage = parseNum(pre.cubageManuel) || (surfaceUtile * 3.1);
+  const nbNiveaux = parseInt(carac.nombreNiveaux) || 1;
+  const surfaceAuSol = nbNiveaux > 0 ? surfaceHabMaison / nbNiveaux : 0;
+  const surfaceAmenagement = Math.max(0, surfaceTerrain - surfaceAuSol);
+  
+  const valeurSurface = surfacePonderee * prixM2Ajuste;
+  const valeurPlaceInt = nbPlaceInt * prixPlaceInt;
+  const valeurPlaceExt = nbPlaceExt * prixPlaceExt;
+  const valeurBox = nbBox * prixBox;
+  const valeurCave = hasCave * prixCave;
+  const valeurLignesSupp = (pre.lignesSupp || []).reduce((sum: number, l: any) => sum + (parseFloat(l.prix) || 0), 0);
+  
+  const valeurTerrain = surfaceTerrain * prixM2Terrain;
+  const valeurCubage = cubage * prixM3Ajuste;
+  const valeurAmenagement = surfaceAmenagement * prixM2Amenagement;
+  const valeurAnnexes = (pre.annexes || []).reduce((sum: number, a: any) => sum + (parseFloat(a.prix) || 0), 0);
+  
+  const totalVenaleAppart = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
+  const totalVenaleMaison = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
+  const totalVenale = isAppartement ? totalVenaleAppart : totalVenaleMaison;
+  const totalVenaleArrondi = Math.ceil(totalVenale / 5000) * 5000;
+  
+  // === PROJET POST-VENTE ===
+  const projetPV = identification.projetPostVente || {};
+  const hasProjetAchat = projetPV.nature === 'achat';
+  const avancement = projetPV.avancement || '';
+  let niveauContrainte = 0;
+  if (hasProjetAchat) {
+    if (avancement === 'acte_programme') niveauContrainte = 5;
+    else if (avancement === 'compromis_signe') niveauContrainte = 4;
+    else if (avancement === 'offre_deposee') niveauContrainte = 3;
+    else if (avancement === 'bien_identifie') niveauContrainte = 2;
+    else if (avancement === 'recherche') niveauContrainte = 1;
+  }
+  
+  // === CAPITAL-VISIBILITÉ ===
+  let capitalPct = 100;
+  const capitalAlerts: Array<{type: string, msg: string}> = [];
+  let pauseRecommandee = false;
+  
+  if (historique.dejaDiffuse) {
+    let dureeImpact = 0;
+    if (historique.duree === 'moins1mois') dureeImpact = 5;
+    else if (historique.duree === '1-3mois') dureeImpact = 15;
+    else if (historique.duree === '3-6mois') dureeImpact = 30;
+    else if (historique.duree === '6-12mois') dureeImpact = 50;
+    else if (historique.duree === 'plus12mois') dureeImpact = 65;
+    
+    let diffusionImpact = 0;
+    if (historique.typeDiffusion === 'discrete') diffusionImpact = 5;
+    else if (historique.typeDiffusion === 'moderee') diffusionImpact = 15;
+    else if (historique.typeDiffusion === 'massive') diffusionImpact = 30;
+    
+    capitalPct = 100 - dureeImpact - diffusionImpact;
+    
+    if (historique.typeDiffusion === 'discrete' && dureeImpact > 15) capitalPct += 10;
+    if (historique.typeDiffusion === 'massive' && ['3-6mois', '6-12mois', 'plus12mois'].includes(historique.duree)) capitalPct -= 10;
+    
+    capitalPct = Math.max(10, Math.min(100, capitalPct));
+    
+    if (capitalPct < 40) {
+      pauseRecommandee = true;
+      capitalAlerts.push({type: 'critical', msg: 'Pause commerciale de 2-3 semaines recommandée avant toute nouvelle action'});
+      capitalAlerts.push({type: 'info', msg: 'Réinventer l\'objet : nouvelles photos, vidéo, brochure repensée'});
+    }
+    
+    const prixAfficheNum = parseFloat(historique.prixAffiche) || 0;
+    if (prixAfficheNum > 0 && totalVenale > 0) {
+      const ecartPrix = ((prixAfficheNum - totalVenale) / totalVenale) * 100;
+      if (ecartPrix > 30) {
+        capitalAlerts.push({type: 'warning', msg: `Prix affiché précédemment (${prixAfficheNum.toLocaleString('fr-CH')} CHF) supérieur de ${ecartPrix.toFixed(0)}% à notre estimation. Repositionnement prix nécessaire.`});
+      } else if (ecartPrix > 10) {
+        capitalAlerts.push({type: 'info', msg: `Prix affiché précédemment légèrement au-dessus de notre estimation (${ecartPrix.toFixed(0)}%)`});
+      }
+    }
+  }
+  
+  // === LUXMODE ===
+  let luxScore = 0;
+  const sousTypePremium = ['attique', 'penthouse', 'loft', 'duplex'].includes(carac.sousType);
+  const sousTypeMaisonPremium = ['villa', 'propriete', 'chalet'].includes(carac.sousType);
+  if (sousTypePremium) luxScore += 15;
+  if (sousTypeMaisonPremium) luxScore += 12;
+  if (carac.dernierEtage && isAppartement) luxScore += 8;
+  
+  const surfaceHab = isAppartement ? surfacePonderee : surfaceHabMaison;
+  if (surfaceHab > 300) luxScore += 15;
+  else if (surfaceHab > 200) luxScore += 10;
+  else if (surfaceHab > 150) luxScore += 5;
+  
+  if (isMaison && surfaceTerrain > 3000) luxScore += 15;
+  else if (isMaison && surfaceTerrain > 1500) luxScore += 10;
+  else if (isMaison && surfaceTerrain > 800) luxScore += 5;
+  
+  if (carac.piscine) luxScore += 12;
+  
+  if (contexte.confidentialite === 'confidentielle') luxScore += 12;
+  else if (contexte.confidentialite === 'discrete') luxScore += 8;
+  if (contexte.horizon === 'flexible') luxScore += 5;
+  if (contexte.prioriteVendeur === 'prixMax') luxScore += 5;
+  
+  if (historique.dejaDiffuse && contexte.confidentialite !== 'normale') luxScore += 8;
+  
+  if (totalVenaleArrondi > 10000000) luxScore += 20;
+  else if (totalVenaleArrondi > 5000000) luxScore += 15;
+  else if (totalVenaleArrondi > 3000000) luxScore += 10;
+  else if (totalVenaleArrondi > 2000000) luxScore += 5;
+  
+  const luxMode = luxScore >= 35;
+  
+  // === VOCABULAIRE ADAPTATIF ===
+  const copy = {
+    pageTitle: luxMode ? 'Scénarios de gouvernance' : 'Trajectoires de vente',
+    headerTitle: luxMode ? 'Scénarios de gouvernance' : 'Trajectoires de vente',
+    introPhrase: luxMode 
+      ? 'Chaque bien d\'exception appelle une gouvernance sur mesure. Le choix du scénario dépend de votre tempo, vos exigences et votre vision.'
+      : 'Chaque bien peut être vendu selon différentes trajectoires. Le choix du point de départ stratégique dépend de votre contexte, vos priorités et votre horizon temporel.',
+    disclaimerPhrase: luxMode
+      ? 'Dans ce segment, la retenue et la sélectivité font partie de la stratégie. Un objectif de valeur reflète le positionnement stratégique, pas une promesse de marché.'
+      : 'Un objectif de valeur n\'est pas une promesse. Il dépend des signaux du marché, du rythme de diffusion et du pilotage dans le temps.',
+    capitalLabel: luxMode ? 'Capital de portée' : 'Capital-Visibilité',
+    recalibrageTitle: luxMode ? 'Recalibrage nécessaire' : 'Recommandations',
+    recalibragePhrase: luxMode 
+      ? 'Avant d\'amplifier, on stabilise le message et on évite les signaux contradictoires.'
+      : ''
+  };
+  
+  // === CALCUL PHASES ===
+  const typeMV = pre.typeMiseEnVente || 'public';
+  
+  let pauseRecalibrage = 0;
+  if (historique.dejaDiffuse) {
+    const dureeDiffusion = historique.duree || '';
+    if (dureeDiffusion === 'moins1mois') pauseRecalibrage = 1;
+    else if (dureeDiffusion === '1-3mois') pauseRecalibrage = 2;
+    else if (dureeDiffusion === '3-6mois') pauseRecalibrage = 3;
+    else if (dureeDiffusion === '6-12mois') pauseRecalibrage = 4;
+    else if (dureeDiffusion === 'plus12mois') pauseRecalibrage = 5;
+    else pauseRecalibrage = 2;
+  }
+  
+  const phaseDureesBase = strat.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 10 };
+  const phaseDurees = {
+    phase0: Math.max(1, (phaseDureesBase.phase0 || 1) + pauseRecalibrage),
+    phase1: Math.max(1, phaseDureesBase.phase1 || 3),
+    phase2: Math.max(1, phaseDureesBase.phase2 || 2),
+    phase3: Math.max(4, phaseDureesBase.phase3 || 10)
+  };
+  
+  // Dates
+  const getNextMonday = (fromDate?: Date) => {
+    const date = new Date(fromDate || new Date());
+    const day = date.getDay();
+    const daysUntilMonday = day === 0 ? 1 : (day === 1 ? 0 : 8 - day);
+    date.setDate(date.getDate() + daysUntilMonday);
+    return date;
+  };
+  
+  const formatDateFR = (date: Date) => {
+    const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    return `${date.getDate()} ${mois[date.getMonth()]}`;
+  };
+  
+  const addWeeks = (date: Date, weeks: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + weeks * 7);
+    return result;
+  };
+  
+  const dateDebut = strat.dateDebut ? new Date(strat.dateDebut) : getNextMonday();
+  const phase0Start = dateDebut;
+  const phase0End = addWeeks(phase0Start, phaseDurees.phase0);
+  const phase1Start = phase0End;
+  const phase1End = addWeeks(phase1Start, phaseDurees.phase1);
+  const phase2Start = phase1End;
+  const phase2End = addWeeks(phase2Start, phaseDurees.phase2);
+  const phase3Start = phase2End;
+  const phase3End = addWeeks(phase3Start, phaseDurees.phase3);
+  
+  const phase1Active = (typeMV === 'offmarket');
+  const phase2Active = (typeMV === 'offmarket' || typeMV === 'comingsoon');
+  const phase2StartActif = phase1Active ? phase1End : phase0End;
+  const phase3StartActif = phase2Active ? addWeeks(phase2StartActif, phaseDurees.phase2) : phase0End;
+  
+  const dateVenteEstimee = typeMV === 'offmarket' ? phase3End : (typeMV === 'comingsoon' ? addWeeks(phase0Start, phaseDurees.phase0 + phaseDurees.phase2 + phaseDurees.phase3) : addWeeks(phase0Start, phaseDurees.phase0 + phaseDurees.phase3));
+  
+  // === TRAJECTOIRES ===
+  const trajectoires = [
+    { id: 'offmarket', nom: 'Off-Market', icon: 'lock', objectif: 'Tester la demande en toute discrétion', pourc: pre.pourcOffmarket ?? 15 },
+    { id: 'comingsoon', nom: luxMode ? 'Lancement maîtrisé' : 'Coming Soon', icon: 'clock', objectif: 'Créer l\'anticipation et générer une tension', pourc: pre.pourcComingsoon ?? 10 },
+    { id: 'public', nom: 'Marché Public', icon: 'globe', objectif: 'Maximiser l\'exposition et accélérer', pourc: pre.pourcPublic ?? 6 }
+  ];
+  
+  const getStatut = (trajId: string) => {
+    if (trajId === typeMV) return {label: 'Point de départ stratégique', style: 'background:#1a2e35;color:white;'};
+    return {label: 'Activable', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
+  };
+  
+  // === GÉNÉRATION HTML ===
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += `<div class="header-date">${copy.headerTitle}</div>`;
+  html += '</div>';
+  
+  // Intro
+  html += '<div style="padding:12px 24px;background:white;border-bottom:1px solid #e5e7eb;">';
+  html += `<div style="font-size:10px;color:#4b5563;line-height:1.5;text-align:center;">${copy.introPhrase}</div>`;
+  
+  if (hasProjetAchat && niveauContrainte > 0) {
+    let phraseTransition = '';
+    if (niveauContrainte >= 4) {
+      phraseTransition = 'Cette trajectoire a été calibrée pour s\'harmoniser avec vos projets personnels et vous garantir une transition sereine.';
+    } else if (niveauContrainte >= 2) {
+      phraseTransition = 'Le rythme proposé vous laisse la maîtrise du calendrier tout en maximisant vos opportunités.';
+    } else {
+      phraseTransition = 'Cette approche préserve votre flexibilité pour concrétiser sereinement vos projets.';
+    }
+    html += `<div style="font-size:9px;color:#0369a1;line-height:1.4;text-align:center;margin-top:8px;font-style:italic;">${phraseTransition}</div>`;
+  }
+  html += '</div>';
+  
+  // Timeline
+  html += '<div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid #e5e7eb;">';
+  html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('calendar', 12, '#9ca3af')}Planning prévisionnel</div>`;
+  html += '<div style="display:flex;gap:6px;">';
+  
+  // Phase 0
+  const phase0Label = pauseRecalibrage > 0 ? 'Prépa. & Recalibrage' : 'Préparation';
+  html += `<div style="flex:1;text-align:center;padding:8px 4px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border-radius:6px;border:2px solid #FF4539;">`;
+  html += `<div style="margin-bottom:2px;">${ico('camera', 16, '#FF4539')}</div>`;
+  html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phase0Label}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase0Start)}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase0} sem.</div>`;
+  html += '</div>';
+  
+  // Phase 1
+  if (phase1Active) {
+    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
+    html += `<div style="margin-bottom:2px;">${ico('key', 16, '#6b7280')}</div>`;
+    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">Off-market</div>`;
+    html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase1Start)}</div>`;
+    html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase1} sem.</div>`;
+    html += '</div>';
+  } else {
+    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:#f9fafb;border-radius:6px;border:1px dashed #e5e7eb;opacity:0.5;">`;
+    html += `<div style="margin-bottom:2px;">${ico('key', 16, '#d1d5db')}</div>`;
+    html += `<div style="font-size:9px;font-weight:600;color:#9ca3af;">Off-market</div>`;
+    html += `<div style="font-size:7px;color:#d1d5db;margin-top:2px;">–</div>`;
+    html += `<div style="font-size:7px;color:#d1d5db;">Optionnel</div>`;
+    html += '</div>';
+  }
+  
+  // Phase 2
+  if (phase2Active) {
+    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
+    html += `<div style="margin-bottom:2px;">${ico('clock', 16, '#6b7280')}</div>`;
+    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">Coming soon</div>`;
+    html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase2StartActif)}</div>`;
+    html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase2} sem.</div>`;
+    html += '</div>';
+  } else {
+    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:#f9fafb;border-radius:6px;border:1px dashed #e5e7eb;opacity:0.5;">`;
+    html += `<div style="margin-bottom:2px;">${ico('clock', 16, '#d1d5db')}</div>`;
+    html += `<div style="font-size:9px;font-weight:600;color:#9ca3af;">Coming soon</div>`;
+    html += `<div style="font-size:7px;color:#d1d5db;margin-top:2px;">–</div>`;
+    html += `<div style="font-size:7px;color:#d1d5db;">Optionnel</div>`;
+    html += '</div>';
+  }
+  
+  // Phase 3
+  html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
+  html += `<div style="margin-bottom:2px;">${ico('globe', 16, '#6b7280')}</div>`;
+  html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">Public</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase3StartActif)}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;">~${phaseDurees.phase3} sem.</div>`;
+  html += '</div>';
+  
+  html += '</div>'; // flex
+  
+  // Date vente estimée
+  html += `<div style="text-align:center;margin-top:10px;font-size:9px;color:#6b7280;">${ico('calendar', 12, '#6b7280')} Vente estimée : <strong style="color:#1a2e35;">${formatDateFR(dateVenteEstimee)} ${dateVenteEstimee.getFullYear()}</strong></div>`;
+  
+  // Note recalibrage
+  if (pauseRecalibrage > 0) {
+    html += `<div style="text-align:center;margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:4px;font-size:8px;color:#92400e;">${ico('refresh', 12, '#92400e')} <strong>Phase de recalibrage marché (${pauseRecalibrage} sem.)</strong> — Le bien ayant déjà été exposé, cette période permet au marché de se renouveler.</div>`;
+  }
+  
+  html += '</div>'; // timeline section
+  
+  // Trajectoires
+  html += '<div style="padding:12px 24px;background:#f8fafc;">';
+  html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('compass', 12, '#9ca3af')}${luxMode ? 'Choisissez votre scénario' : 'Choisissez votre point de départ'}</div>`;
+  
+  html += '<div style="display:flex;gap:10px;">';
+  
+  trajectoires.forEach((traj) => {
+    const statut = getStatut(traj.id);
+    const isPointDepart = statut.label === 'Point de départ stratégique';
+    const objectifValeur = Math.round(totalVenaleArrondi * (1 + traj.pourc / 100) / 5000) * 5000;
+    
+    html += `<div style="flex:1;background:white;border-radius:6px;border:${isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb'};overflow:hidden;">`;
+    
+    // Header trajectoire
+    html += `<div style="padding:10px;text-align:center;background:${isPointDepart ? '#1a2e35' : '#f9fafb'};border-bottom:1px solid #e5e7eb;">`;
+    html += `<div style="margin-bottom:4px;">${ico(traj.icon, 18, isPointDepart ? 'rgba(255,255,255,0.8)' : '#9ca3af')}</div>`;
+    html += `<div style="font-size:11px;font-weight:600;color:${isPointDepart ? 'white' : '#1a2e35'};">${traj.nom}</div>`;
+    html += `<div style="margin-top:4px;display:inline-block;padding:2px 6px;border-radius:3px;font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;${statut.style}">${statut.label}</div>`;
+    html += '</div>';
+    
+    // Objectif
+    html += '<div style="padding:10px 12px;background:white;border-bottom:1px solid #f3f4f6;">';
+    html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px;font-weight:600;">Objectif</div>';
+    html += `<div style="font-size:9px;color:#4b5563;line-height:1.4;">${traj.objectif}</div>`;
+    html += '</div>';
+    
+    // Objectif de valeur
+    html += '<div style="padding:12px;background:white;text-align:center;">';
+    html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Objectif de valeur</div>';
+    html += `<div style="font-size:16px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
+    html += `<div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vénale +${traj.pourc}%</div>`;
+    html += '</div>';
+    
+    html += '</div>';
+  });
+  
+  html += '</div></div>';
+  
+  // Capital-Visibilité
+  const capColor = capitalPct >= 70 ? '#1a2e35' : (capitalPct >= 50 ? '#64748b' : '#94a3b8');
+  html += '<div style="padding:10px 24px;background:white;border-bottom:1px solid #e5e7eb;">';
+  html += '<div style="display:flex;align-items:center;gap:12px;">';
+  html += `<div style="display:flex;align-items:center;gap:6px;">${ico('eye', 14, '#9ca3af')}<span style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:600;">${copy.capitalLabel}</span></div>`;
+  html += `<div style="flex:1;height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:${capitalPct}%;height:100%;background:${capColor};border-radius:3px;"></div></div>`;
+  html += `<div style="font-size:11px;font-weight:500;color:${capColor};">${capitalPct}%</div>`;
+  if (historique.dejaDiffuse) {
+    html += `<div style="display:flex;align-items:center;gap:3px;padding:3px 6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;">${ico('alertCircle', 10, '#6b7280')}<span style="font-size:7px;color:#6b7280;">Déjà diffusé</span></div>`;
+  }
+  html += '</div></div>';
+  
+  // Alertes
+  if (capitalAlerts.length > 0) {
+    html += '<div style="padding:10px 24px;background:white;border-top:1px solid #e5e7eb;">';
+    html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:6px;">${ico('alertCircle', 12, '#9ca3af')}${copy.recalibrageTitle}</div>`;
+    capitalAlerts.forEach((alert) => {
+      const alertIco = alert.type === 'critical' ? 'xCircle' : (alert.type === 'warning' ? 'alertCircle' : 'circle');
+      html += `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">${ico(alertIco, 12, '#6b7280')}<span style="font-size:9px;color:#4b5563;line-height:1.3;">${alert.msg}</span></div>`;
+    });
+    html += '</div>';
+  }
+  
+  // Disclaimer
+  html += '<div style="padding:10px 24px;background:#f8fafc;">';
+  html += `<div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">${ico('info', 14, '#9ca3af')}<div style="font-size:8px;color:#6b7280;line-height:1.4;font-style:italic;">${copy.disclaimerPhrase}</div></div>`;
+  html += '</div>';
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += `<div class="footer-ref">Page 2/X • ${copy.pageTitle}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
