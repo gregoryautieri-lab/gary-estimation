@@ -2144,22 +2144,43 @@ function generateAnnexeTechnique2Page(estimation: EstimationData): string {
 }
 
 // ==================== PAGE 9 : CARTE ====================
+// Helpers pour parser les distances/temps
+function parseDistance(distStr: string | undefined): number {
+  if (!distStr) return 0;
+  const str = String(distStr).toLowerCase();
+  const numMatch = str.match(/[\d.]+/);
+  if (!numMatch) return 0;
+  const num = parseFloat(numMatch[0]);
+  if (str.includes('km')) return num * 1000;
+  return num;
+}
+
+function parseTemps(tempsStr: string | undefined): number {
+  if (!tempsStr) return 0;
+  const numMatch = String(tempsStr).match(/\d+/);
+  return numMatch ? parseInt(numMatch[0]) : 0;
+}
+
 function generateMapPage(estimation: EstimationData): string {
   const identification = (estimation.identification as any) || {};
-  const bien = identification.bien || {};
+  const adresse = identification.adresse || {};
+  const mapState = adresse.mapState || {};
+  const coordinates = adresse.coordinates || {};
+  const proximites = identification.proximites || [];
   
-  const mapLat = bien.mapLat;
-  const mapLng = bien.mapLng;
+  // Récupérer lat/lng depuis coordinates ou mapState
+  const mapLat = coordinates.lat || mapState.center?.lat;
+  const mapLng = coordinates.lng || mapState.center?.lng;
   
   if (!mapLat || !mapLng) return '';
   
-  const mapZoom = bien.mapZoom || 18;
-  const mapType = bien.mapType || 'hybrid';
-  const swissZoom = bien.swisstopoZoom || 19;
-  const swissLat = bien.swisstopoLat || mapLat;
-  const swissLng = bien.swisstopoLng || mapLng;
+  const mapZoom = mapState.zoom || 18;
+  const mapType = mapState.mapType || 'hybrid';
+  const swissZoom = 19;
+  const swissLat = mapLat;
+  const swissLng = mapLng;
   
-  // URL Google Maps (format 4:3) - Proxy via edge function
+  // URL Google Maps (format 4:3)
   const googleMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${mapLat},${mapLng}&zoom=${mapZoom}&size=600x450&scale=2&maptype=${mapType}&markers=color:red%7C${mapLat},${mapLng}&key=AIzaSyBthk0_ku_S3E3_0ItEqCNXtHW84ve_jmE`;
   
   // Calcul BBOX pour Swisstopo (format 4:3)
@@ -2174,10 +2195,23 @@ function generateMapPage(estimation: EstimationData): string {
   // URL Swisstopo
   const swisstopoUrl = `https://wms.geo.admin.ch/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=false&LAYERS=ch.swisstopo.landeskarte-farbe-10,ch.kantone.cadastralwebmap-farbe&CRS=EPSG:4326&STYLES=&WIDTH=600&HEIGHT=450&BBOX=${bboxMinLat},${bboxMinLng},${bboxMaxLat},${bboxMaxLng}`;
   
-  // Récupérer les données transports
-  const transports = bien.transports || {};
-  const arret = transports.arret;
-  const gare = transports.gare;
+  // Récupérer les données transports depuis proximites
+  const busProx = proximites.find((p: any) => p.type === 'transport_bus');
+  const trainProx = proximites.find((p: any) => p.type === 'transport_tram' || p.type === 'transport_train');
+  
+  // Construire objets arret et gare
+  const arret = busProx?.libelle ? {
+    nom: busProx.libelle,
+    distance: parseDistance(busProx.distance),
+    tempsMarche: parseTemps(busProx.tempsMarche)
+  } : null;
+  
+  const gare = trainProx?.libelle ? {
+    nom: trainProx.libelle,
+    distance: parseDistance(trainProx.distance),
+    temps: parseTemps(trainProx.tempsMarche),
+    mode: String(trainProx.tempsMarche || '').includes('voiture') ? 'voiture' : 'pied'
+  } : null;
   
   // Icônes SVG spéciales pour la carte
   const iconGlobe = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
@@ -2201,7 +2235,7 @@ function generateMapPage(estimation: EstimationData): string {
   // Titre
   html += '<div style="padding:12px 24px 8px;">';
   html += `<h2 style="font-size:16px;font-weight:700;color:#1a2e35;margin:0 0 3px;display:flex;align-items:center;gap:6px;">${iconPin} Localisation du bien</h2>`;
-  html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(bien.adresse)}, ${val(bien.codePostal)} ${val(bien.localite)}</p>`;
+  html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(adresse.rue)} ${val(adresse.numero)}, ${val(adresse.codePostal)} ${val(adresse.localite)}</p>`;
   html += '</div>';
   
   // Cartes en vertical
@@ -2250,7 +2284,7 @@ function generateMapPage(estimation: EstimationData): string {
     // Gare
     if (gare) {
       const gareDistance = gare.distance >= 1000 ? (gare.distance / 1000).toFixed(1) + ' km' : gare.distance + ' m';
-      const gareTemps = gare.temps || gare.tempsMarche;
+      const gareTemps = gare.temps;
       const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
       html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:10px;display:flex;align-items:flex-start;gap:8px;">';
       html += `<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconTrain}</div>`;
@@ -2334,8 +2368,9 @@ export async function generatePDFHtml(
   html += generateAnnexeTechnique2Page(estimation);
   
   // Page 9: Carte (conditionnelle)
-  const bien = (estimation.identification as any)?.bien || {};
-  if (bien.mapLat && bien.mapLng) {
+  const adresseCheck = (estimation.identification as any)?.adresse || {};
+  const coordsCheck = adresseCheck.coordinates || {};
+  if (coordsCheck.lat && coordsCheck.lng) {
     onProgress?.('Génération page Carte...', 85);
     html += generateMapPage(estimation);
   }
