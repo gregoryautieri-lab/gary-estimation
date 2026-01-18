@@ -918,15 +918,56 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   
   const dateVenteEstimee = typeMV === 'offmarket' ? phase3End : (typeMV === 'comingsoon' ? addWeeks(phase0Start, phaseDurees.phase0 + phaseDurees.phase2 + phaseDurees.phase3) : addWeeks(phase0Start, phaseDurees.phase0 + phaseDurees.phase3));
   
-  // === TRAJECTOIRES ===
+  // === TRAJECTOIRES (enrichies pour mode LUX et standard) ===
   const trajectoires = [
-    { id: 'offmarket', nom: 'Off-Market', icon: 'lock', objectif: 'Tester la demande en toute discrétion', pourc: pre.pourcOffmarket ?? 15 },
-    { id: 'comingsoon', nom: luxMode ? 'Lancement maîtrisé' : 'Coming Soon', icon: 'clock', objectif: 'Créer l\'anticipation et générer une tension', pourc: pre.pourcComingsoon ?? 10 },
-    { id: 'public', nom: 'Marché Public', icon: 'globe', objectif: 'Maximiser l\'exposition et accélérer', pourc: pre.pourcPublic ?? 6 }
+    {
+      id: 'offmarket',
+      nom: 'Off-Market',
+      icon: 'lock',
+      objectif: 'Tester la demande en toute discrétion, sans exposition publique',
+      objectifLux: 'Valider l\'intérêt sans créer de trace publique',
+      conditions: ['Cercle restreint d\'acheteurs qualifiés', 'Aucune trace publique', 'Retours confidentiels'],
+      typeExposition: 'Cercle restreint',
+      typePression: 'Aucun signal public',
+      priseEnCharge: 'GARY sélectionne et approche les acquéreurs qualifiés',
+      pourc: pre.pourcOffmarket ?? 15
+    },
+    {
+      id: 'comingsoon',
+      nom: luxMode ? 'Lancement maîtrisé' : 'Coming Soon',
+      icon: 'clock',
+      objectif: 'Créer l\'anticipation et générer une première tension',
+      objectifLux: 'Orchestrer l\'anticipation avec un récit maîtrisé',
+      conditions: ['Communication maîtrisée', 'Liste d\'attente', 'Teasing ciblé'],
+      typeExposition: 'Anticipation contrôlée',
+      typePression: 'Pression relationnelle ciblée',
+      priseEnCharge: 'GARY construit le récit et gère le tempo de révélation',
+      pourc: pre.pourcComingsoon ?? 10
+    },
+    {
+      id: 'public',
+      nom: 'Marché Public',
+      icon: 'globe',
+      objectif: luxMode ? 'Arbitrer le tempo et amplifier si nécessaire' : 'Maximiser l\'exposition et accélérer la transaction',
+      objectifLux: 'Amplification assumée selon les signaux observés',
+      conditions: luxMode ? ['Portée contrôlée', 'Portails sélectifs', 'Rareté maîtrisée'] : ['Diffusion large', 'Portails immobiliers', 'Visibilité maximale'],
+      typeExposition: 'Amplification assumée',
+      typePression: 'Rareté maîtrisée',
+      priseEnCharge: 'GARY pilote l\'exposition et filtre les demandes',
+      pourc: pre.pourcPublic ?? 6
+    }
   ];
   
   const getStatut = (trajId: string) => {
+    // Cas bien déjà exposé + luxMode : logique spéciale
+    if (luxMode && historique.dejaDiffuse) {
+      if (trajId === 'offmarket') return {label: 'Conditionnel', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
+      if (trajId === 'comingsoon' || trajId === typeMV) return {label: 'Point de départ stratégique', style: 'background:#1a2e35;color:white;'};
+      if (trajId === 'public') return {label: 'Activable', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
+    }
+    // Cas standard
     if (trajId === typeMV) return {label: 'Point de départ stratégique', style: 'background:#1a2e35;color:white;'};
+    if (trajId === 'public' && typeMV === 'offmarket') return {label: 'Conditionnel', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
     return {label: 'Activable', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
   };
   
@@ -1024,9 +1065,36 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   
   html += '</div>'; // timeline section
   
-  // Trajectoires
+  // === B. PASSAGE ENTRE PHASES (si projet d'achat détecté) ===
+  if (hasProjetAchat && niveauContrainte > 0) {
+    html += '<div style="padding:10px 24px;background:white;border-bottom:1px solid #e5e7eb;">';
+    html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-left:3px solid #0284c7;border-radius:6px;padding:10px 14px;">';
+    html += `<div style="font-size:8px;color:#0369a1;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('refresh', 10, '#0284c7')}Passage entre phases</div>`;
+    html += `<div style="font-size:9px;color:#1e40af;line-height:1.5;margin-bottom:6px;font-weight:500;">Chaque transition s'active lorsque deux conditions sont réunies :</div>`;
+    html += '<div style="display:flex;gap:12px;">';
+    html += `<div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#475569;">${ico('trendingUp', 10, '#0284c7')}Signaux marché suffisants</div>`;
+    html += `<div style="display:flex;align-items:center;gap:4px;font-size:8px;color:#475569;">${ico('checkCircle', 10, '#0284c7')}Contexte favorable</div>`;
+    html += '</div>';
+    html += '<div style="font-size:8px;color:#64748b;font-style:italic;margin-top:6px;">Le rythme reste piloté, jamais subi.</div>';
+    html += '</div></div>';
+  }
+  
+  // Trajectoires - Section principale
   html += '<div style="padding:12px 24px;background:#f8fafc;">';
   html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('compass', 12, '#9ca3af')}${luxMode ? 'Choisissez votre scénario' : 'Choisissez votre point de départ'}</div>`;
+  
+  // === A. PHRASE POINT DE DÉPART STRATÉGIQUE (si projet d'achat détecté) ===
+  if (hasProjetAchat && niveauContrainte > 0) {
+    let phrasePointDepart = '';
+    if (niveauContrainte >= 4) {
+      phrasePointDepart = 'La trajectoire recommandée privilégie la maîtrise du calendrier avant toute intensification de l\'exposition.';
+    } else if (niveauContrainte >= 2) {
+      phrasePointDepart = 'La séquence proposée préserve une marge d\'ajustement temporelle en début de commercialisation.';
+    } else {
+      phrasePointDepart = 'Cette approche vous laisse le temps d\'observer les premiers signaux avant d\'élargir la diffusion.';
+    }
+    html += `<div style="font-size:8px;color:#64748b;font-style:italic;text-align:center;margin-bottom:10px;line-height:1.4;">${phrasePointDepart}</div>`;
+  }
   
   html += '<div style="display:flex;gap:10px;">';
   
@@ -1037,25 +1105,68 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
     
     html += `<div style="flex:1;background:white;border-radius:6px;border:${isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb'};overflow:hidden;">`;
     
-    // Header trajectoire
+    // Header trajectoire - compact
     html += `<div style="padding:10px;text-align:center;background:${isPointDepart ? '#1a2e35' : '#f9fafb'};border-bottom:1px solid #e5e7eb;">`;
     html += `<div style="margin-bottom:4px;">${ico(traj.icon, 18, isPointDepart ? 'rgba(255,255,255,0.8)' : '#9ca3af')}</div>`;
     html += `<div style="font-size:11px;font-weight:600;color:${isPointDepart ? 'white' : '#1a2e35'};">${traj.nom}</div>`;
     html += `<div style="margin-top:4px;display:inline-block;padding:2px 6px;border-radius:3px;font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;${statut.style}">${statut.label}</div>`;
     html += '</div>';
     
-    // Objectif
-    html += '<div style="padding:10px 12px;background:white;border-bottom:1px solid #f3f4f6;">';
-    html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px;font-weight:600;">Objectif</div>';
-    html += `<div style="font-size:9px;color:#4b5563;line-height:1.4;">${traj.objectif}</div>`;
-    html += '</div>';
-    
-    // Objectif de valeur
-    html += '<div style="padding:12px;background:white;text-align:center;">';
-    html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Objectif de valeur</div>';
-    html += `<div style="font-size:16px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
-    html += `<div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vénale +${traj.pourc}%</div>`;
-    html += '</div>';
+    if (luxMode) {
+      // MODE LUXE : 5 lignes structurées - compact
+      // 1. Intention
+      html += '<div style="padding:6px 10px;background:white;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">Intention</div>';
+      html += `<div style="font-size:8px;color:#4b5563;line-height:1.3;">${traj.objectifLux || traj.objectif}</div>`;
+      html += '</div>';
+      
+      // 2. Type d'exposition
+      html += '<div style="padding:6px 10px;background:#fafafa;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">Exposition</div>';
+      html += `<div style="font-size:8px;color:#4b5563;">${traj.typeExposition}</div>`;
+      html += '</div>';
+      
+      // 3. Type de pression (pression inversée)
+      html += '<div style="padding:6px 10px;background:white;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">Pression</div>';
+      html += `<div style="font-size:8px;color:#4b5563;font-style:italic;">${traj.typePression}</div>`;
+      html += '</div>';
+      
+      // 4. Prise en charge GARY
+      html += '<div style="padding:6px 10px;background:#fafafa;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">GARY pilote</div>';
+      html += `<div style="font-size:8px;color:#4b5563;line-height:1.3;">${traj.priseEnCharge}</div>`;
+      html += '</div>';
+      
+      // 5. Objectif de valeur + condition
+      html += '<div style="padding:8px 10px;background:white;text-align:center;">';
+      html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px;font-weight:600;">Objectif de valeur</div>';
+      html += `<div style="font-size:14px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
+      html += '<div style="font-size:6px;color:#9ca3af;margin-top:2px;line-height:1.2;">Atteignable si conditions respectées</div>';
+      html += '</div>';
+    } else {
+      // MODE STANDARD
+      // Objectif
+      html += '<div style="padding:10px 12px;background:white;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px;font-weight:600;">Objectif</div>';
+      html += `<div style="font-size:9px;color:#4b5563;line-height:1.4;">${traj.objectif}</div>`;
+      html += '</div>';
+      
+      // Conditions
+      html += '<div style="padding:10px 12px;background:#fafafa;border-bottom:1px solid #f3f4f6;">';
+      html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Conditions</div>';
+      traj.conditions.forEach((c: string) => {
+        html += `<div style="font-size:9px;color:#4b5563;padding:2px 0;display:flex;align-items:center;gap:4px;">${ico('check', 10, '#9ca3af')}${c}</div>`;
+      });
+      html += '</div>';
+      
+      // Objectif de valeur
+      html += '<div style="padding:12px;background:white;text-align:center;">';
+      html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Objectif de valeur</div>';
+      html += `<div style="font-size:16px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
+      html += `<div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vénale +${traj.pourc}%</div>`;
+      html += '</div>';
+    }
     
     html += '</div>';
   });
@@ -1074,10 +1185,16 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   }
   html += '</div></div>';
   
-  // Alertes
-  if (capitalAlerts.length > 0) {
+  // Alertes (avec phrase LUX si applicable)
+  if (capitalAlerts.length > 0 || (luxMode && historique.dejaDiffuse)) {
     html += '<div style="padding:10px 24px;background:white;border-top:1px solid #e5e7eb;">';
     html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:6px;">${ico('alertCircle', 12, '#9ca3af')}${copy.recalibrageTitle}</div>`;
+    // Phrase spécifique luxMode bien déjà exposé
+    if (luxMode && historique.dejaDiffuse && copy.recalibragePhrase) {
+      html += '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin-bottom:6px;">';
+      html += `<span style="font-size:9px;color:#4b5563;line-height:1.4;font-style:italic;">${copy.recalibragePhrase}</span>`;
+      html += '</div>';
+    }
     capitalAlerts.forEach((alert) => {
       const alertIco = alert.type === 'critical' ? 'xCircle' : (alert.type === 'warning' ? 'alertCircle' : 'circle');
       html += `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">${ico(alertIco, 12, '#6b7280')}<span style="font-size:9px;color:#4b5563;line-height:1.3;">${alert.msg}</span></div>`;
@@ -1085,10 +1202,42 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
     html += '</div>';
   }
   
-  // Disclaimer
+  // Bloc "Valeur à préserver" (luxMode uniquement) - compact
+  if (luxMode) {
+    html += '<div style="padding:10px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;">';
+    html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;">';
+    html += `<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:6px;">${ico('shield', 12, '#9ca3af')}Valeur à préserver</div>`;
+    const valeurItems = [
+      {icon: 'star', text: 'Image du bien'},
+      {icon: 'lock', text: 'Discrétion et maîtrise de l\'information'},
+      {icon: 'users', text: 'Sélectivité des visites'},
+      {icon: 'edit', text: 'Cohérence du récit'}
+    ];
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+    valeurItems.forEach((item) => {
+      html += '<div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:#f9fafb;border-radius:4px;">';
+      html += ico(item.icon, 10, '#9ca3af');
+      html += `<span style="font-size:8px;color:#4b5563;">${item.text}</span>`;
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:8px;color:#6b7280;font-style:italic;text-align:center;line-height:1.3;">Dans ce segment, la stratégie protège autant la valeur que la confidentialité.</div>';
+    html += '</div></div>';
+  }
+  
+  // Disclaimer (adapté luxMode) - compact
   html += '<div style="padding:10px 24px;background:#f8fafc;">';
   html += `<div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">${ico('info', 14, '#9ca3af')}<div style="font-size:8px;color:#6b7280;line-height:1.4;font-style:italic;">${copy.disclaimerPhrase}</div></div>`;
   html += '</div>';
+  
+  // === C. CADRE DE PILOTAGE (si projet d'achat détecté) ===
+  if (hasProjetAchat && niveauContrainte > 0) {
+    html += '<div style="padding:8px 24px;background:#f8fafc;">';
+    html += '<div style="background:#f8fafc;border-left:3px solid #FF4539;border-radius:4px;padding:10px 14px;">';
+    html += `<div style="font-size:8px;color:#FF4539;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:600;">Cadre de pilotage</div>`;
+    html += '<div style="font-size:8px;color:#4b5563;line-height:1.5;">La stratégie proposée est conçue pour rester <strong>réversible et ajustable</strong> dans le temps. Elle s\'adapte à l\'évolution du marché et de votre situation personnelle, sans jamais exposer vos contraintes.</div>';
+    html += '</div></div>';
+  }
   
   // Footer
   html += '<div class="footer">';
