@@ -72,6 +72,10 @@ const iconPaths: Record<string, string> = {
   info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
   alertCircle: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
   circle: '<circle cx="12" cy="12" r="10"/>',
+  // Contact
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
 };
 
 export function ico(name: string, size: number = 20, color: string = '#64748b'): string {
@@ -1098,6 +1102,214 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== PAGE 5: PLAN D'ACTION ====================
+// Constantes GARY
+const GARY_TEL = '+41 22 552 00 00';
+const COURTIERS = [
+  { id: 'david', nom: 'David Fuss', initiales: 'DF', email: 'david@gary.ch' },
+  { id: 'maxime', nom: 'Maxime Jaquet', initiales: 'MJ', email: 'maxime@gary.ch' },
+  { id: 'julien', nom: 'Julien Favre', initiales: 'JF', email: 'julien@gary.ch' },
+  { id: 'amelie', nom: 'Amélie Dupont', initiales: 'AD', email: 'amelie@gary.ch' },
+];
+
+function generatePlanActionPage(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const historique = identification.historique || {};
+  const analyse = (estimation as any).analyseTerrain || (estimation as any).analyse_terrain || {};
+  const strat = (estimation as any).strategie || {};
+  const pre = (estimation as any).preEstimation || (estimation as any).pre_estimation || {};
+  
+  const dateNow = new Date();
+  const dateStr = dateNow.toLocaleDateString('fr-CH');
+  
+  // === CAPITAL-VISIBILITÉ (calcul simplifié) ===
+  let capitalPct = 100;
+  if (historique.dejaDiffuse) {
+    let dureeImpact = 0;
+    if (historique.duree === 'moins1mois') dureeImpact = 5;
+    else if (historique.duree === '1-3mois') dureeImpact = 15;
+    else if (historique.duree === '3-6mois') dureeImpact = 30;
+    else if (historique.duree === '6-12mois') dureeImpact = 50;
+    else if (historique.duree === 'plus12mois') dureeImpact = 65;
+    
+    let diffusionImpact = 0;
+    if (historique.typeDiffusion === 'discrete') diffusionImpact = 5;
+    else if (historique.typeDiffusion === 'moderee') diffusionImpact = 15;
+    else if (historique.typeDiffusion === 'massive') diffusionImpact = 30;
+    
+    capitalPct = 100 - dureeImpact - diffusionImpact;
+    if (historique.typeDiffusion === 'discrete' && dureeImpact > 15) capitalPct += 10;
+    if (historique.typeDiffusion === 'massive' && ['3-6mois', '6-12mois', 'plus12mois'].includes(historique.duree)) capitalPct -= 10;
+    capitalPct = Math.max(10, Math.min(100, capitalPct));
+  }
+  
+  // === ÉTAPES ===
+  const etapes = [
+    { label: 'Validation du mandat et des conditions' },
+    { label: 'Préparation (photos, brochure, annonce)' },
+    { label: 'Lancement de la commercialisation' },
+    { label: 'Suivi des visites et retours marché' },
+    { label: 'Négociation et accompagnement jusqu\'à l\'acte' },
+    { label: 'Coordination notaire et remise des clés' }
+  ];
+  
+  // === COURTIER ===
+  const courtierData = COURTIERS.find(c => c.id === identification.courtier);
+  const courtierNom = courtierData ? courtierData.nom : 'Votre courtier GARY';
+  const courtierInitiales = courtierData ? courtierData.initiales : 'GA';
+  const courtierEmail = courtierData ? courtierData.email : 'contact@gary.ch';
+  
+  // === GÉNÉRATION HTML ===
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Plan d\'action</div>';
+  html += '</div>';
+  
+  // Section Pilotage coordonné vs Pilotage partagé
+  html += '<div style="padding:20px 24px;background:white;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;font-weight:600;text-align:center;">Vous restez décideur, on s\'occupe du reste</div>';
+  
+  html += '<div style="display:flex;gap:16px;">';
+  
+  // Bloc Pilotage coordonné (gauche - recommandé)
+  html += '<div style="flex:1;border:1px solid #1a2e35;border-radius:8px;overflow:hidden;position:relative;">';
+  html += '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:#1a2e35;color:white;font-size:8px;font-weight:600;padding:3px 10px;border-radius:0 0 4px 4px;text-transform:uppercase;letter-spacing:0.5px;">Recommandé</div>';
+  html += '<div style="padding:20px 16px 12px;text-align:center;background:#f9fafb;">';
+  html += `<div style="margin:0 auto 8px;">${ico('checkCircle', 28, '#1a2e35')}</div>`;
+  html += '<div style="font-size:13px;font-weight:600;color:#1a2e35;">GARY s\'occupe de tout</div>';
+  html += '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Pilotage coordonné</div>';
+  html += '</div>';
+  html += '<div style="padding:12px 16px;background:white;">';
+  
+  const avantagesCoord = [
+    'Ajustements <strong>immédiats</strong>',
+    'Message <strong>cohérent</strong> partout',
+    'Séquence <strong>maîtrisée</strong>',
+    'Réactivité <strong>en temps réel</strong>',
+    'Repartir à zéro <strong>possible</strong>'
+  ];
+  avantagesCoord.forEach(a => {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;">`;
+    html += ico('check', 12, '#1a2e35');
+    html += `<span style="font-size:10px;color:#1a2e35;">${a}</span>`;
+    html += '</div>';
+  });
+  html += '</div></div>';
+  
+  // Bloc Pilotage partagé (droite - moins mis en avant)
+  html += '<div style="flex:1;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;opacity:0.75;">';
+  html += '<div style="padding:20px 16px 12px;text-align:center;background:#fafafa;">';
+  html += `<div style="margin:0 auto 8px;">${ico('share', 28, '#9ca3af')}</div>`;
+  html += '<div style="font-size:13px;font-weight:600;color:#6b7280;">Pilotage partagé</div>';
+  html += '<div style="font-size:9px;color:#9ca3af;margin-top:2px;">Plusieurs intervenants</div>';
+  html += '</div>';
+  html += '<div style="padding:12px 16px;background:white;">';
+  
+  const pointsPartage = [
+    { ok: true, text: 'Coordination <strong>plus longue</strong>' },
+    { ok: true, text: 'Messages <strong>parfois différents</strong>' },
+    { ok: true, text: 'Séquence <strong>moins prévisible</strong>' },
+    { ok: true, text: 'Ajustements <strong>plus lents</strong>' },
+    { ok: false, text: 'Repartir à zéro <strong>difficile</strong>' }
+  ];
+  pointsPartage.forEach(p => {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;">`;
+    html += ico(p.ok ? 'circle' : 'x', 12, '#9ca3af');
+    html += `<span style="font-size:10px;color:#6b7280;">${p.text}</span>`;
+    html += '</div>';
+  });
+  html += '</div></div>';
+  
+  html += '</div>'; // fin flex
+  
+  // Phrase dynamique selon contexte
+  let phraseMandat = '';
+  if (!historique.dejaDiffuse) {
+    phraseMandat = 'Pour votre situation : le pilotage coordonné vous permet de <strong>maximiser vos chances dès le départ</strong> avec une stratégie cohérente.';
+  } else if (capitalPct > 40) {
+    phraseMandat = 'Pour votre situation : le pilotage coordonné vous permet de <strong>corriger le tir efficacement</strong> et de relancer avec une approche maîtrisée.';
+  } else {
+    phraseMandat = 'Pour votre situation : le pilotage coordonné vous permet de <strong>repartir proprement</strong>, sans hériter des erreurs passées.';
+  }
+  html += `<div style="margin-top:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 16px;text-align:center;">`;
+  html += `<span style="font-size:10px;color:#4b5563;line-height:1.5;">${phraseMandat}</span>`;
+  html += '</div>';
+  
+  // Légende
+  html += '<div style="margin-top:10px;display:flex;justify-content:center;gap:20px;">';
+  html += `<div style="display:flex;align-items:center;gap:5px;">${ico('check', 10, '#1a2e35')}<span style="font-size:8px;color:#6b7280;">Optimal</span></div>`;
+  html += `<div style="display:flex;align-items:center;gap:5px;">${ico('circle', 10, '#9ca3af')}<span style="font-size:8px;color:#6b7280;">Possible</span></div>`;
+  html += `<div style="display:flex;align-items:center;gap:5px;">${ico('x', 10, '#9ca3af')}<span style="font-size:8px;color:#6b7280;">Difficile</span></div>`;
+  html += '</div>';
+  
+  html += '</div>'; // fin section pilotage
+  
+  // Plan d'action - Prochaines étapes
+  html += '<div style="padding:16px 24px;background:#f8fafc;">';
+  html += `<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:6px;">${ico('list', 14, '#9ca3af')}Prochaines étapes</div>`;
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+  etapes.forEach((e, i) => {
+    html += `<div style="display:flex;align-items:center;gap:10px;background:white;border-radius:6px;padding:10px;border:1px solid #e5e7eb;">`;
+    html += `<div style="width:24px;height:24px;background:#1a2e35;border-radius:50%;color:white;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i + 1}</div>`;
+    html += `<div style="font-size:9px;color:#4b5563;line-height:1.3;font-weight:500;">${e.label}</div>`;
+    html += '</div>';
+  });
+  html += '</div></div>';
+  
+  // Notes si présentes
+  if (analyse.notesLibres || strat.notesStrategie) {
+    html += '<div style="margin:0 24px 12px;background:#f9fafb;border:1px solid #e5e7eb;padding:12px 16px;border-radius:6px;">';
+    html += `<div style="font-size:9px;font-weight:600;color:#6b7280;margin-bottom:6px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">${ico('edit', 12, '#9ca3af')}Notes</div>`;
+    html += '<div style="font-size:10px;color:#4b5563;line-height:1.5;">';
+    if (analyse.notesLibres) html += analyse.notesLibres;
+    if (analyse.notesLibres && strat.notesStrategie) html += '<br><br>';
+    if (strat.notesStrategie) html += strat.notesStrategie;
+    html += '</div></div>';
+  }
+  
+  // Section Signature
+  html += '<div style="margin:12px 24px;padding:16px;background:white;border-radius:8px;border:1px solid #e5e7eb;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
+  html += '<div style="display:flex;align-items:center;gap:12px;">';
+  html += `<div style="width:40px;height:40px;border-radius:50%;background:#1a2e35;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:500;">${courtierInitiales}</div>`;
+  html += '<div>';
+  html += `<div style="font-size:13px;font-weight:600;color:#1a2e35;">${courtierNom}</div>`;
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Conseiller immobilier GARY</div>';
+  html += '</div></div>';
+  html += '<div style="text-align:right;">';
+  html += '<div style="font-size:10px;color:#1a2e35;font-weight:500;">Fait à Genève</div>';
+  html += `<div style="font-size:9px;color:#6b7280;">Le ${dateStr}</div>`;
+  html += '</div></div>';
+  
+  // Coordonnées et signature sur une ligne
+  html += '<div style="display:flex;gap:20px;align-items:flex-end;">';
+  html += '<div style="flex:1;background:#f9fafb;border-radius:6px;padding:10px;">';
+  html += '<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">';
+  html += `<div style="display:flex;align-items:center;gap:6px;">${ico('phone', 14, '#9ca3af')}<span style="font-size:10px;color:#4b5563;font-weight:500;">${GARY_TEL}</span></div>`;
+  html += `<div style="display:flex;align-items:center;gap:6px;">${ico('mail', 14, '#9ca3af')}<span style="font-size:10px;color:#4b5563;font-weight:500;">${courtierEmail}</span></div>`;
+  html += `<div style="display:flex;align-items:center;gap:6px;">${ico('globe', 14, '#9ca3af')}<span style="font-size:10px;color:#4b5563;font-weight:500;">gary.ch</span></div>`;
+  html += '</div></div>';
+  html += '<div style="width:160px;">';
+  html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:600;">Signature</div>';
+  html += '<div style="border-bottom:1px solid #1a2e35;height:36px;"></div>';
+  html += '</div>';
+  html += '</div></div>';
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += `<div class="footer-ref">Page 3/X • ${dateStr}</div>`;
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // page
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -1134,6 +1346,10 @@ export async function generatePDFHtml(
   // Page 4: Trajectoires de vente
   onProgress?.('Génération page Trajectoires...', 50);
   html += generateTrajectoiresPage(estimation);
+  
+  // Page 5: Plan d'action
+  onProgress?.('Génération page Plan d\'action...', 60);
+  html += generatePlanActionPage(estimation);
   
   html += '</body></html>';
   
