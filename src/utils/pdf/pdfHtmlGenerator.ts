@@ -2172,6 +2172,74 @@ export function getCachedGoogleMapImage(): string | null {
   return cachedGoogleMapImage;
 }
 
+// ==================== GÉNÉRATION PAGES PHOTOS ====================
+function generatePhotosPages(estimation: EstimationData): string {
+  const photos = (estimation.photos as any) || {};
+  const photoItems = photos.items || [];
+  
+  if (photoItems.length === 0) return '';
+  
+  const photosCount = photoItems.length;
+  const photoPagesCount = Math.ceil(photosCount / 9);
+  const dateNow = new Date();
+  const dateStr = dateNow.toLocaleDateString('fr-CH');
+  
+  let html = '';
+  
+  // Style spécifique pour les grilles photos
+  html += '<style>';
+  html += '.photos-grid-pdf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 24px; flex: 1; }';
+  html += '.photo-cell { aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: #f3f4f6; }';
+  html += '.photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }';
+  html += '</style>';
+  
+  // Générer les pages photos (9 photos par page)
+  for (let pagePhotoIdx = 0; pagePhotoIdx < photoPagesCount; pagePhotoIdx++) {
+    const startIdx = pagePhotoIdx * 9;
+    const endIdx = Math.min(startIdx + 9, photosCount);
+    const pagePhotos = photoItems.slice(startIdx, endIdx);
+    
+    html += '<div class="page" style="page-break-before:always;">';
+    
+    // Header
+    html += '<div class="header">';
+    html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+    html += `<div class="header-date">Annexe photos${photoPagesCount > 1 ? ` (${pagePhotoIdx + 1}/${photoPagesCount})` : ''}</div>`;
+    html += '</div>';
+    
+    // Grille de photos
+    html += '<div class="photos-grid-pdf">';
+    pagePhotos.forEach((photo: any) => {
+      const photoUrl = photo.storageUrl || photo.dataUrl || '';
+      html += '<div class="photo-cell">';
+      if (photoUrl) {
+        html += `<img src="${photoUrl}" alt="${photo.titre || photo.nom || 'Photo'}" />`;
+      } else {
+        html += '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;">Photo non disponible</div>';
+      }
+      html += '</div>';
+    });
+    
+    // Remplir les cellules vides pour garder la grille alignée
+    const emptyCells = 9 - pagePhotos.length;
+    for (let ec = 0; ec < emptyCells; ec++) {
+      html += '<div class="photo-cell" style="background:#f8fafc;"></div>';
+    }
+    html += '</div>';
+    
+    // Footer
+    html += '<div class="footer">';
+    html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+    html += `<div class="footer-ref">Annexe photos${photoPagesCount > 1 ? ` (${pagePhotoIdx + 1}/${photoPagesCount})` : ''}</div>`;
+    html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+    html += '</div>';
+    
+    html += '</div>'; // page photo
+  }
+  
+  return html;
+}
+
 function generateMapPage(estimation: EstimationData): string {
   const identification = (estimation.identification as any) || {};
   const adresse = identification.adresse || {};
@@ -2432,8 +2500,16 @@ export async function generatePDFHtml(
   
   // Page 9: Carte (conditionnelle)
   if (coordsCheck.lat && coordsCheck.lng) {
-    onProgress?.('Génération page Carte...', 85);
+    onProgress?.('Génération page Carte...', 80);
     html += generateMapPage(estimation);
+  }
+  
+  // Pages Photos (conditionnelles, 9 photos par page)
+  const photosData = (estimation.photos as any) || {};
+  const photoItems = photosData.items || [];
+  if (photoItems.length > 0) {
+    onProgress?.('Génération pages Photos...', 85);
+    html += generatePhotosPages(estimation);
   }
   
   html += '</body></html>';
