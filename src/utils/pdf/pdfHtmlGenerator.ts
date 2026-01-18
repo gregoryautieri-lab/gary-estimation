@@ -116,6 +116,34 @@ function getStyles(): string {
   css += '.cover-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 15px; }';
   css += '.cover-tag { background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 0; font-size: 10px; font-weight: 400; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px; }';
   
+  // === PAGE QUI EST GARY ===
+  css += '.gary-page { min-height: 277mm; background: #ffffff; padding: 0; display: flex; flex-direction: column; }';
+  css += '.gary-header { background: #1a2e35; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #FF4539; }';
+  css += '.header-date { font-size: 10px; color: rgba(255,255,255,0.7); }';
+  css += '.gary-content { flex: 1; padding: 28px 32px; display: flex; flex-direction: column; }';
+  css += '.gary-title { font-size: 22px; font-weight: 300; color: #1a2e35; text-align: center; margin-bottom: 6px; letter-spacing: -0.5px; }';
+  css += '.gary-intro { font-size: 10px; color: #64748b; text-align: center; line-height: 1.6; max-width: 440px; margin: 0 auto 24px; }';
+  css += '.gary-divider { width: 50px; height: 2px; background: #FF4539; margin: 0 auto 24px; }';
+  css += '.gary-section { margin-bottom: 20px; }';
+  css += '.gary-section-title { font-size: 11px; font-weight: 700; color: #1a2e35; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; }';
+  css += '.gary-section-title::before { content: ""; width: 3px; height: 14px; background: #FF4539; border-radius: 2px; }';
+  css += '.gary-text { font-size: 9.5px; color: #374151; line-height: 1.65; }';
+  css += '.gary-text p { margin-bottom: 8px; }';
+  css += '.gary-text strong { color: #1a2e35; font-weight: 600; }';
+  css += '.gary-principles { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 8px; }';
+  css += '.gary-principle { background: #f8fafc; border-left: 3px solid #e2e8f0; padding: 10px 14px; border-radius: 0 6px 6px 0; }';
+  css += '.gary-principle-title { font-size: 10px; font-weight: 600; color: #1a2e35; margin-bottom: 3px; }';
+  css += '.gary-principle-text { font-size: 9px; color: #64748b; line-height: 1.5; }';
+  css += '.gary-roles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }';
+  css += '.gary-role { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 9px; color: #374151; display: flex; align-items: center; gap: 6px; }';
+  css += '.gary-role-icon { color: #FF4539; }';
+  css += '.gary-note { background: #fffbeb; border-left: 3px solid #fbbf24; padding: 12px 14px; border-radius: 0 6px 6px 0; margin-top: 16px; }';
+  css += '.gary-note-text { font-size: 9px; color: #78350f; line-height: 1.5; font-style: italic; }';
+  css += '.gary-conclusion { text-align: center; margin-top: auto; padding-top: 16px; border-top: 1px solid #e2e8f0; }';
+  css += '.gary-conclusion-text { font-size: 10px; color: #1a2e35; font-weight: 500; line-height: 1.6; }';
+  css += '.gary-footer { background: #1a2e35; padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #FF4539; }';
+  css += '.gary-footer-text { font-size: 8px; color: rgba(255,255,255,0.5); }';
+  
   // Print
   css += '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }';
   
@@ -252,6 +280,114 @@ function generateCoverPage(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== GÉNÉRATION PAGE QUI EST GARY ====================
+function generateGaryPage(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const projetPostVente = identification.projetPostVente || {};
+  
+  // Calculer niveau de contrainte pour affichage conditionnel
+  const hasProjetAchat = projetPostVente.nature === 'achat';
+  const avancement = projetPostVente.avancement || '';
+  let niveauContrainte = 0;
+  if (hasProjetAchat) {
+    if (avancement === 'acte_programme') niveauContrainte = 5;
+    else if (avancement === 'compromis_signe') niveauContrainte = 4;
+    else if (avancement === 'offre_deposee') niveauContrainte = 3;
+    else if (avancement === 'bien_identifie') niveauContrainte = 2;
+    else if (avancement === 'recherche') niveauContrainte = 1;
+  }
+  
+  let html = '';
+  
+  html += '<div class="page gary-page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="gary-header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Qui est GARY</div>';
+  html += '</div>';
+  
+  // Content
+  html += '<div class="gary-content">';
+  
+  // Titre et intro
+  html += '<div class="gary-title">Une autre façon de penser la vente immobilière</div>';
+  html += '<div class="gary-intro">Vendre un bien, ce n\'est pas publier une annonce. C\'est une séquence de décisions qui engagent l\'image du bien sur le marché. Chaque exposition laisse une trace. Chaque silence aussi.</div>';
+  html += '<div class="gary-divider"></div>';
+  
+  // Section : Ce que nous croyons
+  html += '<div class="gary-section">';
+  html += '<div class="gary-section-title">Ce que nous croyons</div>';
+  html += '<div class="gary-principles">';
+  
+  html += '<div class="gary-principle">';
+  html += '<div class="gary-principle-title">Une vente est une orchestration, pas une diffusion</div>';
+  html += '<div class="gary-principle-text">Le marché ne réagit pas aux intentions. Il réagit aux signaux. Le prix affiché, le moment choisi, le canal utilisé — tout parle. Notre rôle est de maîtriser ce que le marché entend.</div>';
+  html += '</div>';
+  
+  html += '<div class="gary-principle">';
+  html += '<div class="gary-principle-title">Chaque bien dispose d\'un capital d\'attention limité</div>';
+  html += '<div class="gary-principle-text">Un bien trop exposé perd son pouvoir d\'attraction. Un bien mal positionné au départ se retrouve en négociation défensive. La première impression conditionne toute la suite.</div>';
+  html += '</div>';
+  
+  html += '<div class="gary-principle">';
+  html += '<div class="gary-principle-title">Le timing compte autant que le prix</div>';
+  html += '<div class="gary-principle-text">Deux stratégies identiques, lancées à deux semaines d\'écart, peuvent produire des résultats opposés. Le contexte change. Les acheteurs aussi. La méthode doit s\'adapter en permanence.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // gary-principles
+  html += '</div>'; // gary-section
+  
+  // Section : Notre approche
+  html += '<div class="gary-section">';
+  html += '<div class="gary-section-title">Notre approche</div>';
+  html += '<div class="gary-text">';
+  html += '<p>Il n\'existe pas de recette universelle. Plusieurs chemins de vente sont toujours possibles. Le bon choix dépend du bien, du moment, du contexte, et surtout des retours réels du marché.</p>';
+  html += '<p>Une stratégie qui semblait évidente au départ peut devoir évoluer après les premiers signaux. <strong>C\'est pourquoi nous ne figeons jamais un plan. Nous le pilotons.</strong></p>';
+  html += '</div>';
+  html += '</div>';
+  
+  // Section : Ce que nous faisons
+  html += '<div class="gary-section">';
+  html += '<div class="gary-section-title">Ce que nous faisons</div>';
+  html += '<div class="gary-roles">';
+  html += `<div class="gary-role"><span class="gary-role-icon">${ico('compass', 12, '#FF4539')}</span>Lire et interpréter les signaux du marché</div>`;
+  html += `<div class="gary-role"><span class="gary-role-icon">${ico('target', 12, '#FF4539')}</span>Arbitrer entre exposition et retenue</div>`;
+  html += `<div class="gary-role"><span class="gary-role-icon">${ico('edit', 12, '#FF4539')}</span>Adapter le discours aux réactions observées</div>`;
+  html += `<div class="gary-role"><span class="gary-role-icon">${ico('eye', 12, '#FF4539')}</span>Protéger l'image du bien dans la durée</div>`;
+  html += `<div class="gary-role"><span class="gary-role-icon">${ico('check', 12, '#FF4539')}</span>Sécuriser vos décisions à chaque étape</div>`;
+  
+  // Niveau 3 : Argument "Pilotage transition" si projet d'achat détecté
+  if (hasProjetAchat && niveauContrainte > 0) {
+    html += `<div class="gary-role"><span class="gary-role-icon">${ico('refresh', 12, '#FF4539')}</span>Synchroniser vente et projets personnels</div>`;
+  }
+  html += '</div>';
+  html += '<div class="gary-text" style="margin-top:10px;font-style:italic;color:#64748b;">Nous ne sommes pas des diffuseurs. Nous sommes des pilotes.</div>';
+  html += '</div>';
+  
+  // Note
+  html += '<div class="gary-note">';
+  html += '<div class="gary-note-text">Cette page ne remplace pas un échange. Elle ne donne pas de stratégie clé en main. Chaque stratégie se construit à partir du bien réel, de son contexte, et des signaux observés sur le terrain.</div>';
+  html += '</div>';
+  
+  // Conclusion
+  html += '<div class="gary-conclusion">';
+  html += '<div class="gary-conclusion-text">Une bonne stratégie ne se choisit pas sur le papier.<br/>Elle se construit dans le temps, avec méthode et discernement.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // gary-content
+  
+  // Footer
+  html += '<div class="gary-footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += '<div class="gary-footer-text">gary.ch</div>';
+  html += '</div>';
+  
+  html += '</div>'; // page gary
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -276,6 +412,10 @@ export async function generatePDFHtml(
   
   // Page 1: Couverture
   html += generateCoverPage(estimation);
+  
+  // Page 2: Qui est GARY
+  onProgress?.('Génération page GARY...', 20);
+  html += generateGaryPage(estimation);
   
   html += '</body></html>';
   
