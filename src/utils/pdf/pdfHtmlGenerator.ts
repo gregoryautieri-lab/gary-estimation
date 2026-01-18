@@ -28,10 +28,15 @@ const iconPaths: Record<string, string> = {
   train: '<path d="M8 3h8l4 6v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9l4-6Z"/><path d="M10 19v3"/><path d="M14 19v3"/><path d="M9 3v6"/><path d="M15 3v6"/><path d="M4 9h16"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/>',
   ecole: '<path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/>',
   commerce: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  sante: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  nature: '<path d="M12 22v-7l-2-2"/><path d="M17 8v.8A6 6 0 0 1 13.8 20v0H10v0A6.5 6.5 0 0 1 7 8h0a5 5 0 0 1 10 0Z"/><path d="m14 14-2 2"/>',
   // États
   checkCircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
   x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  xCircle: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+  minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
+  sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
   // Navigation
   mapPin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
@@ -143,6 +148,12 @@ function getStyles(): string {
   css += '.gary-conclusion-text { font-size: 10px; color: #1a2e35; font-weight: 500; line-height: 1.6; }';
   css += '.gary-footer { background: #1a2e35; padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #FF4539; }';
   css += '.gary-footer-text { font-size: 8px; color: rgba(255,255,255,0.5); }';
+  
+  // === PAGE CARACTÉRISTIQUES (header/footer génériques) ===
+  css += '.header { background: #1a2e35; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #FF4539; }';
+  css += '.footer { background: #1a2e35; padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #FF4539; position: absolute; bottom: 0; left: 0; right: 0; }';
+  css += '.footer-ref { font-size: 8px; color: rgba(255,255,255,0.5); }';
+  css += '.footer-slogan { font-size: 10px; color: white; font-weight: 600; font-style: italic; }';
   
   // Print
   css += '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }';
@@ -388,6 +399,279 @@ function generateGaryPage(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== GÉNÉRATION PAGE CARACTÉRISTIQUES ====================
+function generateCaracteristiquesPage(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const caracteristiques = estimation.caracteristiques as any || {};
+  const analyseTerrain = estimation.analyseTerrain as any || {};
+  
+  const bien = identification.bien || {};
+  const contexte = identification.contexte || {};
+  const carac = caracteristiques;
+  const analyse = analyseTerrain;
+  const proximites = identification.proximites || [];
+  
+  const isAppartement = estimation.typeBien === 'appartement';
+  
+  // Calculs surfaces
+  const surfacePPE = parseNum(carac.surfacePPE);
+  const surfaceNonHab = parseNum(carac.surfaceNonHabitable);
+  const surfaceBalcon = parseNum(carac.surfaceBalcon);
+  const surfaceTerrasse = parseNum(carac.surfaceTerrasse);
+  const surfaceJardin = parseNum(carac.surfaceJardin);
+  const surfacePonderee = surfacePPE + (surfaceNonHab * 0.5) + (surfaceBalcon * 0.5) + (surfaceTerrasse * 0.33) + (surfaceJardin * 0.1);
+  const surfaceTerrain = parseNum(carac.surfaceTerrain);
+  const surfaceHabMaison = parseNum(carac.surfaceHabitableMaison);
+  const surfacePrincipale = isAppartement ? surfacePonderee : surfaceHabMaison;
+  
+  // Parkings
+  const nbPlaceInt = parseInt(carac.parkingInterieur) || 0;
+  const nbPlaceExt = parseInt(carac.parkingExterieur) || 0;
+  const nbBox = parseInt(carac.box) || 0;
+  
+  // Labels
+  const vueLabels: Record<string,string> = {degagee: 'Dégagée', lac: 'Lac', montagne: 'Montagne', campagne: 'Campagne', jardin: 'Jardin', urbaine: 'Urbaine', vis_a_vis: 'Vis-à-vis'};
+  const diffLabels: Record<string,string> = {sol: 'Au sol', radiateur: 'Radiateurs', convecteur: 'Convecteurs', poele: 'Poêle', cheminee: 'Cheminée', plafond: 'Plafond'};
+  const chaufLabels: Record<string,string> = {pac: 'PAC', gaz: 'Gaz', mazout: 'Mazout', pellets: 'Pellets', electrique: 'Électrique', cad: 'CAD', geothermie: 'Géothermie', autre: 'Autre'};
+  const renoLabels: Record<string,string> = {moins10ans: '< 10 ans', structure: 'Structure', technique: 'Technique', cuisine: 'Cuisine', salles_eau: 'Salles eau', menuiseries: 'Fenêtres', finitions: 'Finitions'};
+  const travLabels: Record<string,string> = {toiture: 'Toiture', facade: 'Façade', fenetres: 'Fenêtres', chauffage: 'Chauffage', electrique: 'Électricité', plomberie: 'Plomberie', cuisine: 'Cuisine', sdb: 'SDB', sols: 'Sols', isolation: 'Isolation', peinture: 'Peinture', jardin: 'Extérieurs'};
+  const proxIcons: Record<string,string> = {'🚌': 'bus', '🚃': 'train', '🏫': 'ecole', '🛒': 'commerce', '🥬': 'commerce', '🏥': 'sante', '🌳': 'nature'};
+  
+  const vueDisplay = vueLabels[carac.vue] || carac.vue || '–';
+  
+  let html = '';
+  html += '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Caractéristiques du bien</div>';
+  html += '</div>';
+  
+  // Contexte de vente (tags)
+  const ctxItems: {icon: string, text: string}[] = [];
+  const statutOcc = contexte.statutOccupation;
+  if (statutOcc === 'libre') ctxItems.push({icon: 'key', text: 'Libre'});
+  else if (statutOcc === 'loue') {
+    const finBail = contexte.finBailMois && contexte.finBailAnnee ? `${contexte.finBailMois}/${contexte.finBailAnnee}` : '';
+    ctxItems.push({icon: 'file', text: 'Loué' + (finBail ? ` (fin ${finBail})` : '')});
+  }
+  else if (statutOcc === 'occupeProprietaire') ctxItems.push({icon: 'home', text: 'Occupé propriétaire'});
+  
+  if (contexte.confidentialite === 'discrete') ctxItems.push({icon: 'eye', text: 'Vente discrète'});
+  else if (contexte.confidentialite === 'confidentielle') ctxItems.push({icon: 'lock', text: 'Off-market'});
+  
+  if (contexte.prioriteVendeur === 'prixMax') ctxItems.push({icon: 'trendingUp', text: 'Priorité prix'});
+  else if (contexte.prioriteVendeur === 'venteRapide') ctxItems.push({icon: 'zap', text: 'Priorité rapidité'});
+  
+  if (carac.dernierEtage) ctxItems.push({icon: 'mountain', text: 'Dernier étage'});
+  
+  if (ctxItems.length > 0) {
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#fafafa;border-bottom:1px solid #e5e7eb;">';
+    ctxItems.forEach(item => {
+      html += `<span style="font-size:11px;padding:6px 12px;background:white;border-radius:6px;border:1px solid #e5e7eb;display:flex;align-items:center;gap:6px;color:#374151;">${ico(item.icon, 14, '#6b7280')}${item.text}</span>`;
+    });
+    html += '</div>';
+  }
+  
+  // Métriques principales
+  html += '<div style="display:flex;background:white;border-bottom:1px solid #e5e7eb;">';
+  html += `<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('surface', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${surfacePrincipale.toFixed(0)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">m² ${isAppartement ? 'pondérés' : 'habitables'}</div></div></div></div>`;
+  html += `<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('pieces', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${val(carac.nombrePieces)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">pièces</div></div></div></div>`;
+  html += `<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('chambres', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${val(carac.nombreChambres)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">chambres</div></div></div></div>`;
+  
+  if (isAppartement) {
+    html += `<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('etage', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${val(carac.etage)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">étage</div></div></div></div>`;
+  } else {
+    html += `<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #f3f4f6;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('tree', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${surfaceTerrain.toFixed(0)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">m² terrain</div></div></div></div>`;
+  }
+  html += `<div style="flex:1;padding:12px 8px;text-align:center;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div>${ico('construction', 20, '#9ca3af')}</div><div><div style="font-size:22px;font-weight:300;color:#111827;letter-spacing:-0.5px;">${val(carac.anneeConstruction)}</div><div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">construction</div></div></div></div>`;
+  html += '</div>';
+  
+  // Caractéristiques détaillées
+  html += '<div style="padding:20px 24px;background:white;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;font-weight:600;">Caractéristiques détaillées</div>';
+  
+  const gridItem = (label: string, value: string, highlight: boolean = false) => {
+    const bg = highlight ? 'background:#fafafa;border-left:3px solid #111827;' : 'background:white;';
+    const color = highlight ? 'color:#111827;' : 'color:#1a2e35;';
+    return `<div style="${bg}border:1px solid #e5e7eb;border-radius:4px;padding:10px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">${label}</div><div style="font-size:15px;font-weight:700;${color}">${value}</div></div>`;
+  };
+  
+  if (isAppartement) {
+    const diffList = (carac.diffusion || []) as string[];
+    const diffDisplay = diffList.length > 0 ? diffList.map(d => diffLabels[d] || d).join(', ') : '–';
+    const expoDisplay = ((carac.exposition || []) as string[]).join(', ') || '–';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Surface PPE', `${surfacePPE.toFixed(0)} m²`);
+    html += gridItem('Surface pondérée', `${surfacePonderee.toFixed(1)} m²`, true);
+    html += gridItem('Étage', `${val(carac.etage)} / ${val(carac.nombreEtagesImmeuble)}`);
+    html += gridItem('Ascenseur', carac.ascenseur === 'oui' ? 'Oui' : (carac.ascenseur === 'non' ? 'Non' : '–'));
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Balcon', carac.surfaceBalcon ? `${carac.surfaceBalcon} m²` : '–');
+    html += gridItem('Terrasse', carac.surfaceTerrasse ? `${carac.surfaceTerrasse} m²` : '–');
+    html += gridItem('Salles de bain', val(carac.nombreSDB) || '–');
+    html += gridItem('WC', val(carac.nombreWC) || '–');
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Diffusion chaleur', diffDisplay);
+    html += gridItem('Exposition', expoDisplay);
+    html += gridItem('Vue', vueDisplay);
+    html += gridItem('CECB', val(carac.cecb) || '–');
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">';
+    html += gridItem('Parking int.', nbPlaceInt ? String(nbPlaceInt) : '–');
+    html += gridItem('Parking ext.', nbPlaceExt ? String(nbPlaceExt) : '–');
+    html += gridItem('Box', nbBox ? String(nbBox) : '–');
+    html += gridItem('Charges', carac.chargesMensuelles ? `${carac.chargesMensuelles} CHF` : '–');
+    html += '</div>';
+  } else {
+    // Maison
+    const cubage = surfaceHabMaison * 3;
+    const diffMaison = carac.diffusionMaison;
+    let diffMaisonDisplay = '–';
+    if (diffMaison) {
+      if (Array.isArray(diffMaison)) {
+        diffMaisonDisplay = diffMaison.map(d => diffLabels[d] || d).join(', ') || '–';
+      } else {
+        diffMaisonDisplay = diffLabels[diffMaison] || diffMaison;
+      }
+    }
+    const chaufDisplay = chaufLabels[carac.chauffage] || carac.chauffage || '–';
+    const expoDisplay = ((carac.exposition || []) as string[]).join(', ') || '–';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Surface habitable', `${val(carac.surfaceHabitableMaison)} m²`);
+    html += gridItem('Surface terrain', `${surfaceTerrain.toFixed(0)} m²`, true);
+    html += gridItem('Niveaux', val(carac.nombreNiveaux) || '–');
+    html += gridItem('Cubage', `${cubage.toFixed(0)} m³`);
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Salles de bain', val(carac.nombreSDB) || '–');
+    html += gridItem('WC', val(carac.nombreWC) || '–');
+    html += gridItem('Chauffage', chaufDisplay);
+    html += gridItem('Diffusion', diffMaisonDisplay);
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+    html += gridItem('Exposition', expoDisplay);
+    html += gridItem('Vue', vueDisplay);
+    html += gridItem('CECB', val(carac.cecb) || '–');
+    html += gridItem('Construction', val(carac.anneeConstruction) || '–');
+    html += '</div>';
+    
+    const pkgCouvert = parseInt(carac.parkingCouverte) || 0;
+    const pkgExtMaison = parseInt(carac.parkingExterieur) || 0;
+    const pkgGarage = parseInt(carac.box) || 0;
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">';
+    html += gridItem('Parking couvert', pkgCouvert ? String(pkgCouvert) : '–');
+    html += gridItem('Parking ext.', pkgExtMaison ? String(pkgExtMaison) : '–');
+    html += gridItem('Garage', pkgGarage ? String(pkgGarage) : '–');
+    html += gridItem('Zone', val(carac.zone) || '–');
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  // Rénovations & Travaux
+  const renoArr = (carac.typeRenovation || []) as string[];
+  const travArr = (carac.travauxRecents || []) as string[];
+  if (carac.anneeRenovation || renoArr.length > 0 || travArr.length > 0) {
+    html += '<div style="padding:12px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    html += `<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;display:flex;align-items:center;gap:6px;">${ico('refresh', 14, '#6b7280')}Rénovations & Travaux</div>`;
+    if (carac.anneeRenovation) {
+      html += `<div style="font-size:10px;color:#374151;font-weight:600;">Rénové en ${carac.anneeRenovation}</div>`;
+    }
+    html += '</div>';
+    if (renoArr.length > 0 || travArr.length > 0) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+      renoArr.forEach(r => {
+        html += `<span style="background:white;color:#374151;padding:4px 10px;border-radius:4px;font-size:9px;border:1px solid #e5e7eb;">${renoLabels[r] || r}</span>`;
+      });
+      travArr.forEach(t => {
+        html += `<span style="background:white;color:#374151;padding:4px 10px;border-radius:4px;font-size:9px;border:1px solid #e5e7eb;">${travLabels[t] || t}</span>`;
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  // État du bien
+  html += '<div style="padding:16px 24px;background:#fafafa;border-top:1px solid #e5e7eb;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;">État du bien</div>';
+  html += '<div style="font-size:8px;color:#9ca3af;display:flex;gap:12px;">';
+  html += `<span style="display:flex;align-items:center;gap:4px;">${ico('sparkles', 12, '#3b82f6')}Neuf</span>`;
+  html += `<span style="display:flex;align-items:center;gap:4px;">${ico('checkCircle', 12, '#10b981')}Bon</span>`;
+  html += `<span style="display:flex;align-items:center;gap:4px;">${ico('refresh', 12, '#f59e0b')}À rafraîchir</span>`;
+  html += `<span style="display:flex;align-items:center;gap:4px;">${ico('xCircle', 12, '#ef4444')}À refaire</span>`;
+  html += '</div></div>';
+  
+  html += '<div style="display:flex;gap:6px;margin-bottom:12px;">';
+  const etats = [
+    {l:'Cuisine',v:analyse.etatCuisine},
+    {l:'Salle de bain',v:analyse.etatSDB},
+    {l:'Sols',v:analyse.etatSols},
+    {l:'Murs',v:analyse.etatMurs},
+    {l:'Menuiseries',v:analyse.etatMenuiseries},
+    {l:'Électricité',v:analyse.etatElectricite}
+  ];
+  etats.forEach(e => {
+    const icoName = e.v === 'neuf' ? 'sparkles' : (e.v === 'bon' ? 'checkCircle' : (e.v === 'rafraichir' ? 'refresh' : (e.v === 'refaire' ? 'xCircle' : 'minus')));
+    const icoColor = e.v === 'neuf' ? '#3b82f6' : (e.v === 'bon' ? '#10b981' : (e.v === 'rafraichir' ? '#f59e0b' : (e.v === 'refaire' ? '#ef4444' : '#d1d5db')));
+    html += `<div style="flex:1;text-align:center;padding:10px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;"><div style="margin-bottom:4px;">${ico(icoName, 18, icoColor)}</div><div style="font-size:8px;color:#6b7280;font-weight:500;">${e.l}</div></div>`;
+  });
+  html += '</div>';
+  
+  // Ambiance
+  html += '<div style="display:flex;gap:10px;">';
+  [{l:'Luminosité',v:analyse.luminosite||0,icoName:'luminosite'},{l:'Calme',v:analyse.calme||0,icoName:'calme'},{l:'Volumes',v:analyse.volumes||0,icoName:'volumes'}].forEach(a => {
+    html += '<div style="flex:1;background:white;border-radius:6px;padding:10px;border:1px solid #e5e7eb;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    html += `<span style="font-size:10px;color:#6b7280;font-weight:500;display:flex;align-items:center;gap:6px;">${ico(a.icoName, 14, '#9ca3af')}${a.l}</span>`;
+    html += `<span style="font-size:11px;font-weight:600;color:#111827;">${a.v}/5</span>`;
+    html += '</div>';
+    html += `<div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${a.v*20}%;background:#111827;border-radius:2px;"></div></div></div>`;
+  });
+  html += '</div></div>';
+  
+  // Proximités
+  const proxFilled = (proximites as any[]).filter(p => p.libelle && p.distance).slice(0, 6);
+  html += '<div style="padding:16px 24px;background:white;border-top:1px solid #e5e7eb;">';
+  html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;">Proximités & Commodités</div>';
+  if (proxFilled.length > 0) {
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+    proxFilled.forEach((p: any) => {
+      const distStr = String(p.distance);
+      const distDisplay = distStr + (distStr && !distStr.endsWith('m') && !distStr.endsWith('km') ? 'm' : '');
+      const proxIcoName = proxIcons[p.icone] || 'mapPin';
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #e5e7eb;border-radius:6px;"><div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#f9fafb;border-radius:6px;">${ico(proxIcoName, 18, '#6b7280')}</div><div style="flex:1;min-width:0;"><div style="font-size:10px;color:#374151;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.libelle}</div><div style="font-size:12px;font-weight:700;color:#111827;">${distDisplay}</div></div></div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<div style="color:#9ca3af;font-style:italic;text-align:center;padding:12px;">Aucune proximité renseignée</div>';
+  }
+  html += '</div>';
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += `<div class="footer-ref">Page 1/X • ${val(bien.adresse || estimation.adresse)}</div>`;
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // page
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -416,6 +700,10 @@ export async function generatePDFHtml(
   // Page 2: Qui est GARY
   onProgress?.('Génération page GARY...', 20);
   html += generateGaryPage(estimation);
+  
+  // Page 3: Caractéristiques
+  onProgress?.('Génération page Caractéristiques...', 30);
+  html += generateCaracteristiquesPage(estimation);
   
   html += '</body></html>';
   
