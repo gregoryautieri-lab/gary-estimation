@@ -2143,6 +2143,143 @@ function generateAnnexeTechnique2Page(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== PAGE 9 : CARTE ====================
+function generateMapPage(estimation: EstimationData): string {
+  const identification = (estimation.identification as any) || {};
+  const bien = identification.bien || {};
+  
+  const mapLat = bien.mapLat;
+  const mapLng = bien.mapLng;
+  
+  if (!mapLat || !mapLng) return '';
+  
+  const mapZoom = bien.mapZoom || 18;
+  const mapType = bien.mapType || 'hybrid';
+  const swissZoom = bien.swisstopoZoom || 19;
+  const swissLat = bien.swisstopoLat || mapLat;
+  const swissLng = bien.swisstopoLng || mapLng;
+  
+  // URL Google Maps (format 4:3) - Proxy via edge function
+  const googleMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${mapLat},${mapLng}&zoom=${mapZoom}&size=600x450&scale=2&maptype=${mapType}&markers=color:red%7C${mapLat},${mapLng}&key=AIzaSyBthk0_ku_S3E3_0ItEqCNXtHW84ve_jmE`;
+  
+  // Calcul BBOX pour Swisstopo (format 4:3)
+  const metersPerPx = 156543.03392 * Math.cos(swissLat * Math.PI / 180) / Math.pow(2, swissZoom);
+  const widthDeg = (600 * metersPerPx) / 111320;
+  const heightDeg = (450 * metersPerPx) / 110540;
+  const bboxMinLat = swissLat - heightDeg / 2;
+  const bboxMaxLat = swissLat + heightDeg / 2;
+  const bboxMinLng = swissLng - widthDeg / 2;
+  const bboxMaxLng = swissLng + widthDeg / 2;
+  
+  // URL Swisstopo
+  const swisstopoUrl = `https://wms.geo.admin.ch/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=false&LAYERS=ch.swisstopo.landeskarte-farbe-10,ch.kantone.cadastralwebmap-farbe&CRS=EPSG:4326&STYLES=&WIDTH=600&HEIGHT=450&BBOX=${bboxMinLat},${bboxMinLng},${bboxMaxLat},${bboxMaxLng}`;
+  
+  // Récupérer les données transports
+  const transports = bien.transports || {};
+  const arret = transports.arret;
+  const gare = transports.gare;
+  
+  // Icônes SVG spéciales pour la carte
+  const iconGlobe = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  const iconGrid = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>';
+  const iconBus = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a2e35" stroke-width="1.5"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/><path d="M5 4V2M19 4V2"/></svg>';
+  const iconTrain = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a2e35" stroke-width="1.5"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16M12 3v8"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/><path d="M8 19l-2 2M16 19l2 2"/></svg>';
+  const iconClock = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FA4538" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  const iconPin = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FA4538" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  
+  const dateNow = new Date();
+  const dateStr = dateNow.toLocaleDateString('fr-CH');
+  
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += `<div class="header-date">${dateStr}</div>`;
+  html += '</div>';
+  
+  // Titre
+  html += '<div style="padding:12px 24px 8px;">';
+  html += `<h2 style="font-size:16px;font-weight:700;color:#1a2e35;margin:0 0 3px;display:flex;align-items:center;gap:6px;">${iconPin} Localisation du bien</h2>`;
+  html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(bien.adresse)}, ${val(bien.codePostal)} ${val(bien.localite)}</p>`;
+  html += '</div>';
+  
+  // Cartes en vertical
+  html += '<div style="padding:0 24px;display:flex;flex-direction:column;gap:8px;">';
+  
+  // Carte Google Maps
+  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;max-width:360px;margin:0 auto;">';
+  html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGlobe} Vue satellite</div>`;
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
+  html += `<img src="${googleMapUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  html += '</div>';
+  html += '</div>';
+  
+  // Carte Swisstopo
+  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;max-width:360px;margin:0 auto;">';
+  html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGrid} Plan cadastral officiel</div>`;
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
+  html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  html += '</div>';
+  html += '</div>';
+  
+  html += '</div>'; // fin cartes
+  
+  // Section Transports
+  if (arret || gare) {
+    html += '<div style="padding:10px 24px 70px;margin-top:6px;">';
+    html += `<div style="font-size:9px;font-weight:700;color:#FA4538;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">${iconClock} Transports à proximité</div>`;
+    
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    
+    // Arrêt bus/tram
+    if (arret) {
+      const arretDistance = arret.distance >= 1000 ? (arret.distance / 1000).toFixed(1) + ' km' : arret.distance + ' m';
+      html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:10px;display:flex;align-items:flex-start;gap:8px;">';
+      html += `<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconBus}</div>`;
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Arrêt bus / tram</div>';
+      html += `<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-bottom:3px;line-height:1.2;">${arret.nom}</div>`;
+      html += `<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">${arretDistance} <span style="background:#FA4538;color:white;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:600;">~${arret.tempsMarche} min à pied</span></div>`;
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;color:#94a3b8;font-size:9px;">Aucun arrêt à proximité</div>';
+    }
+    
+    // Gare
+    if (gare) {
+      const gareDistance = gare.distance >= 1000 ? (gare.distance / 1000).toFixed(1) + ' km' : gare.distance + ' m';
+      const gareTemps = gare.temps || gare.tempsMarche;
+      const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
+      html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:10px;display:flex;align-items:flex-start;gap:8px;">';
+      html += `<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconTrain}</div>`;
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Gare ferroviaire</div>';
+      html += `<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-bottom:3px;line-height:1.2;">${gare.nom}</div>`;
+      html += `<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">${gareDistance} <span style="background:#FA4538;color:white;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:600;">~${gareTemps} min ${gareMode}</span></div>`;
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;color:#94a3b8;font-size:9px;">Aucune gare à proximité</div>';
+    }
+    
+    html += '</div>'; // fin grid
+    html += '</div>'; // fin section transports
+  }
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += '<div class="footer-ref">Annexe cartographie</div>';
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // fin page
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -2195,6 +2332,13 @@ export async function generatePDFHtml(
   // Page 8: Annexe Technique 2/2
   onProgress?.('Génération page Annexe Technique 2/2...', 75);
   html += generateAnnexeTechnique2Page(estimation);
+  
+  // Page 9: Carte (conditionnelle)
+  const bien = (estimation.identification as any)?.bien || {};
+  if (bien.mapLat && bien.mapLng) {
+    onProgress?.('Génération page Carte...', 85);
+    html += generateMapPage(estimation);
+  }
   
   html += '</body></html>';
   
