@@ -1461,7 +1461,7 @@ function generatePlanActionPage(estimation: EstimationData): string {
 }
 
 // ==================== PAGE 6: MÉTHODOLOGIE D'ESTIMATION ====================
-function generateMethodologiePage(estimation: EstimationData): string {
+function generateMethodologiePage(estimation: EstimationData, pageNum: number = 6, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const bien = identification.bien || {};
   const carac = (estimation as any).caracteristiques || {};
@@ -1850,7 +1850,7 @@ function generateMethodologiePage(estimation: EstimationData): string {
   // Footer
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += `<div class="footer-ref">Page 6/X • Réf: EST-${dateNow.getTime().toString().slice(-8)}</div>`;
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: EST-${dateNow.getTime().toString().slice(-8)}</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
