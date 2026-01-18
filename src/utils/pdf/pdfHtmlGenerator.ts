@@ -1860,7 +1860,7 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
 }
 
 // ==================== PAGE 7: ANNEXE TECHNIQUE (1/2) ====================
-function generateAnnexeTechnique1Page(estimation: EstimationData): string {
+function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: number = 7, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const vendeur = identification.vendeur || {};
   const bien = identification.bien || {};
@@ -2128,7 +2128,7 @@ function generateAnnexeTechnique1Page(estimation: EstimationData): string {
   // Footer
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += '<div class="footer-ref">Page 7/X • Annexe Technique (1/2)</div>';
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Annexe Technique (1/2)</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2138,7 +2138,7 @@ function generateAnnexeTechnique1Page(estimation: EstimationData): string {
 }
 
 // ==================== PAGE 8: ANNEXE TECHNIQUE (2/2) ====================
-function generateAnnexeTechnique2Page(estimation: EstimationData): string {
+function generateAnnexeTechnique2Page(estimation: EstimationData, pageNum: number = 8, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const historique = identification.historique || {};
   const analyse = (estimation as any).analyseTerrain || (estimation as any).analyse_terrain || {};
@@ -2284,7 +2284,7 @@ function generateAnnexeTechnique2Page(estimation: EstimationData): string {
   // Footer
   html += '<div class="footer">';
   html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
-  html += '<div class="footer-ref">Page 8/X • Annexe Technique (2/2)</div>';
+  html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Annexe Technique (2/2)</div>`;
   html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
   html += '</div>';
   
@@ -2602,7 +2602,20 @@ export async function generatePDFHtml(
   const coordsCheck = adresseCheck.coordinates || {};
   const mapStateCheck = adresseCheck.mapState || {};
   
-  if (coordsCheck.lat && coordsCheck.lng) {
+  // Vérifier les données pour calcul dynamique du nombre de pages
+  const photosData = (estimation.photos as any) || {};
+  const photoItems = photosData.items || [];
+  const hasPhotos = photoItems.length > 0;
+  const photoPagesCount = hasPhotos ? Math.ceil(photoItems.length / 9) : 0;
+  const hasMap = coordsCheck.lat && coordsCheck.lng;
+  
+  // Calcul dynamique du nombre total de pages
+  // Pages fixes: Couverture(1) + GARY(2) + Caractéristiques(3) + Trajectoires(4) + PlanAction(5) + Méthodologie(6) + AnnexeTech1(7) + AnnexeTech2(8)
+  let totalPages = 8;
+  if (hasMap) totalPages += 1; // Page carte
+  totalPages += photoPagesCount; // Pages photos
+  
+  if (hasMap) {
     onProgress?.('Chargement de la carte satellite...', 15);
     const mapZoom = mapStateCheck.zoom || 18;
     const mapType = mapStateCheck.mapType || 'hybrid';
@@ -2638,26 +2651,24 @@ export async function generatePDFHtml(
   
   // Page 6: Méthodologie
   onProgress?.('Génération page Méthodologie...', 55);
-  html += generateMethodologiePage(estimation);
+  html += generateMethodologiePage(estimation, 6, totalPages);
   
   // Page 7: Annexe Technique 1/2
   onProgress?.('Génération page Annexe Technique 1/2...', 65);
-  html += generateAnnexeTechnique1Page(estimation);
+  html += generateAnnexeTechnique1Page(estimation, 7, totalPages);
   
   // Page 8: Annexe Technique 2/2
   onProgress?.('Génération page Annexe Technique 2/2...', 75);
-  html += generateAnnexeTechnique2Page(estimation);
+  html += generateAnnexeTechnique2Page(estimation, 8, totalPages);
   
   // Page 9: Carte (conditionnelle)
-  if (coordsCheck.lat && coordsCheck.lng) {
+  if (hasMap) {
     onProgress?.('Génération page Carte...', 80);
     html += generateMapPage(estimation);
   }
   
   // Pages Photos (conditionnelles, 9 photos par page)
-  const photosData = (estimation.photos as any) || {};
-  const photoItems = photosData.items || [];
-  if (photoItems.length > 0) {
+  if (hasPhotos) {
     onProgress?.('Génération pages Photos...', 85);
     html += generatePhotosPages(estimation);
   }
