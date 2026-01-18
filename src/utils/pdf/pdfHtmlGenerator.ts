@@ -1310,6 +1310,405 @@ function generatePlanActionPage(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== PAGE 6: MÉTHODOLOGIE D'ESTIMATION ====================
+function generateMethodologiePage(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const bien = identification.bien || {};
+  const carac = (estimation as any).caracteristiques || {};
+  const pre = (estimation as any).preEstimation || (estimation as any).pre_estimation || {};
+  
+  const dateNow = new Date();
+  const dateStr = dateNow.toLocaleDateString('fr-CH');
+  
+  // Type de bien
+  const isAppartement = bien.type === 'appartement' || carac.typeBien === 'appartement';
+  const isMaison = bien.type === 'maison' || carac.typeBien === 'maison';
+  
+  // === CALCULS SURFACES APPARTEMENT ===
+  const surfacePPE = parseFloat(carac.surfacePPE) || 0;
+  const surfaceNonHab = parseFloat(carac.surfaceNonHabitable) || 0;
+  const surfaceBalcon = parseFloat(carac.surfaceBalcon) || 0;
+  const surfaceTerrasse = parseFloat(carac.surfaceTerrasse) || 0;
+  const surfaceJardin = parseFloat(carac.surfaceJardin) || 0;
+  const surfacePonderee = surfacePPE + (surfaceNonHab * 0.5) + (surfaceBalcon * 0.5) + (surfaceTerrasse * 0.33) + (surfaceJardin * 0.1);
+  
+  // === CALCULS MAISON ===
+  const surfaceTerrain = parseFloat(carac.surfaceTerrain) || 0;
+  const surfaceUtile = parseFloat(carac.surfaceUtile) || 0;
+  const hauteurSousPlafond = parseFloat(carac.hauteurSousPlafond) || 2.5;
+  const cubage = surfaceUtile * hauteurSousPlafond;
+  const surfaceAmenagement = parseFloat(carac.surfaceAmenagement) || Math.max(0, surfaceTerrain - 200);
+  
+  // === VALEURS PRÉ-ESTIMATION ===
+  const prixM2 = parseFloat(pre.prixM2) || 15000;
+  const valeurSurface = surfacePonderee * prixM2;
+  
+  const nbPlaceInt = parseInt(carac.parkingInterieur) || 0;
+  const nbPlaceExt = parseInt(carac.parkingExterieur) || 0;
+  const nbBox = parseInt(carac.boxFerme) || 0;
+  const hasCave = carac.cave === true || carac.cave === 'oui';
+  
+  const prixPlaceInt = parseFloat(pre.prixPlaceInterieur) || 50000;
+  const prixPlaceExt = parseFloat(pre.prixPlaceExterieur) || 30000;
+  const prixBox = parseFloat(pre.prixBox) || 60000;
+  const prixCave = parseFloat(pre.prixCave) || 15000;
+  
+  const valeurPlaceInt = nbPlaceInt * prixPlaceInt;
+  const valeurPlaceExt = nbPlaceExt * prixPlaceExt;
+  const valeurBox = nbBox * prixBox;
+  const valeurCave = hasCave ? prixCave : 0;
+  
+  // Maison
+  const prixM2Terrain = parseFloat(pre.prixM2Terrain) || 2000;
+  const prixM3 = parseFloat(pre.prixM3) || 800;
+  const prixM2Amenagement = parseFloat(pre.prixM2Amenagement) || 150;
+  
+  const valeurTerrain = surfaceTerrain * prixM2Terrain;
+  const valeurCubage = cubage * prixM3;
+  const valeurAmenagement = surfaceAmenagement * prixM2Amenagement;
+  
+  // Lignes supplémentaires
+  const lignesSupp = pre.lignesSupp || [];
+  let valeurLignesSupp = 0;
+  lignesSupp.forEach((l: any) => {
+    if (l && l.prix) valeurLignesSupp += parseFloat(l.prix) || 0;
+  });
+  
+  // Annexes maison
+  const annexes = pre.annexes || [];
+  let valeurAnnexes = 0;
+  annexes.forEach((a: any) => {
+    if (a && a.prix) valeurAnnexes += parseFloat(a.prix) || 0;
+  });
+  
+  // Total vénale
+  let totalVenale = 0;
+  if (isAppartement) {
+    totalVenale = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
+  } else {
+    totalVenale = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
+  }
+  const totalVenaleArrondi = Math.round(totalVenale / 5000) * 5000;
+  
+  // Fourchette
+  const prixEntre = Math.round(totalVenaleArrondi * 0.97 / 5000) * 5000;
+  const prixEt = Math.round(totalVenaleArrondi * 1.03 / 5000) * 5000;
+  
+  // Valeur rendement
+  const loyerMensuel = parseFloat(pre.loyerMensuel) || 0;
+  const loyerAnnuel = loyerMensuel * 12;
+  const tauxCapitalisation = parseFloat(pre.tauxCapitalisation) || 2.5;
+  const valeurRendement = loyerAnnuel > 0 ? Math.round((loyerAnnuel / (tauxCapitalisation / 100)) / 5000) * 5000 : 0;
+  
+  // Valeur de gage (65% vénale)
+  const valeurGage = Math.round(totalVenaleArrondi * 0.65 / 5000) * 5000;
+  const valeurGageArrondi = valeurGage;
+  
+  // === COMPARABLES ===
+  const comparablesVendus = pre.comparablesVendus || [];
+  const comparablesEnVente = pre.comparablesEnVente || [];
+  const totalComparables = comparablesVendus.length + comparablesEnVente.length;
+  const comparablesEnAnnexe = totalComparables > 7;
+  const hasComparables = totalComparables > 0;
+  
+  // Fonction formatPrice locale
+  const formatPriceLocal = (num: number): string => {
+    if (!num && num !== 0) return '-';
+    return num.toLocaleString('fr-CH') + ' CHF';
+  };
+  
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Annexe : Méthodologie</div>';
+  html += '</div>';
+  
+  // Fourchette de négociation
+  html += '<div style="background:#f8fafc;padding:12px 30px;display:flex;justify-content:center;align-items:center;gap:30px;border-bottom:1px solid #e5e7eb;">';
+  html += '<div style="display:flex;align-items:center;gap:8px;">';
+  html += '<span style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Fourchette</span>';
+  html += `<span style="font-size:16px;font-weight:300;color:#1a2e35;">${formatPriceLocal(prixEntre)}</span>`;
+  html += '<span style="color:#d1d5db;font-size:14px;">→</span>';
+  html += `<span style="font-size:16px;font-weight:300;color:#1a2e35;">${formatPriceLocal(prixEt)}</span>`;
+  html += '</div>';
+  html += '</div>';
+  
+  // Les 3 valeurs - Grille compacte
+  html += '<div style="padding:16px 24px;background:white;border-bottom:1px solid #e5e7eb;">';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">';
+  
+  // Valeur Vénale
+  html += '<div style="background:#f9fafb;border-radius:6px;padding:14px;border:1px solid #e5e7eb;text-align:center;">';
+  html += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;">${ico('target', 14, '#9ca3af')}<span style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Vénale</span></div>`;
+  html += `<div style="font-size:18px;font-weight:400;color:#1a2e35;">${formatPriceLocal(totalVenaleArrondi)}</div>`;
+  html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">Base de calcul</div>';
+  html += '</div>';
+  
+  // Valeur Rendement
+  html += '<div style="background:#f9fafb;border-radius:6px;padding:14px;border:1px solid #e5e7eb;text-align:center;">';
+  html += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;">${ico('trendingUp', 14, '#9ca3af')}<span style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Rendement</span></div>`;
+  html += `<div style="font-size:18px;font-weight:400;color:#1a2e35;">${valeurRendement > 0 ? formatPriceLocal(valeurRendement) : '-'}</div>`;
+  html += `<div style="font-size:9px;color:#9ca3af;margin-top:4px;">${loyerMensuel > 0 ? `Taux ${tauxCapitalisation.toFixed(1)}% • ${formatPriceLocal(loyerMensuel)}/mois` : 'Non renseigné'}</div>`;
+  html += '</div>';
+  
+  // Valeur de Gage
+  html += '<div style="background:#f9fafb;border-radius:6px;padding:14px;border:1px solid #e5e7eb;text-align:center;">';
+  html += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;">${ico('lock', 14, '#9ca3af')}<span style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Gage</span></div>`;
+  html += `<div style="font-size:18px;font-weight:400;color:#1a2e35;">${formatPriceLocal(valeurGageArrondi)}</div>`;
+  html += '<div style="font-size:9px;color:#9ca3af;margin-top:4px;">Réf. bancaire</div>';
+  html += '</div>';
+  
+  html += '</div></div>';
+  
+  // Détail du calcul - Tableau compact
+  html += '<div style="padding:12px 24px;background:#f8fafc;">';
+  html += '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;">Détail du calcul</div>';
+  html += '<div style="background:white;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.04);">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<tr style="background:linear-gradient(135deg,#1a2e35 0%,#2c3e50 100%);color:white;">';
+  html += '<th style="padding:10px 14px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">Élément</th>';
+  html += '<th style="padding:10px 14px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">Quantité</th>';
+  html += '<th style="padding:10px 14px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">Prix unitaire</th>';
+  html += '<th style="padding:10px 14px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">Montant</th>';
+  html += '</tr>';
+  
+  if (isAppartement) {
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Surface pondérée</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfacePonderee.toFixed(1)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurSurface)}</td></tr>`;
+    if (nbPlaceInt) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Places intérieures</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbPlaceInt}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixPlaceInt)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurPlaceInt)}</td></tr>`;
+    if (nbPlaceExt) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Places extérieures</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbPlaceExt}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixPlaceExt)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurPlaceExt)}</td></tr>`;
+    if (nbBox) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Box fermé</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbBox}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixBox)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurBox)}</td></tr>`;
+    if (hasCave) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Cave</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">1</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixCave)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurCave)}</td></tr>`;
+    lignesSupp.forEach((l: any) => {
+      if (l && l.libelle && l.prix) {
+        html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">${l.libelle}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">—</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">—</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(parseFloat(l.prix))}</td></tr>`;
+      }
+    });
+  } else {
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Terrain</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfaceTerrain.toFixed(0)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2Terrain)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurTerrain)}</td></tr>`;
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Cubage construction</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${cubage.toFixed(0)} m³</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM3)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurCubage)}</td></tr>`;
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Aménagements ext.</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfaceAmenagement.toFixed(0)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2Amenagement)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurAmenagement)}</td></tr>`;
+    annexes.forEach((a: any) => {
+      if (a && a.libelle && a.prix) {
+        html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">${a.libelle}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">—</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">—</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(parseFloat(a.prix))}</td></tr>`;
+      }
+    });
+  }
+  html += `<tr style="background:#1a2e35;color:white;"><td colspan="3" style="padding:12px 14px;font-weight:600;font-size:11px;letter-spacing:0.5px;">VALEUR VÉNALE TOTALE</td><td style="padding:12px 14px;text-align:right;font-weight:600;font-size:14px;color:#FF4539;">${formatPriceLocal(totalVenaleArrondi)}</td></tr>`;
+  html += '</table></div></div>';
+  
+  // === SECTION COMPARABLES MARCHÉ ===
+  if (hasComparables) {
+    html += '<div style="padding:16px 24px;background:white;">';
+    html += `<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('trendingUp', 12, '#9ca3af')}Positionnement marché</div>`;
+    
+    // Collecter tous les prix pour l'échelle
+    const allPrices: {prix: number, type: string, data?: any}[] = [];
+    allPrices.push({ prix: totalVenaleArrondi, type: 'estimation' });
+    
+    comparablesVendus.forEach((c: any) => {
+      const p = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
+      if (p > 0) allPrices.push({ prix: p, type: 'vendu', data: c });
+    });
+    comparablesEnVente.forEach((c: any) => {
+      const p = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
+      if (p > 0) allPrices.push({ prix: p, type: 'envente', data: c });
+    });
+    
+    allPrices.sort((a, b) => a.prix - b.prix);
+    
+    // Échelle visuelle
+    if (allPrices.length > 1) {
+      const minPrix = allPrices[0].prix;
+      const maxPrix = allPrices[allPrices.length - 1].prix;
+      const range = maxPrix - minPrix || 1;
+      
+      html += '<div style="background:#f8fafc;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+      
+      if (totalComparables > 7) {
+        // Mode heatmap
+        html += '<div style="display:flex;justify-content:space-between;font-size:7px;color:#6b7280;margin-bottom:6px;">';
+        html += `<span>${(minPrix / 1000000).toFixed(2)}M</span><span>${(maxPrix / 1000000).toFixed(2)}M</span>`;
+        html += '</div>';
+        
+        const buckets: {vendus: number, envente: number, total: number}[] = [];
+        for (let b = 0; b < 10; b++) {
+          buckets.push({ vendus: 0, envente: 0, total: 0 });
+        }
+        const bucketSize = range / 10;
+        
+        allPrices.forEach(item => {
+          if (item.type === 'estimation') return;
+          const bucketIdx = Math.min(9, Math.floor((item.prix - minPrix) / bucketSize));
+          buckets[bucketIdx].total++;
+          if (item.type === 'vendu') buckets[bucketIdx].vendus++;
+          else buckets[bucketIdx].envente++;
+        });
+        
+        const maxVendus = Math.max(...buckets.map(b => b.vendus)) || 1;
+        const maxEnVente = Math.max(...buckets.map(b => b.envente)) || 1;
+        const estPos = ((totalVenaleArrondi - minPrix) / range) * 100;
+        
+        html += '<div style="position:relative;">';
+        
+        // Barre vendus
+        html += '<div style="display:flex;gap:2px;margin-bottom:2px;">';
+        buckets.forEach(bucket => {
+          const intensity = bucket.vendus / maxVendus;
+          const bgColor = bucket.vendus === 0 ? '#f0fdf4' : `rgba(16,185,129,${0.2 + intensity * 0.6})`;
+          html += `<div style="flex:1;height:18px;background:${bgColor};border-radius:3px;display:flex;align-items:center;justify-content:center;">`;
+          if (bucket.vendus > 0) {
+            html += `<span style="font-size:7px;color:#065f46;font-weight:600;">${bucket.vendus}</span>`;
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        
+        // Barre en vente
+        html += '<div style="display:flex;gap:2px;">';
+        buckets.forEach(bucket => {
+          const intensity = bucket.envente / maxEnVente;
+          const bgColor = bucket.envente === 0 ? '#f9fafb' : `rgba(107,114,128,${0.15 + intensity * 0.5})`;
+          html += `<div style="flex:1;height:18px;background:${bgColor};border-radius:3px;display:flex;align-items:center;justify-content:center;">`;
+          if (bucket.envente > 0) {
+            html += `<span style="font-size:7px;color:#374151;font-weight:600;">${bucket.envente}</span>`;
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        
+        // Étoile estimation
+        html += `<div style="position:absolute;left:${estPos}%;top:50%;transform:translate(-50%,-50%);z-index:10;">`;
+        html += '<div style="width:22px;height:22px;background:#FA4238;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.2);">';
+        html += '<span style="color:white;font-size:11px;">★</span>';
+        html += '</div></div>';
+        
+        html += '</div>';
+        
+        // Légende
+        html += '<div style="display:flex;justify-content:center;gap:12px;font-size:7px;margin-top:6px;">';
+        html += '<span style="color:#10b981;">✓ Vendus</span>';
+        html += '<span style="color:#6b7280;">○ En vente</span>';
+        html += '<span style="color:#FA4238;">★ Votre bien</span>';
+        html += '</div>';
+      } else {
+        // Mode points standard
+        html += '<div style="display:flex;justify-content:space-between;font-size:7px;color:#6b7280;margin-bottom:6px;">';
+        html += '<span>Prix bas</span><span>Prix haut</span>';
+        html += '</div>';
+        
+        html += '<div style="position:relative;height:36px;background:linear-gradient(90deg,#e5e7eb 0%,#f3f4f6 100%);border-radius:12px;margin-bottom:6px;">';
+        
+        allPrices.forEach(item => {
+          const pos = ((item.prix - minPrix) / range) * 85 + 7;
+          const color = item.type === 'estimation' ? '#FF4539' : (item.type === 'vendu' ? '#10b981' : '#6b7280');
+          const symbol = item.type === 'estimation' ? '★' : (item.type === 'vendu' ? '✓' : '○');
+          const size = item.type === 'estimation' ? '12px' : '10px';
+          
+          html += `<div style="position:absolute;left:${pos}%;top:6px;transform:translateX(-50%);text-align:center;">`;
+          html += `<div style="font-size:${size};color:${color};font-weight:bold;">${symbol}</div>`;
+          html += `<div style="font-size:7px;color:${color};margin-top:1px;white-space:nowrap;">${(item.prix / 1000000).toFixed(2)}M</div>`;
+          html += '</div>';
+        });
+        
+        html += '</div>';
+        
+        html += '<div style="display:flex;justify-content:center;gap:12px;font-size:7px;">';
+        html += '<span style="color:#10b981;">✓ Vendu</span>';
+        html += '<span style="color:#6b7280;">○ En vente</span>';
+        html += '<span style="color:#FF4539;">★ Votre bien</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    
+    // Détails comparables OU message annexe
+    if (comparablesEnAnnexe) {
+      html += '<div style="background:#f8fafc;border-radius:6px;padding:12px 16px;text-align:center;margin-top:8px;">';
+      html += `<div style="font-size:9px;color:#6b7280;">Détail des ${totalComparables} comparables en annexe</div>`;
+      html += '</div>';
+    } else {
+      // Mode normal - afficher les détails
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      
+      // Colonne vendus
+      if (comparablesVendus.length > 0) {
+        html += '<div>';
+        html += '<div style="font-size:8px;font-weight:600;color:#10b981;margin-bottom:6px;display:flex;align-items:center;gap:3px;">✓ Transactions récentes</div>';
+        comparablesVendus.forEach((c: any) => {
+          const garyBadge = c.isGary ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FA4238;color:white;border-radius:50%;font-size:8px;font-weight:700;margin-left:4px;">G</span>' : '';
+          const typeMaisonLabels: Record<string, string> = {'individuelle': 'Maison individuelle', 'jumelee': 'Maison jumelée', 'mitoyenne': 'Maison mitoyenne', 'contigue': 'Maison contiguë'};
+          const typeMaisonLabel = typeMaisonLabels[c.typeMaison] || '';
+          html += `<div style="background:${c.isGary ? '#fff5f4' : '#f0fdf4'};border-radius:4px;padding:6px 8px;margin-bottom:4px;border-left:2px solid ${c.isGary ? '#FA4538' : '#10b981'};">`;
+          html += `<div style="font-size:8px;font-weight:600;color:#1a2e35;display:flex;align-items:center;">${c.adresse || '-'}${garyBadge}</div>`;
+          const prixNum = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
+          html += `<div style="font-size:9px;color:${c.isGary ? '#FA4539' : '#10b981'};font-weight:600;">${prixNum > 0 ? formatPriceLocal(prixNum) : c.prix || '-'}</div>`;
+          const details: string[] = [];
+          if (c.surface) details.push(c.surface);
+          if (c.surfaceParcelle) details.push('Parcelle ' + c.surfaceParcelle);
+          if (typeMaisonLabel) details.push(typeMaisonLabel);
+          if (c.dateVente) details.push(c.dateVente);
+          if (c.commentaire) details.push(c.commentaire);
+          if (details.length > 0) {
+            html += `<div style="font-size:7px;color:#6b7280;margin-top:1px;">${details.join(' • ')}</div>`;
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      
+      // Colonne en vente
+      if (comparablesEnVente.length > 0) {
+        html += '<div>';
+        html += '<div style="font-size:8px;font-weight:600;color:#6b7280;margin-bottom:6px;display:flex;align-items:center;gap:3px;">○ Actuellement en vente</div>';
+        comparablesEnVente.forEach((c: any) => {
+          const garyBadge = c.isGary ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FA4238;color:white;border-radius:50%;font-size:8px;font-weight:700;margin-left:4px;">G</span>' : '';
+          const typeMaisonLabels: Record<string, string> = {'individuelle': 'Maison individuelle', 'jumelee': 'Maison jumelée', 'mitoyenne': 'Maison mitoyenne', 'contigue': 'Maison contiguë'};
+          const typeMaisonLabel = typeMaisonLabels[c.typeMaison] || '';
+          html += `<div style="background:${c.isGary ? '#fff5f4' : '#f9fafb'};border-radius:4px;padding:6px 8px;margin-bottom:4px;border-left:2px solid ${c.isGary ? '#FA4538' : '#9ca3af'};">`;
+          html += `<div style="font-size:8px;font-weight:600;color:#1a2e35;display:flex;align-items:center;">${c.adresse || '-'}${garyBadge}</div>`;
+          const prixNum = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
+          html += `<div style="font-size:9px;color:${c.isGary ? '#FA4539' : '#6b7280'};font-weight:600;">${prixNum > 0 ? formatPriceLocal(prixNum) : c.prix || '-'}</div>`;
+          const details: string[] = [];
+          if (c.surface) details.push(c.surface);
+          if (c.surfaceParcelle) details.push('Parcelle ' + c.surfaceParcelle);
+          if (typeMaisonLabel) details.push(typeMaisonLabel);
+          if (c.dureeEnVente) details.push('Depuis ' + c.dureeEnVente);
+          if (c.commentaire) details.push(c.commentaire);
+          if (details.length > 0) {
+            html += `<div style="font-size:7px;color:#6b7280;margin-top:1px;">${details.join(' • ')}</div>`;
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      
+      html += '</div>';
+    }
+    
+    // Positionnement du bien
+    html += '<div style="margin-top:8px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border:1px solid #FF4539;border-radius:6px;padding:8px 10px;text-align:center;">';
+    html += '<div style="font-size:7px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Votre bien</div>';
+    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${val(bien.adresse)}</div>`;
+    html += `<div style="font-size:12px;font-weight:700;color:#FF4539;margin-top:2px;">${formatPriceLocal(totalVenaleArrondi)}</div>`;
+    html += '</div>';
+    
+    html += '</div>'; // section comparables
+  }
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += `<div class="footer-ref">Page 6/X • Réf: EST-${dateNow.getTime().toString().slice(-8)}</div>`;
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // page
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -1344,12 +1743,16 @@ export async function generatePDFHtml(
   html += generateCaracteristiquesPage(estimation);
   
   // Page 4: Trajectoires de vente
-  onProgress?.('Génération page Trajectoires...', 50);
+  onProgress?.('Génération page Trajectoires...', 40);
   html += generateTrajectoiresPage(estimation);
   
   // Page 5: Plan d'action
-  onProgress?.('Génération page Plan d\'action...', 60);
+  onProgress?.('Génération page Plan d\'action...', 50);
   html += generatePlanActionPage(estimation);
+  
+  // Page 6: Méthodologie
+  onProgress?.('Génération page Méthodologie...', 60);
+  html += generateMethodologiePage(estimation);
   
   html += '</body></html>';
   
