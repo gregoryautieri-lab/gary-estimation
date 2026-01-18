@@ -1709,6 +1709,440 @@ function generateMethodologiePage(estimation: EstimationData): string {
   return html;
 }
 
+// ==================== PAGE 7: ANNEXE TECHNIQUE (1/2) ====================
+function generateAnnexeTechnique1Page(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const vendeur = identification.vendeur || {};
+  const bien = identification.bien || {};
+  const contexte = identification.contexte || {};
+  const carac = (estimation as any).caracteristiques || {};
+  
+  const isAppartement = bien.type === 'appartement' || carac.typeBien === 'appartement';
+  const isMaison = bien.type === 'maison' || carac.typeBien === 'maison';
+  
+  // Calcul surface pondérée
+  const surfacePPE = parseFloat(carac.surfacePPE) || 0;
+  const surfaceNonHab = parseFloat(carac.surfaceNonHabitable) || 0;
+  const surfaceBalcon = parseFloat(carac.surfaceBalcon) || 0;
+  const surfaceTerrasse = parseFloat(carac.surfaceTerrasse) || 0;
+  const surfaceJardin = parseFloat(carac.surfaceJardin) || 0;
+  const surfacePonderee = surfacePPE + (surfaceNonHab * 0.5) + (surfaceBalcon * 0.5) + (surfaceTerrasse * 0.33) + (surfaceJardin * 0.1);
+  
+  // Helper pour valeur ou tiret
+  const annexeVal = (v: any, suffix?: string): string => {
+    if (v === undefined || v === null || v === '') return '—';
+    return v + (suffix || '');
+  };
+  
+  // Labels
+  const sousTypeLabels: Record<string, string> = {
+    'standard': 'Standard', 'standing': 'Standing', 'attique': 'Attique', 
+    'duplex': 'Duplex/Triplex', 'sousplex': 'Sousplex', 'loft': 'Loft', 
+    'studio': 'Studio', 'rez_jardin': 'Rez-jardin', 'hotel_particulier': 'Hôtel particulier',
+    'villa_individuelle': 'Villa individuelle', 'villa_mitoyenne': 'Villa mitoyenne',
+    'villa_jumelee': 'Villa jumelée', 'maison_village': 'Maison de village',
+    'chalet': 'Chalet', 'ferme_rustico': 'Ferme/Rustico', 'maison_architecte': "Maison d'architecte",
+    'chateau': 'Château', 'pied_dans_eau': 'Pied dans l\'eau'
+  };
+  
+  const zoneLabels: Record<string, string> = {
+    '5': 'Zone 5 (Villa)', '4BP': 'Zone 4B protégée', '4B': 'Zone 4B', 
+    '4A': 'Zone 4A', '3': 'Zone 3', '2': 'Zone 2', '1': 'Zone 1',
+    'ZD': 'Zone développement', 'agricole': 'Agricole', 'industrielle': 'Industrielle', 'autre': 'Autre'
+  };
+  
+  const buanderieLabels: Record<string, string> = { 'privee': 'Privée', 'commune': 'Commune', 'aucune': 'Aucune' };
+  
+  const motifLabels: Record<string, string> = {
+    'succession': 'Succession', 'divorce': 'Divorce', 'demenagement': 'Déménagement',
+    'agrandissement': 'Agrandissement', 'reduction': 'Réduction surface', 
+    'investissement': 'Investissement', 'financier': 'Raisons financières',
+    'travail': 'Mutation professionnelle', 'retraite': 'Retraite', 'autre': 'Autre'
+  };
+  
+  const prioriteLabels: Record<string, string> = {
+    'rapidite': 'Rapidité', 'prixMax': 'Prix maximum', 'equilibre': 'Équilibre', 'discretion': 'Discrétion'
+  };
+  
+  const confidentLabels: Record<string, string> = {
+    'normale': 'Normale', 'discrete': 'Discrète', 'confidentielle': 'Confidentielle'
+  };
+  
+  const espaceLabels: Record<string, string> = {
+    'cave': 'Cave', 'buanderie': 'Buanderie', 'local_tech': 'Local technique', 
+    'salle_jeux': 'Salle de jeux', 'home_cinema': 'Home cinéma', 'cellier': 'Cellier',
+    'abri_pc': 'Abri PC', 'chambre_ss': 'Chambre SS', 'sdb_ss': 'SDB SS', 'wc_ss': 'WC SS',
+    'bureau': 'Bureau', 'studio': 'Studio indép.', 'spa': 'Spa/Wellness', 'sauna': 'Sauna',
+    'hammam': 'Hammam', 'piscine_int': 'Piscine int.', 'piscine_ext': 'Piscine ext.',
+    'dressing': 'Dressing', 'bibliotheque': 'Bibliothèque', 'atelier': 'Atelier',
+    'local_ski': 'Local ski', 'cabanon': 'Cabanon', 'pool_house': 'Pool house',
+    'dependance': 'Dépendance', 'conciergerie': 'Conciergerie'
+  };
+  
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Annexe Technique (1/2)</div>';
+  html += '</div>';
+  
+  // Styles spécifiques annexe
+  html += '<style>';
+  html += '.annexe-section { padding: 10px 24px; border-bottom: 1px solid #e5e7eb; }';
+  html += '.annexe-section:last-of-type { border-bottom: none; }';
+  html += '.annexe-title { font-size: 10px; font-weight: 700; color: #FF4539; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }';
+  html += '.annexe-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }';
+  html += '.annexe-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }';
+  html += '.annexe-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }';
+  html += '.annexe-item { background: #f8fafc; border-radius: 4px; padding: 6px 8px; }';
+  html += '.annexe-item-label { font-size: 7px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }';
+  html += '.annexe-item-value { font-size: 10px; color: #1a2e35; font-weight: 600; }';
+  html += '.annexe-row { display: flex; gap: 8px; flex-wrap: wrap; }';
+  html += '.annexe-chip { background: #e5e7eb; color: #4b5563; padding: 3px 8px; border-radius: 10px; font-size: 8px; }';
+  html += '.annexe-chip.positive { background: #d1fae5; color: #065f46; }';
+  html += '.annexe-chip.negative { background: #fee2e2; color: #991b1b; }';
+  html += '.annexe-prox { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #f3f4f6; }';
+  html += '.annexe-prox:last-child { border-bottom: none; }';
+  html += '</style>';
+  
+  // === SECTION VENDEUR ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('user', 12, '#FF4539')} Contact Vendeur</div>`;
+  html += '<div class="annexe-grid-3">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Nom</div><div class="annexe-item-value">${annexeVal(vendeur.nom)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Téléphone</div><div class="annexe-item-value">${annexeVal(vendeur.telephone)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Email</div><div class="annexe-item-value">${annexeVal(vendeur.email)}</div></div>`;
+  html += '</div></div>';
+  
+  // === SECTION ADRESSE ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('mapPin', 12, '#FF4539')} Localisation</div>`;
+  html += '<div class="annexe-grid-3">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Adresse</div><div class="annexe-item-value">${annexeVal(bien.adresse)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Code postal</div><div class="annexe-item-value">${annexeVal(bien.codePostal)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Localité</div><div class="annexe-item-value">${annexeVal(bien.localite)}</div></div>`;
+  html += '</div></div>';
+  
+  // === SECTION CONTEXTE ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('info', 12, '#FF4539')} Contexte de vente</div>`;
+  html += '<div class="annexe-grid">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Motif</div><div class="annexe-item-value">${annexeVal(motifLabels[contexte.motifVente])}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Horizon</div><div class="annexe-item-value">${annexeVal(contexte.horizon)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Priorité</div><div class="annexe-item-value">${annexeVal(prioriteLabels[contexte.prioriteVendeur])}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Confidentialité</div><div class="annexe-item-value">${annexeVal(confidentLabels[contexte.confidentialite])}</div></div>`;
+  html += '</div>';
+  // Occupation
+  const occupationText = contexte.statutOccupation === 'libre' ? 'Libre' : 
+    (contexte.statutOccupation === 'loue' ? 'Loué' + (contexte.finBailMois && contexte.finBailAnnee ? ' (fin: ' + contexte.finBailMois + '/' + contexte.finBailAnnee + ')' : '') : '—');
+  html += '<div class="annexe-grid-2" style="margin-top:6px;">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Occupation</div><div class="annexe-item-value">${occupationText}</div></div>`;
+  html += '</div></div>';
+  
+  // === SECTION PROXIMITÉS ===
+  const proximites = identification.proximites || [];
+  const proxFiltrees = proximites.filter((p: any) => p.libelle);
+  if (proxFiltrees.length > 0) {
+    html += '<div class="annexe-section">';
+    html += `<div class="annexe-title">${ico('mapPin', 12, '#FF4539')} Proximités</div>`;
+    proxFiltrees.forEach((p: any) => {
+      html += '<div class="annexe-prox">';
+      html += `<span style="font-size:14px;">${p.icone || '📍'}</span>`;
+      html += `<span style="font-size:9px;color:#1a2e35;flex:1;">${p.libelle}</span>`;
+      if (p.distance) html += `<span style="font-size:9px;color:#6b7280;">${p.distance} m</span>`;
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  
+  // === SECTION CARACTÉRISTIQUES ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('home', 12, '#FF4539')} Caractéristiques du bien</div>`;
+  
+  // Type et sous-type
+  html += '<div class="annexe-grid">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Type</div><div class="annexe-item-value">${isAppartement ? 'Appartement' : (isMaison ? 'Maison' : '—')}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">${annexeVal(sousTypeLabels[carac.sousType])}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Année construction</div><div class="annexe-item-value">${annexeVal(carac.anneeConstruction)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Rénovation</div><div class="annexe-item-value">${annexeVal(carac.anneeRenovation)}</div></div>`;
+  html += '</div>';
+  
+  // Surfaces selon type
+  html += '<div class="annexe-grid" style="margin-top:6px;">';
+  if (isAppartement) {
+    html += `<div class="annexe-item"><div class="annexe-item-label">Surface PPE</div><div class="annexe-item-value">${annexeVal(carac.surfacePPE, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Sous-sol hab.</div><div class="annexe-item-value">${annexeVal(carac.surfaceNonHabitable, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Balcon</div><div class="annexe-item-value">${annexeVal(carac.surfaceBalcon, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Terrasse</div><div class="annexe-item-value">${annexeVal(carac.surfaceTerrasse, ' m²')}</div></div>`;
+    html += '</div><div class="annexe-grid" style="margin-top:6px;">';
+    html += `<div class="annexe-item"><div class="annexe-item-label">Jardin privatif</div><div class="annexe-item-value">${annexeVal(carac.surfaceJardin, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">N° lot PPE</div><div class="annexe-item-value">${annexeVal(carac.numeroLotPPE)}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Fonds rénovation</div><div class="annexe-item-value">${annexeVal(carac.fondRenovation, ' CHF')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Surface pondérée</div><div class="annexe-item-value">${surfacePonderee.toFixed(1)} m²</div></div>`;
+  } else if (isMaison) {
+    html += `<div class="annexe-item"><div class="annexe-item-label">Surface habitable</div><div class="annexe-item-value">${annexeVal(carac.surfaceHabitableMaison, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Surface utile</div><div class="annexe-item-value">${annexeVal(carac.surfaceUtile, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Surface terrain</div><div class="annexe-item-value">${annexeVal(carac.surfaceTerrain, ' m²')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">N° parcelle</div><div class="annexe-item-value">${annexeVal(carac.numeroParcelle)}</div></div>`;
+    html += '</div><div class="annexe-grid" style="margin-top:6px;">';
+    html += `<div class="annexe-item"><div class="annexe-item-label">Zone</div><div class="annexe-item-value">${annexeVal(zoneLabels[carac.zone])}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Niveaux</div><div class="annexe-item-value">${annexeVal(carac.nombreNiveaux)}</div></div>`;
+  }
+  html += '</div>';
+  
+  // Configuration
+  html += '<div class="annexe-grid" style="margin-top:6px;">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Pièces</div><div class="annexe-item-value">${annexeVal(carac.nombrePieces)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Chambres</div><div class="annexe-item-value">${annexeVal(carac.nombreChambres)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Salles de bain</div><div class="annexe-item-value">${annexeVal(carac.nombreSDB)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">WC séparés</div><div class="annexe-item-value">${annexeVal(carac.nombreWC)}</div></div>`;
+  html += '</div>';
+  
+  // Étage (appartement)
+  if (isAppartement) {
+    const formatEtage = (val: any): string => {
+      if (val === undefined || val === '') return '—';
+      if (val == 0) return 'RDC';
+      if (val == -1) return 'Sous-sol';
+      if (val === 'rez-inf') return 'Rez-inférieur';
+      if (val === 'rez-sup') return 'Rez-supérieur';
+      return val + 'e';
+    };
+    let etageText = formatEtage(carac.etage);
+    if (carac.etageHaut) etageText += ' au ' + formatEtage(carac.etageHaut);
+    html += '<div class="annexe-grid" style="margin-top:6px;">';
+    html += `<div class="annexe-item"><div class="annexe-item-label">Étage</div><div class="annexe-item-value">${etageText}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Étages immeuble</div><div class="annexe-item-value">${annexeVal(carac.nombreEtagesImmeuble)}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Ascenseur</div><div class="annexe-item-value">${carac.ascenseur === true ? 'Oui' : (carac.ascenseur === false ? 'Non' : '—')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Dernier étage</div><div class="annexe-item-value">${carac.dernierEtage ? 'Oui' : 'Non'}</div></div>`;
+    html += '</div>';
+  }
+  
+  // Exposition et vue
+  const expositionText = (carac.exposition || []).length > 0 ? carac.exposition.join(', ') : '—';
+  html += '<div class="annexe-grid-2" style="margin-top:6px;">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Exposition</div><div class="annexe-item-value">${expositionText}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Vue</div><div class="annexe-item-value">${annexeVal(carac.vue)}</div></div>`;
+  html += '</div>';
+  
+  html += '</div>'; // fin section caractéristiques
+  
+  // === SECTION ÉNERGIE & CHARGES ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('zap', 12, '#FF4539')} Énergie & Charges</div>`;
+  html += '<div class="annexe-grid">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">CECB</div><div class="annexe-item-value">${annexeVal(carac.cecb)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Vitrage</div><div class="annexe-item-value">${annexeVal(carac.vitrage)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Chauffage</div><div class="annexe-item-value">${annexeVal(carac.chauffage)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Charges mensuelles</div><div class="annexe-item-value">${annexeVal(carac.chargesMensuelles, ' CHF')}</div></div>`;
+  html += '</div>';
+  // Diffusion chaleur
+  const diffusionArr = isAppartement ? (carac.diffusion || []) : (carac.diffusionMaison || []);
+  if (diffusionArr.length > 0) {
+    html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Diffusion : </span>';
+    diffusionArr.forEach((d: string) => { html += `<span class="annexe-chip">${d}</span> `; });
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  // === SECTION ANNEXES & STATIONNEMENT ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('car', 12, '#FF4539')} Annexes & Stationnement</div>`;
+  html += '<div class="annexe-grid">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Parking intérieur</div><div class="annexe-item-value">${annexeVal(carac.parkingInterieur)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Parking extérieur</div><div class="annexe-item-value">${annexeVal(carac.parkingExterieur)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Place couverte</div><div class="annexe-item-value">${annexeVal(carac.parkingCouverte)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Box</div><div class="annexe-item-value">${annexeVal(carac.box)}</div></div>`;
+  html += '</div>';
+  
+  if (isAppartement) {
+    html += '<div class="annexe-grid" style="margin-top:6px;">';
+    html += `<div class="annexe-item"><div class="annexe-item-label">Cave</div><div class="annexe-item-value">${carac.cave === true ? 'Oui' : (carac.cave === false ? 'Non' : '—')}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Buanderie</div><div class="annexe-item-value">${annexeVal(buanderieLabels[carac.buanderie])}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Piscine</div><div class="annexe-item-value">${carac.piscine ? 'Oui' : 'Non'}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Autres</div><div class="annexe-item-value">${annexeVal(carac.autresAnnexes)}</div></div>`;
+    html += '</div>';
+  }
+  
+  // Espaces maison
+  if (isMaison && (carac.espacesMaison || []).length > 0) {
+    html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Espaces : </span>';
+    carac.espacesMaison.forEach((e: string) => { 
+      html += `<span class="annexe-chip">${espaceLabels[e] || e}</span> `; 
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += '<div class="footer-ref">Page 7/X • Annexe Technique (1/2)</div>';
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // fin page
+  
+  return html;
+}
+
+// ==================== PAGE 8: ANNEXE TECHNIQUE (2/2) ====================
+function generateAnnexeTechnique2Page(estimation: EstimationData): string {
+  const identification = estimation.identification as any || {};
+  const historique = identification.historique || {};
+  const analyse = (estimation as any).analyseTerrain || (estimation as any).analyse_terrain || {};
+  
+  // Helper pour dots d'état
+  const renderEtatDots = (value: any): string => {
+    const etatMapping: Record<string, number> = { 'neuf': 4, 'bon': 3, 'rafraichir': 2, 'refaire': 1 };
+    const numValue = typeof value === 'string' ? (etatMapping[value] || 0) : (value || 0);
+    let dots = '';
+    for (let i = 1; i <= 5; i++) {
+      dots += `<div class="etat-dot${i <= numValue ? ' filled' : ''}"></div>`;
+    }
+    return `<div class="etat-dots">${dots}</div>`;
+  };
+  
+  // Fonction pour retirer les emojis
+  const cleanEmoji = (str: string): string => {
+    if (!str) return str;
+    const idx = str.indexOf(' ');
+    if (idx > 0 && idx <= 6) {
+      return str.substring(idx + 1);
+    }
+    return str;
+  };
+  
+  // Labels nuisances
+  const nuisanceLabels: Record<string, string> = {
+    'bruit_route': 'Bruit route', 'bruit_train': 'Bruit train', 'bruit_avion': 'Bruit avion',
+    'bruit_voisins': 'Bruit voisins', 'vis_a_vis': 'Vis-à-vis', 'odeurs': 'Odeurs',
+    'antenne': 'Antenne/Pylône', 'ligne_ht': 'Ligne HT', 'zone_inondable': 'Zone inondable',
+    'servitude': 'Servitude', 'chantier': 'Chantier proche', 'autre': 'Autre'
+  };
+  
+  // Helper pour valeur ou tiret
+  const annexeVal = (v: any): string => {
+    if (v === undefined || v === null || v === '') return '—';
+    return v.toString();
+  };
+  
+  let html = '<div class="page" style="page-break-before:always;">';
+  
+  // Header
+  html += '<div class="header">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+  html += '<div class="header-date">Annexe Technique (2/2)</div>';
+  html += '</div>';
+  
+  // Styles dots
+  html += '<style>';
+  html += '.etat-dots { display: flex; gap: 3px; align-items: center; }';
+  html += '.etat-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }';
+  html += '.etat-dot.filled { background: #1a2e35; }';
+  html += '</style>';
+  
+  // === SECTION ÉTAT DU BIEN ===
+  html += '<div class="annexe-section">';
+  html += `<div class="annexe-title">${ico('eye', 12, '#FF4539')} État du bien (observation visite)</div>`;
+  html += '<div class="annexe-grid-3">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Cuisine</div>${renderEtatDots(analyse.etatCuisine)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Salles d'eau</div>${renderEtatDots(analyse.etatSDB)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Sols</div>${renderEtatDots(analyse.etatSols)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Murs/Peintures</div>${renderEtatDots(analyse.etatMurs)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Menuiseries</div>${renderEtatDots(analyse.etatMenuiseries)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Électricité</div>${renderEtatDots(analyse.etatElectricite)}</div>`;
+  html += '</div>';
+  html += '<div class="annexe-grid-3" style="margin-top:6px;">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Luminosité</div>${renderEtatDots(analyse.luminosite)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Calme</div>${renderEtatDots(analyse.calme)}</div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Volumes</div>${renderEtatDots(analyse.volumes)}</div>`;
+  html += '</div>';
+  html += '<div class="annexe-grid-3" style="margin-top:6px;">';
+  html += `<div class="annexe-item"><div class="annexe-item-label">Impression générale</div>${renderEtatDots(analyse.impressionGenerale)}</div>`;
+  html += '</div>';
+  html += '</div>';
+  
+  // === SECTION POINTS FORTS / FAIBLES ===
+  const pf = analyse.pointsForts || [];
+  const pfaibles = analyse.pointsFaibles || [];
+  
+  if (pf.length > 0 || pfaibles.length > 0) {
+    html += '<div class="annexe-section">';
+    html += `<div class="annexe-title">${ico('list', 12, '#FF4539')} Points forts & faibles</div>`;
+    if (pf.length > 0) {
+      html += '<div style="margin-bottom:6px;"><span style="font-size:8px;color:#065f46;font-weight:600;">POINTS FORTS : </span>';
+      pf.forEach((p: string) => { html += `<span class="annexe-chip positive">${cleanEmoji(p)}</span> `; });
+      html += '</div>';
+    }
+    if (pfaibles.length > 0) {
+      html += '<div><span style="font-size:8px;color:#991b1b;font-weight:600;">POINTS FAIBLES : </span>';
+      pfaibles.forEach((p: string) => { html += `<span class="annexe-chip negative">${cleanEmoji(p)}</span> `; });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  // === SECTION NUISANCES ===
+  const nuisances = analyse.nuisances || [];
+  if (nuisances.length > 0) {
+    html += '<div class="annexe-section">';
+    html += `<div class="annexe-title">${ico('alertTriangle', 12, '#FF4539')} Nuisances identifiées</div>`;
+    html += '<div class="annexe-row">';
+    nuisances.forEach((n: string) => { html += `<span class="annexe-chip negative">${nuisanceLabels[n] || n}</span> `; });
+    html += '</div></div>';
+  }
+  
+  // === SECTION OBJECTIONS ACHETEURS ===
+  if (analyse.objectionsAcheteurs) {
+    html += '<div class="annexe-section">';
+    html += `<div class="annexe-title">${ico('alertTriangle', 12, '#FF4539')} Objections acheteurs anticipées</div>`;
+    html += `<div style="font-size:9px;color:#4b5563;line-height:1.4;">${analyse.objectionsAcheteurs}</div>`;
+    html += '</div>';
+  }
+  
+  // === SECTION HISTORIQUE DIFFUSION ===
+  if (historique.dejaDiffuse) {
+    html += '<div class="annexe-section">';
+    html += `<div class="annexe-title">${ico('clock', 12, '#FF4539')} Historique de diffusion</div>`;
+    const dureeLabels: Record<string, string> = {'moins1mois': '< 1 mois', '1-3mois': '1-3 mois', '3-6mois': '3-6 mois', '6-12mois': '6-12 mois', 'plus12mois': '> 12 mois'};
+    const typeDiffLabels: Record<string, string> = {'discrete': 'Discrète', 'moderee': 'Modérée', 'massive': 'Massive'};
+    html += '<div class="annexe-grid">';
+    html += `<div class="annexe-item"><div class="annexe-item-label">Durée</div><div class="annexe-item-value">${annexeVal(dureeLabels[historique.duree])}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Type diffusion</div><div class="annexe-item-value">${annexeVal(typeDiffLabels[historique.typeDiffusion])}</div></div>`;
+    html += '</div>';
+    // Portails utilisés
+    const portailsUtilises = historique.portails || [];
+    if (portailsUtilises.length > 0) {
+      const portailsLbl: Record<string, string> = {'immoscout': 'Immoscout', 'homegate': 'Homegate', 'acheterlouer': 'Acheter-Louer', 'anibis': 'Anibis', 'immostreet': 'ImmoStreet', 'autres': 'Autres'};
+      html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Portails utilisés : </span>';
+      portailsUtilises.forEach((p: string) => { html += `<span class="annexe-chip">${portailsLbl[p] || p}</span> `; });
+      html += '</div>';
+    }
+    // Raisons échec
+    const raisonsEchec = historique.raisonEchec || [];
+    if (raisonsEchec.length > 0) {
+      const raisonLbl: Record<string, string> = {'prix': 'Prix trop élevé', 'photos': 'Mauvaises photos', 'timing': 'Mauvais timing', 'etatbien': 'État du bien', 'vendeur': 'Vendeur pas prêt', 'agence': 'Mauvais suivi agence', 'marche': 'Marché difficile', 'autre': 'Autre'};
+      html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#991b1b;">Raisons échec perçues : </span>';
+      raisonsEchec.forEach((r: string) => { html += `<span class="annexe-chip negative">${raisonLbl[r] || r}</span> `; });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  // Footer
+  html += '<div class="footer">';
+  html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+  html += '<div class="footer-ref">Page 8/X • Annexe Technique (2/2)</div>';
+  html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+  html += '</div>';
+  
+  html += '</div>'; // fin page
+  
+  return html;
+}
+
 // ==================== GÉNÉRATION HTML COMPLÈTE ====================
 export interface PDFGeneratorOptions {
   inclurePhotos?: boolean;
@@ -1751,8 +2185,16 @@ export async function generatePDFHtml(
   html += generatePlanActionPage(estimation);
   
   // Page 6: Méthodologie
-  onProgress?.('Génération page Méthodologie...', 60);
+  onProgress?.('Génération page Méthodologie...', 55);
   html += generateMethodologiePage(estimation);
+  
+  // Page 7: Annexe Technique 1/2
+  onProgress?.('Génération page Annexe Technique 1/2...', 65);
+  html += generateAnnexeTechnique1Page(estimation);
+  
+  // Page 8: Annexe Technique 2/2
+  onProgress?.('Génération page Annexe Technique 2/2...', 75);
+  html += generateAnnexeTechnique2Page(estimation);
   
   html += '</body></html>';
   
