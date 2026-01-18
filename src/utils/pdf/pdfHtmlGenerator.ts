@@ -851,7 +851,7 @@ function generateTrajectoiresPage(estimation: EstimationData): string {
       : 'Chaque bien peut être vendu selon différentes trajectoires. Le choix du point de départ stratégique dépend de votre contexte, vos priorités et votre horizon temporel.',
     disclaimerPhrase: luxMode
       ? 'Dans ce segment, la retenue et la sélectivité font partie de la stratégie. Un objectif de valeur reflète le positionnement stratégique, pas une promesse de marché.'
-      : 'Un objectif de valeur n\'est pas une promesse. Il dépend des signaux du marché, du rythme de diffusion et du pilotage dans le temps.',
+      : 'Un objectif de valeur n\'est pas une promesse. Il dépend des signaux du marché, du rythme de diffusion et du pilotage dans le temps. Le point de départ stratégique est réversible — vous pouvez changer de trajectoire selon les retours observés.',
     capitalLabel: luxMode ? 'Capital de portée' : 'Capital-Visibilité',
     recalibrageTitle: luxMode ? 'Recalibrage nécessaire' : 'Recommandations',
     recalibragePhrase: luxMode 
