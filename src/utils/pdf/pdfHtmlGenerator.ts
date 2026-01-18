@@ -1131,6 +1131,10 @@ export async function generatePDFHtml(
   onProgress?.('Génération page Caractéristiques...', 30);
   html += generateCaracteristiquesPage(estimation);
   
+  // Page 4: Trajectoires de vente
+  onProgress?.('Génération page Trajectoires...', 50);
+  html += generateTrajectoiresPage(estimation);
+  
   html += '</body></html>';
   
   onProgress?.('Ouverture de la fenêtre d\'impression...', 90);
