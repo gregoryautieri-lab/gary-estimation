@@ -232,6 +232,19 @@ export function ImportPopetyModal({
     ));
   };
 
+  // Parse numeric value from string like "3664 m2" -> 3664
+  const parseNumericValue = (value: any): number | null => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      // Remove units and whitespace, keep only digits and decimal points
+      const cleaned = value.replace(/[^\d.,]/g, '').replace(',', '.');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  };
+
   // Geocode address
   const geocodeAddress = async (address: string, localite: string | null): Promise<{ lat: number; lng: number } | null> => {
     try {
@@ -308,9 +321,12 @@ export function ImportPopetyModal({
           longitude: lng,
         };
 
-        // Add surface parcelle for maisons
+        // Add surface parcelle for maisons (clean the numeric value)
         if (tx.typeBien === 'maison' && tx.surfaceParcelle) {
-          insertData.surface_parcelle = tx.surfaceParcelle;
+          const parsedSurface = parseNumericValue(tx.surfaceParcelle);
+          if (parsedSurface !== null) {
+            insertData.surface_parcelle = parsedSurface;
+          }
         }
 
         const { data: comparable, error: insertError } = await supabase
