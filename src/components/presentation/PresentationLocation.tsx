@@ -121,11 +121,14 @@ export function PresentationLocation({
   // Proximités
   const proximites = identification?.proximites || [];
   
-  // Grouper les proximités par catégorie
+  // Grouper les proximités par catégorie (exclure les items vides)
   const groupedProximites = PROXIMITE_CATEGORIES.map(cat => ({
     ...cat,
     items: proximites
-      .filter(p => cat.types.some(t => p.type?.includes(t) || p.type === t))
+      .filter(p => 
+        cat.types.some(t => p.type?.includes(t) || p.type === t) &&
+        (p.libelle?.trim() || p.distance?.trim() || p.tempsMarche?.trim()) // Exclure les items sans contenu
+      )
       .slice(0, 3) // Max 3 par catégorie
   })).filter(cat => cat.items.length > 0);
 
