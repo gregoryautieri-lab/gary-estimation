@@ -107,6 +107,8 @@ interface FormData {
   dateVente: string;
   notes: string;
   urlSource: string;
+  acheteurs: string;
+  vendeurs: string;
 }
 
 const TYPE_BIEN_OPTIONS = [
@@ -154,6 +156,8 @@ export function AddManualComparableModal({
     dateVente: '',
     notes: '',
     urlSource: '',
+    acheteurs: '',
+    vendeurs: '',
   });
 
   // Pre-fill from project
@@ -377,6 +381,8 @@ export function AddManualComparableModal({
       if (formData.urlSource.trim()) insertData.url_source = formData.urlSource.trim();
       if (formData.notes.trim()) insertData.notes = formData.notes.trim();
       if (scrapedImages.length > 0) insertData.images = scrapedImages;
+      if (formData.acheteurs.trim()) insertData.acheteurs = formData.acheteurs.trim();
+      if (formData.vendeurs.trim()) insertData.vendeurs = formData.vendeurs.trim();
 
       const { data: newComparable, error: insertError } = await supabase
         .from('comparables')
@@ -638,6 +644,30 @@ export function AddManualComparableModal({
                 </div>
               )}
             </div>
+
+            {/* Acheteurs / Vendeurs (pour transactions) */}
+            {formData.statutMarche === 'vendu' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="vendeurs">Vendeur(s)</Label>
+                  <Input
+                    id="vendeurs"
+                    placeholder="Nom du vendeur"
+                    value={formData.vendeurs}
+                    onChange={(e) => handleInputChange('vendeurs', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="acheteurs">Acheteur(s)</Label>
+                  <Input
+                    id="acheteurs"
+                    placeholder="Nom de l'acheteur"
+                    value={formData.acheteurs}
+                    onChange={(e) => handleInputChange('acheteurs', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Optional Section */}

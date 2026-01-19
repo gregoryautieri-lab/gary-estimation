@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen, FilePlus2, Image } from 'lucide-react';
+import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen, FilePlus2, Image, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,6 +36,7 @@ import { ComparableListCard } from '@/components/comparables/ComparableListCard'
 import ImportComparablesModal from '@/components/comparables/ImportComparablesModal';
 import { AddManualComparableModal } from '@/components/comparables/AddManualComparableModal';
 import { EditComparableModal } from '@/components/comparables/EditComparableModal';
+import { ImportPopetyModal } from '@/components/comparables/ImportPopetyModal';
 import { supabase } from '@/integrations/supabase/client';
 
 type SortOption = 'recent' | 'oldest' | 'price_asc' | 'price_desc' | 'surface_asc' | 'surface_desc';
@@ -61,6 +62,7 @@ export default function ProjectDetail() {
   const [selectedComparableId, setSelectedComparableId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [addManualModalOpen, setAddManualModalOpen] = useState(false);
+  const [importPopetyOpen, setImportPopetyOpen] = useState(false);
   const [editingComparable, setEditingComparable] = useState<ComparableData | null>(null);
   const [removingComparable, setRemovingComparable] = useState<ComparableData | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -351,7 +353,7 @@ export default function ProjectDetail() {
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-4 flex-wrap">
             <Button
               onClick={() => setImportModalOpen(true)}
               variant="outline"
@@ -366,6 +368,15 @@ export default function ProjectDetail() {
             >
               <FilePlus2 className="h-4 w-4" />
               Ajouter manuel
+            </Button>
+            <Button
+              onClick={() => setImportPopetyOpen(true)}
+              variant="secondary"
+              className="gap-2"
+              title="Importer un fichier Excel Popety"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span className="hidden sm:inline">Popety</span>
             </Button>
           </div>
         </div>
@@ -524,6 +535,17 @@ export default function ProjectDetail() {
         onOpenChange={(open) => !open && setEditingComparable(null)}
         comparable={editingComparable}
         onSuccess={reload}
+      />
+
+      {/* Import Popety Modal */}
+      <ImportPopetyModal
+        projectId={projectId || ''}
+        open={importPopetyOpen}
+        onClose={() => setImportPopetyOpen(false)}
+        onSuccess={() => {
+          setImportPopetyOpen(false);
+          reload();
+        }}
       />
 
       {/* Remove Confirmation Dialog */}
