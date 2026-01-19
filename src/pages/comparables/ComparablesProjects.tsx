@@ -117,15 +117,8 @@ export default function ComparablesProjects() {
   };
 
   // Handlers
-  const handleNewProject = async () => {
-    // TODO: Navigate to creation form (PROMPT 2)
-    // For now, create with default name
-    const created = await createProject({ projectName: 'Nouveau projet' });
-    if (created) {
-      setProjects(prev => [created, ...prev]);
-      // Open edit modal immediately
-      setEditingProject(created);
-    }
+  const handleNewProject = () => {
+    navigate('/comparables/nouveau');
   };
 
   const handleOpenProject = (project: ProjectComparable) => {
