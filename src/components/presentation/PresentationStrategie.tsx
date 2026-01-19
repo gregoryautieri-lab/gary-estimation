@@ -7,7 +7,7 @@ import {
   Clock, Lock, Megaphone, Globe, 
   Camera, Video, Plane, Home, Eye, Circle,
   Instagram, Facebook, Linkedin, 
-  Globe2, Mail, Phone
+  Globe2, Mail, Phone, Users, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -66,6 +66,35 @@ const RESEAU_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = 
   linkedin: { icon: <Linkedin className="h-4 w-4" />, label: 'LinkedIn' },
 };
 
+// Helper pour le capital visibilité
+function getCapitalConfig(value: number) {
+  if (value >= 80) {
+    return {
+      label: 'Préservé',
+      color: '#10b981',
+      bgClass: 'bg-emerald-500',
+      textClass: 'text-emerald-400',
+      message: 'Votre bien part avec un capital-visibilité intact, maximisant vos chances d\'obtenir le meilleur prix.',
+    };
+  } else if (value >= 50) {
+    return {
+      label: 'Modéré',
+      color: '#f97316',
+      bgClass: 'bg-orange-500',
+      textClass: 'text-orange-400',
+      message: 'Une exposition antérieure a consommé une partie du capital. La stratégie GARY permet de relancer efficacement.',
+    };
+  } else {
+    return {
+      label: 'Faible',
+      color: '#ef4444',
+      bgClass: 'bg-red-500',
+      textClass: 'text-red-400',
+      message: 'Une phase de recalibrage marché sera nécessaire pour repartir sur de bonnes bases.',
+    };
+  }
+}
+
 export function PresentationStrategie({
   identification,
   caracteristiques,
@@ -95,13 +124,26 @@ export function PresentationStrategie({
   
   const copy = getLuxCopy(luxMode);
   
+  // Capital visibilité
+  const capitalValue = strategie?.capitalVisibilite ?? 100;
+  const capitalConfig = getCapitalConfig(capitalValue);
+  
+  // Détection si bien déjà diffusé (pour alerte recalibrage)
+  const historiqueData = historique as { dejaDiffuse?: boolean; duree?: string } | undefined;
+  const dejaDiffuse = historiqueData?.dejaDiffuse === true;
+  const dureeDiffusion = historiqueData?.duree || '';
+  
+  // Détection projet d'achat (pour passage entre phases)
+  const contexteData = contexte as { motifVente?: string } | undefined;
+  const hasProjetAchat = contexteData?.motifVente === 'achat' || 
+    (identification as any)?.projetAchat?.actif === true;
+  
   // Récupérer les données de stratégie
-  // PhaseDurees utilise phase0, phase1, phase2, phase3
   const phaseDurees = strategie?.phaseDurees || {
     phase0: 2,
-    phase1: 3,  // Off-market
-    phase2: 2,  // Coming soon
-    phase3: 4,  // Public
+    phase1: 3,
+    phase2: 2,
+    phase3: 4,
   };
   const typeMiseEnVente = preEstimation?.typeMiseEnVente || 'public';
   const dateDebut = strategie?.dateDebut ? parseISO(strategie.dateDebut) : new Date();
@@ -215,6 +257,14 @@ export function PresentationStrategie({
   const courtierNom = courtier ? `${courtier.prenom} ${courtier.nom}` : 'GARY Immobilier';
   const courtierEmail = courtier?.email || 'contact@gary-immobilier.ch';
   const courtierTel = courtier?.telephone || '+41 22 552 22 22';
+  
+  // Points du pilotage partagé
+  const pilotagePoints = [
+    'Stratégie unique et cohérente',
+    'Ajustements rapides selon le marché',
+    'Transparence totale sur les actions menées',
+    'Vous validez chaque étape importante',
+  ];
 
   return (
     <div className="h-full overflow-auto p-4 md:p-6">
@@ -294,6 +344,51 @@ export function PresentationStrategie({
               </span>
             </div>
           )}
+        </div>
+
+        {/* BLOC CONDITIONNEL : Alerte Recalibrage (si bien déjà diffusé) */}
+        {dejaDiffuse && (
+          <div className="animate-fade-in rounded-xl p-4 bg-orange-500/10 border border-orange-500/30">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-orange-300 font-medium text-sm">
+                  Phase de recalibrage marché recommandée
+                </p>
+                <p className="text-orange-200/70 text-xs mt-1">
+                  Ce bien a déjà été diffusé{dureeDiffusion ? ` (${dureeDiffusion.replace('moins', '< ').replace('plus', '> ').replace('mois', ' mois')})` : ''}. 
+                  Une période de retrait permet de restaurer le capital-visibilité.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BLOC A : Capital Visibilité */}
+        <div className="animate-fade-in space-y-3">
+          <div className="text-center">
+            <p className={cn("font-semibold text-sm", capitalConfig.textClass)}>
+              Capital-Visibilité : {capitalConfig.label}
+            </p>
+            <p className={cn("text-xs", capitalConfig.textClass)}>
+              {capitalValue}% disponible
+            </p>
+          </div>
+          
+          {/* Jauge */}
+          <div className="max-w-xl mx-auto">
+            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className={cn("h-full rounded-full transition-all duration-500", capitalConfig.bgClass)}
+                style={{ width: `${capitalValue}%` }}
+              />
+            </div>
+          </div>
+          
+          {/* Message explicatif */}
+          <p className="text-center text-white/50 text-xs md:text-sm italic max-w-lg mx-auto">
+            {capitalConfig.message}
+          </p>
         </div>
 
         {/* Objectifs par trajectoire */}
@@ -419,6 +514,73 @@ export function PresentationStrategie({
             ))}
           </div>
         </div>
+
+        {/* BLOC B : Pilotage Partagé */}
+        <div className="animate-fade-in max-w-2xl mx-auto">
+          <div className={cn(
+            "rounded-xl p-5 md:p-6 border-l-4",
+            luxMode 
+              ? "bg-amber-900/20 border-amber-500" 
+              : "bg-white/5 border-primary"
+          )}>
+            {/* Icon + Title */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn(
+                "h-10 w-10 rounded-xl flex items-center justify-center",
+                luxMode ? "bg-amber-500/20" : "bg-primary/20"
+              )}>
+                <Users className={cn(
+                  "h-5 w-5",
+                  luxMode ? "text-amber-400" : "text-primary"
+                )} />
+              </div>
+              <h3 className={cn(
+                "text-lg md:text-xl font-semibold",
+                luxMode ? "text-amber-100" : "text-white"
+              )}>
+                Pilotage Coordonné
+              </h3>
+            </div>
+            
+            {/* Main text */}
+            <p className="text-white/70 text-sm md:text-base leading-relaxed mb-4">
+              Vous restez maître des décisions. GARY pilote la commercialisation au quotidien, mais{' '}
+              <span className="text-white font-medium">chaque passage de phase est validé ensemble</span>. 
+              <span className="text-white font-medium"> Vous gardez le contrôle</span> du calendrier et des choix stratégiques.
+            </p>
+            
+            {/* Checklist */}
+            <ul className="space-y-2">
+              {pilotagePoints.map((point, index) => (
+                <li key={index} className="flex items-center gap-3 text-white/70 text-sm">
+                  <CheckCircle2 className={cn(
+                    "h-4 w-4 shrink-0",
+                    luxMode ? "text-amber-400" : "text-primary"
+                  )} />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* BLOC CONDITIONNEL : Passage entre phases (si projet d'achat) */}
+        {hasProjetAchat && (
+          <div className="animate-fade-in rounded-xl p-4 bg-blue-500/10 border border-blue-500/30 max-w-2xl mx-auto">
+            <div className="flex items-start gap-3">
+              <Home className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-blue-300 font-medium text-sm">
+                  Transition synchronisée
+                </p>
+                <p className="text-blue-200/70 text-xs mt-1">
+                  Chaque passage de phase s'active selon votre délai d'achat et les signaux du marché. 
+                  Nous adaptons le calendrier à votre projet.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer GARY */}
         <div className="bg-[#1a2e35] rounded-xl p-6 mt-6">
