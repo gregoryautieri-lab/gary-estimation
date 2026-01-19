@@ -73,6 +73,58 @@ const PROXIMITE_CATEGORIES: ProximiteCategory[] = [
   }
 ];
 
+// Composant carte séparé pour éviter le re-render du loader
+function MapContainer({ 
+  apiKey, 
+  coordinates, 
+  isLuxe 
+}: { 
+  apiKey: string; 
+  coordinates: { lat: number; lng: number }; 
+  isLuxe: boolean;
+}) {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-presentation',
+    googleMapsApiKey: apiKey,
+  });
+
+  if (!isLoaded) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-800">
+        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+      </div>
+    );
+  }
+
+  return (
+    <GoogleMap
+      mapContainerStyle={{ width: '100%', height: '100%' }}
+      center={coordinates}
+      zoom={16}
+      options={{
+        styles: MAP_STYLES_DARK,
+        disableDefaultUI: true,
+        zoomControl: false,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false
+      }}
+    >
+      <Marker 
+        position={coordinates}
+        icon={{
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: isLuxe ? '#f59e0b' : '#FA4238',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }}
+      />
+    </GoogleMap>
+  );
+}
+
 export function PresentationLocation({
   identification,
   isLuxe = false
@@ -99,17 +151,6 @@ export function PresentationLocation({
       .slice(0, 3) // Max 3 par catégorie
   })).filter(cat => cat.items.length > 0);
 
-  // Google Maps loader
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-presentation',
-    googleMapsApiKey: apiKey || '',
-  });
-
-  const mapContainerStyle = {
-    width: '100%',
-    height: '100%'
-  };
-
   const center = coordinates || { lat: 46.2044, lng: 6.1432 }; // Default: Genève
 
   return (
@@ -123,32 +164,12 @@ export function PresentationLocation({
           <div className="h-full flex items-center justify-center bg-gray-800">
             <Loader2 className="h-8 w-8 animate-spin text-white/50" />
           </div>
-        ) : isLoaded && apiKey && coordinates ? (
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={center}
-            zoom={16}
-            options={{
-              styles: MAP_STYLES_DARK,
-              disableDefaultUI: true,
-              zoomControl: false,
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false
-            }}
-          >
-            <Marker 
-              position={center}
-              icon={{
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: isLuxe ? '#f59e0b' : '#FA4238',
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 3
-              }}
-            />
-          </GoogleMap>
+        ) : apiKey && coordinates ? (
+          <MapContainer 
+            apiKey={apiKey} 
+            coordinates={coordinates} 
+            isLuxe={isLuxe} 
+          />
         ) : (
           // Fallback si pas de coordonnées ou pas de clé
           <div className="h-full flex flex-col items-center justify-center bg-gray-800">
