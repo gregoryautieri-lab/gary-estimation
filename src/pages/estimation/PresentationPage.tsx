@@ -33,9 +33,10 @@ import { PresentationLocation } from '@/components/presentation/PresentationLoca
 import { PresentationPrice } from '@/components/presentation/PresentationPrice';
 import { PresentationTimeline } from '@/components/presentation/PresentationTimeline';
 import { PresentationActions } from '@/components/presentation/PresentationActions';
+import { PresentationCondition } from '@/components/presentation/PresentationCondition';
 
 // Types pour les sections
-type Section = 'cover' | 'bien' | 'localisation' | 'estimation' | 'strategie' | 'pitch';
+type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'estimation' | 'strategie' | 'pitch';
 
 // Type local simplifié pour la page presentation
 interface PresentationEstimation {
@@ -59,6 +60,7 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: 'cover', label: 'Couverture' },
   { id: 'bien', label: 'Le Bien' },
   { id: 'localisation', label: 'Localisation' },
+  { id: 'etat', label: 'État' },
   { id: 'estimation', label: 'Estimation' },
   { id: 'strategie', label: 'Stratégie' },
   { id: 'pitch', label: 'Proposition' },
@@ -424,6 +426,13 @@ export default function PresentationPage() {
           {currentSection === 'localisation' && (
             <PresentationLocation 
               identification={estimation.identification}
+              isLuxe={isLuxe}
+            />
+          )}
+          {currentSection === 'etat' && (
+            <PresentationCondition 
+              analyseTerrain={estimation.analyseTerrain}
+              caracteristiques={estimation.caracteristiques}
               isLuxe={isLuxe}
             />
           )}
