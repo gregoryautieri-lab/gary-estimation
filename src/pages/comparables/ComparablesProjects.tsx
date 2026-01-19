@@ -69,13 +69,13 @@ export default function ComparablesProjects() {
       const searchLower = search.toLowerCase();
       result = result.filter(p =>
         p.projectName.toLowerCase().includes(searchLower) ||
-        p.commune?.toLowerCase().includes(searchLower)
+        p.communes?.some(c => c.toLowerCase().includes(searchLower))
       );
     }
 
     // Filter by commune
     if (communeFilter && communeFilter !== 'all') {
-      result = result.filter(p => p.commune === communeFilter);
+      result = result.filter(p => p.communes?.includes(communeFilter));
     }
 
     // Filter by archived status

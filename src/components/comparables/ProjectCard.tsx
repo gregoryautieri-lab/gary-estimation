@@ -134,10 +134,10 @@ export function ProjectCard({
       {/* Critères */}
       <button onClick={onOpen} className="w-full text-left">
         <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
-          {project.commune && (
+          {project.communes && project.communes.length > 0 && (
             <p className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span>Commune: {project.commune}</span>
+              <span>Commune{project.communes.length > 1 ? 's' : ''}: {project.communes.join(', ')}</span>
             </p>
           )}
           {priceRange && (

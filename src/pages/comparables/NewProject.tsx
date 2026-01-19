@@ -41,7 +41,7 @@ export default function NewProject() {
           user_id: user.id,
           courtier_name: profile?.full_name || user.email,
           project_name: data.projectName,
-          commune: data.commune,
+          communes: data.communes,
           prix_min: data.prixMin,
           prix_max: data.prixMax,
           type_bien: data.typeBien,
@@ -68,11 +68,15 @@ export default function NewProject() {
       setStep('searching');
       setProgress(40);
 
-      // Construire la requête de recherche
+      // Construire la requête de recherche avec ANY pour les communes
       let query = supabase
         .from('estimations')
-        .select('id, localite, prix_final, type_bien, caracteristiques, statut')
-        .eq('localite', data.commune);
+        .select('id, localite, prix_final, type_bien, caracteristiques, statut');
+
+      // Filtre communes avec ANY
+      if (data.communes.length > 0) {
+        query = query.in('localite', data.communes);
+      }
 
       // Filtre prix
       if (data.prixMin) {
@@ -84,7 +88,6 @@ export default function NewProject() {
 
       // Filtre type de bien
       if (data.typeBien.length > 0) {
-        // Cast to type_bien enum values
         query = query.in('type_bien', data.typeBien as any);
       }
 
@@ -93,10 +96,8 @@ export default function NewProject() {
         query = query.eq('statut', 'mandat_signe');
       } else if (data.statutFilter === 'en_vente') {
         query = query.eq('statut', 'presentee');
-      } else {
-        // Tous = mandat_signe ou presentee
-        query = query.in('statut', ['mandat_signe', 'presentee']);
       }
+      // 'tous' = pas de filtre statut
 
       const { data: comparables, error: searchError } = await query;
 

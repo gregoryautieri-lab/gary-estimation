@@ -305,7 +305,7 @@ export type Database = {
       projects_comparables: {
         Row: {
           archived: boolean | null
-          commune: string | null
+          communes: string[] | null
           courtier_name: string | null
           created_at: string
           id: string
@@ -327,7 +327,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean | null
-          commune?: string | null
+          communes?: string[] | null
           courtier_name?: string | null
           created_at?: string
           id?: string
@@ -349,7 +349,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean | null
-          commune?: string | null
+          communes?: string[] | null
           courtier_name?: string | null
           created_at?: string
           id?: string
