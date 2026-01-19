@@ -260,6 +260,117 @@ export type Database = {
         }
         Relationships: []
       }
+      project_comparables_links: {
+        Row: {
+          created_at: string
+          estimation_id: string
+          id: string
+          notes: string | null
+          project_id: string
+          selected_by_user: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          estimation_id: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          selected_by_user?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          estimation_id?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          selected_by_user?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comparables_links_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comparables_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_comparables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects_comparables: {
+        Row: {
+          archived: boolean | null
+          commune: string | null
+          courtier_name: string | null
+          created_at: string
+          id: string
+          last_search_date: string | null
+          nb_comparables: number | null
+          pieces_max: number | null
+          pieces_min: number | null
+          prix_max: number | null
+          prix_min: number | null
+          project_name: string
+          statut_filter:
+            | Database["public"]["Enums"]["project_statut_filter"]
+            | null
+          surface_max: number | null
+          surface_min: number | null
+          type_bien: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean | null
+          commune?: string | null
+          courtier_name?: string | null
+          created_at?: string
+          id?: string
+          last_search_date?: string | null
+          nb_comparables?: number | null
+          pieces_max?: number | null
+          pieces_min?: number | null
+          prix_max?: number | null
+          prix_min?: number | null
+          project_name: string
+          statut_filter?:
+            | Database["public"]["Enums"]["project_statut_filter"]
+            | null
+          surface_max?: number | null
+          surface_min?: number | null
+          type_bien?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean | null
+          commune?: string | null
+          courtier_name?: string | null
+          created_at?: string
+          id?: string
+          last_search_date?: string | null
+          nb_comparables?: number | null
+          pieces_max?: number | null
+          pieces_min?: number | null
+          prix_max?: number | null
+          prix_min?: number | null
+          project_name?: string
+          statut_filter?:
+            | Database["public"]["Enums"]["project_statut_filter"]
+            | null
+          surface_max?: number | null
+          surface_min?: number | null
+          type_bien?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -313,6 +424,7 @@ export type Database = {
         | "en_signature"
         | "mandat_signe"
         | "perdu"
+      project_statut_filter: "vendus" | "en_vente" | "tous"
       type_bien:
         | "appartement"
         | "maison"
@@ -461,6 +573,7 @@ export const Constants = {
         "mandat_signe",
         "perdu",
       ],
+      project_statut_filter: ["vendus", "en_vente", "tous"],
       type_bien: ["appartement", "maison", "terrain", "immeuble", "commercial"],
     },
   },
