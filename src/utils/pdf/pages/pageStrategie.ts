@@ -108,14 +108,45 @@ export function generateStrategiePage(
   // Durées phases
   const phaseDurees = strategie.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 6 };
   
+  // Ajustements selon projet d'achat
+  let phase1Ajustee = phaseDurees.phase1 || 3;
+  let phase2Ajustee = phaseDurees.phase2 || 2;
+
+  if (hasProjetAchat && niveauContrainte > 0) {
+    // Contrainte CRITIQUE ou FORTE (acte programmé, compromis signé)
+    if (niveauContrainte >= 4) {
+      if (flexibilite === 'faible') {
+        phase1Ajustee = Math.max(1, phase1Ajustee - 2);
+        phase2Ajustee = Math.max(1, phase2Ajustee - 1);
+      } else {
+        phase1Ajustee = Math.max(1, phase1Ajustee - 1);
+      }
+    }
+    // Contrainte MODÉRÉE (offre déposée)
+    else if (niveauContrainte === 3 && toleranceVenteRapide) {
+      phase1Ajustee = Math.max(1, phase1Ajustee - 1);
+    }
+    // Contrainte FAIBLE (en recherche) + tolérance longue
+    else if (niveauContrainte === 1 && toleranceVenteLongue) {
+      phase1Ajustee = phase1Ajustee + 1;
+    }
+  }
+
+  // Durées finales ajustées
+  const phaseDureesFinales = {
+    ...phaseDurees,
+    phase1: phase1Ajustee,
+    phase2: phase2Ajustee
+  };
+  
   // Type de mise en vente
   const typeMV = preEstimation.typeMiseEnVente || 'offmarket';
   const activerComingSoon = true; // Par défaut
   
-  // Dates
+  // Dates (avec durées ajustées)
   const startDate = getNextMonday();
-  const phase1End = addWeeks(startDate, phaseDurees.phase1 || 3);
-  const phase2End = addWeeks(phase1End, phaseDurees.phase2 || 2);
+  const phase1End = addWeeks(startDate, phaseDureesFinales.phase1);
+  const phase2End = addWeeks(phase1End, phaseDureesFinales.phase2);
   
   let html = '<div class="page" style="page-break-before:always;">';
   
@@ -126,7 +157,7 @@ export function generateStrategiePage(
   html += '</div>';
   
   // Timeline des phases
-  html += generateTimelineSection(phaseDurees, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage);
+  html += generateTimelineSection(phaseDureesFinales, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage);
   
   // Trajectoires
   html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenaleArrondi, luxResult.luxMode, historique as any, copy);
