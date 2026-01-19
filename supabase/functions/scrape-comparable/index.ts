@@ -282,15 +282,13 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   return data;
 }
 
-// AI fallback using Lovable AI to extract data when regex fails
+// AI fallback using Lovable AI Gateway to extract data when regex fails
 async function extractWithAI(markdown: string, html: string, source: string): Promise<AIExtractedData | null> {
   try {
-    // Get the Supabase URL from environment
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!supabaseUrl || !supabaseKey) {
-      console.log('Supabase credentials not available for AI fallback');
+    if (!lovableApiKey) {
+      console.log('LOVABLE_API_KEY not available for AI fallback');
       return null;
     }
 
@@ -331,18 +329,18 @@ Extrais et retourne UNIQUEMENT un JSON valide avec ces champs (laisse vide si no
 
 Réponds UNIQUEMENT avec le JSON, sans explication.`;
 
-    console.log('Calling Lovable AI for extraction...');
+    console.log('Calling Lovable AI Gateway for extraction...');
     
-    // Call Lovable AI via the ai-chat function pattern
-    const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+    // Call Lovable AI Gateway directly
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
         messages: [{ role: 'user', content: prompt }],
-        model: 'google/gemini-2.5-flash-lite', // Fast and cheap model
       }),
     });
 
