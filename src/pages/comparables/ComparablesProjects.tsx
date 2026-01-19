@@ -228,19 +228,21 @@ export default function ComparablesProjects() {
             </div>
           )}
 
-          {/* Empty state: no projects */}
+          {/* Empty state: no projects - Enhanced */}
           {hasNoProjects && (
-            <div className="text-center py-12">
-              <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">
+            <div className="text-center py-16 px-6 bg-muted/20 rounded-2xl border border-dashed">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground mb-3">
                 Aucun projet de comparables
               </h2>
-              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                Créez votre premier projet pour organiser vos recherches de biens similaires.
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
+                Créez votre premier projet pour organiser vos recherches de biens similaires et visualiser leur positionnement géographique.
               </p>
-              <Button onClick={handleNewProject} size="lg">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau Projet
+              <Button onClick={handleNewProject} size="lg" className="gap-2">
+                <Plus className="h-5 w-5" />
+                Créer mon premier projet
               </Button>
             </div>
           )}

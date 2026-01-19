@@ -7,6 +7,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ComparableData } from '@/hooks/useProjectDetail';
 import { cn } from '@/lib/utils';
 
@@ -98,28 +104,38 @@ export function ComparableListCard({
               {comparable.typeBien}
             </span>
           )}
-          {/* Source badge: GARY vs Externe */}
-          <Badge 
-            variant="outline" 
-            className={cn(
-              "text-xs gap-1",
-              comparable.sourceType === 'gary' 
-                ? "border-primary/50 text-primary" 
-                : "border-muted-foreground/50"
-            )}
-          >
-            {comparable.sourceType === 'gary' ? (
-              <>
-                <Building className="h-3 w-3" />
-                GARY
-              </>
-            ) : (
-              <>
-                <ExternalLink className="h-3 w-3" />
-                Externe
-              </>
-            )}
-          </Badge>
+          {/* Source badge: GARY vs Externe with enhanced styling + tooltips */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge 
+                  className={cn(
+                    "text-xs gap-1 cursor-help",
+                    comparable.sourceType === 'gary' 
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                      : "bg-muted-foreground/80 text-white hover:bg-muted-foreground/70"
+                  )}
+                >
+                  {comparable.sourceType === 'gary' ? (
+                    <>
+                      <Building className="h-3 w-3" />
+                      GARY
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="h-3 w-3" />
+                      Externe
+                    </>
+                  )}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {comparable.sourceType === 'gary' 
+                  ? "Bien commercialisé par GARY" 
+                  : "Comparable externe ajouté manuellement"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
         <DropdownMenu>
@@ -128,7 +144,7 @@ export function ComparableListCard({
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="bg-popover">
             {onViewDetails && comparable.sourceType === 'gary' && (
               <DropdownMenuItem onClick={onViewDetails}>
                 <FileText className="h-4 w-4 mr-2" />
@@ -185,20 +201,39 @@ export function ComparableListCard({
       {/* Footer: Source info + Date + Actions */}
       <div className="flex items-center justify-between pt-3 border-t">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Added by badge */}
-          <Badge variant="outline" className="text-xs gap-1">
-            {comparable.selectedByUser ? (
-              <>
-                <User className="h-3 w-3" />
-                Manuel
-              </>
-            ) : (
-              <>
-                <Bot className="h-3 w-3" />
-                Auto
-              </>
-            )}
-          </Badge>
+          {/* Added by badge with tooltip */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-xs gap-1 cursor-help",
+                    comparable.selectedByUser 
+                      ? "border-muted-foreground/50" 
+                      : "border-gary-dark/50 bg-gary-dark/10"
+                  )}
+                >
+                  {comparable.selectedByUser ? (
+                    <>
+                      <User className="h-3 w-3" />
+                      Manuel
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-3 w-3" />
+                      Auto
+                    </>
+                  )}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {comparable.selectedByUser 
+                  ? "Ajouté manuellement par le courtier" 
+                  : "Trouvé automatiquement lors de la recherche"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           {/* Strategie badge for external */}
           {comparable.sourceType === 'external' && comparable.strategieDiffusion && (
@@ -213,16 +248,26 @@ export function ComparableListCard({
             {comparable.dateVente ? `Vendu ${formatDate(comparable.dateVente)}` : formatDate(comparable.updatedAt)}
           </span>
 
-          {/* Geocoding warning */}
+          {/* Geocoding warning with tooltip */}
           {comparable.geocodingStatus === 'fallback' && (
-            <span className="text-xs text-amber-600" title="Position approximative">
-              📍 ~
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-amber-600 cursor-help">📍 ~</span>
+                </TooltipTrigger>
+                <TooltipContent>Position approximative (basée sur le code postal)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           {comparable.geocodingStatus === 'missing' && (
-            <span className="text-xs text-muted-foreground" title="Pas de coordonnées">
-              📍 ?
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground cursor-help">📍 ?</span>
+                </TooltipTrigger>
+                <TooltipContent>Pas de coordonnées GPS disponibles</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
 
