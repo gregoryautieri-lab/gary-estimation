@@ -1,4 +1,4 @@
-import { MapPin, Trash2, MoreVertical, FileText, Bot, User, ExternalLink, Building } from 'lucide-react';
+import { MapPin, Trash2, MoreVertical, FileText, Bot, User, ExternalLink, Building, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,6 +20,7 @@ interface ComparableListCardProps {
   comparable: ComparableData;
   onLocate: () => void;
   onRemove: () => void;
+  onEdit?: () => void;
   onViewDetails?: () => void;
   isHighlighted?: boolean;
 }
@@ -81,6 +82,7 @@ export function ComparableListCard({
   comparable,
   onLocate,
   onRemove,
+  onEdit,
   onViewDetails,
   isHighlighted = false,
 }: ComparableListCardProps) {
@@ -149,6 +151,12 @@ export function ComparableListCard({
               <DropdownMenuItem onClick={onViewDetails}>
                 <FileText className="h-4 w-4 mr-2" />
                 Voir l'estimation
+              </DropdownMenuItem>
+            )}
+            {onEdit && comparable.sourceType === 'external' && (
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Modifier
               </DropdownMenuItem>
             )}
             {comparable.urlSource && (

@@ -35,6 +35,7 @@ import { ProjectDetailMap } from '@/components/comparables/ProjectDetailMap';
 import { ComparableListCard } from '@/components/comparables/ComparableListCard';
 import ImportComparablesModal from '@/components/comparables/ImportComparablesModal';
 import { AddManualComparableModal } from '@/components/comparables/AddManualComparableModal';
+import { EditComparableModal } from '@/components/comparables/EditComparableModal';
 import { supabase } from '@/integrations/supabase/client';
 
 type SortOption = 'recent' | 'oldest' | 'price_asc' | 'price_desc' | 'surface_asc' | 'surface_desc';
@@ -60,6 +61,7 @@ export default function ProjectDetail() {
   const [selectedComparableId, setSelectedComparableId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [addManualModalOpen, setAddManualModalOpen] = useState(false);
+  const [editingComparable, setEditingComparable] = useState<ComparableData | null>(null);
   const [removingComparable, setRemovingComparable] = useState<ComparableData | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -484,6 +486,7 @@ export default function ProjectDetail() {
                   isHighlighted={comp.linkId === selectedComparableId}
                   onLocate={() => handleLocate(comp)}
                   onRemove={() => setRemovingComparable(comp)}
+                  onEdit={comp.sourceType === 'external' ? () => setEditingComparable(comp) : undefined}
                   onViewDetails={comp.sourceType === 'gary' ? () => handleViewDetails(comp) : undefined}
                 />
               ))}
@@ -513,6 +516,14 @@ export default function ProjectDetail() {
           setAddManualModalOpen(false);
           reload();
         }}
+      />
+
+      {/* Edit Comparable Modal */}
+      <EditComparableModal
+        open={!!editingComparable}
+        onOpenChange={(open) => !open && setEditingComparable(null)}
+        comparable={editingComparable}
+        onSuccess={reload}
       />
 
       {/* Remove Confirmation Dialog */}
