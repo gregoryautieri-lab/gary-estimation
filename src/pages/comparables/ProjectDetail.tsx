@@ -21,6 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
@@ -153,6 +159,38 @@ export default function ProjectDetail() {
     }
   };
 
+  // Compute statistics
+  const stats = useMemo(() => {
+    if (comparables.length === 0) return null;
+    
+    const prices = comparables
+      .map(c => c.prixFinal)
+      .filter((p): p is number => p !== null && p > 0)
+      .sort((a, b) => a - b);
+    
+    const nbVendus = comparables.filter(c => 
+      c.sourceType === 'external' ? c.statutMarche === 'vendu' : c.statut === 'mandat_signe'
+    ).length;
+    
+    const nbEnVente = comparables.filter(c => 
+      c.sourceType === 'external' ? c.statutMarche === 'en_vente' : c.statut === 'presentee'
+    ).length;
+    
+    // Median calculation
+    const median = prices.length > 0 
+      ? prices.length % 2 === 0
+        ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2
+        : prices[Math.floor(prices.length / 2)]
+      : null;
+    
+    return {
+      total: comparables.length,
+      nbVendus,
+      nbEnVente,
+      prixMedian: median,
+    };
+  }, [comparables]);
+
   // Filter and sort comparables
   const filteredComparables = useMemo(() => {
     let result = [...comparables];
@@ -274,8 +312,9 @@ export default function ProjectDetail() {
       </header>
 
       <main className="flex-1">
-        {/* Project Summary */}
+        {/* Project Summary with Stats */}
         <div className="px-4 py-4 border-b bg-muted/30">
+          {/* Criteria badges */}
           <div className="flex flex-wrap gap-2 text-sm">
             {project.communes.length > 0 && (
               <Badge variant="outline" className="gap-1">
@@ -296,6 +335,18 @@ export default function ProjectDetail() {
               </Badge>
             )}
           </div>
+
+          {/* Statistics row */}
+          {stats && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{stats.total} comparable{stats.total > 1 ? 's' : ''}</span>
+              {stats.prixMedian && (
+                <span>• Médian: <span className="font-medium text-foreground">{formatPrice(stats.prixMedian)}</span></span>
+              )}
+              <span>• <span className="text-blue-600 font-medium">{stats.nbVendus}</span> vendu{stats.nbVendus > 1 ? 's' : ''}</span>
+              <span>• <span className="text-green-600 font-medium">{stats.nbEnVente}</span> en vente</span>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex gap-2 mt-4">
@@ -325,22 +376,32 @@ export default function ProjectDetail() {
               selectedComparableId={selectedComparableId}
               className="h-80 md:h-96"
             />
-            {/* Export PNG button overlay */}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute top-3 right-3 gap-1.5 shadow-md bg-background/90 backdrop-blur-sm hover:bg-background"
-              onClick={handleExportMap}
-              disabled={exporting || geolocatedComparables.length === 0}
-              title={geolocatedComparables.length === 0 ? "Aucun comparable géolocalisé" : "Exporter la carte en PNG"}
-            >
-              {exporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Image className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Exporter PNG</span>
-            </Button>
+            {/* Export PNG button overlay with tooltip */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute top-3 right-3 gap-1.5 shadow-md bg-background/90 backdrop-blur-sm hover:bg-background"
+                    onClick={handleExportMap}
+                    disabled={exporting || geolocatedComparables.length === 0}
+                  >
+                    {exporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Image className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">Exporter PNG</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {geolocatedComparables.length === 0 
+                    ? "Aucun comparable géolocalisé à exporter" 
+                    : "Télécharger la carte en image PNG"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
@@ -383,22 +444,35 @@ export default function ProjectDetail() {
             </Select>
           </div>
 
-          {/* List */}
+          {/* List - Enhanced empty state */}
           {filteredComparables.length === 0 ? (
-            <div className="text-center py-12 bg-muted/30 rounded-xl">
-              <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="font-medium text-foreground mb-1">Aucun comparable</p>
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="text-center py-16 px-6 bg-muted/20 rounded-2xl border border-dashed">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center">
+                <FolderOpen className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
                 {comparables.length > 0 
                   ? 'Aucun résultat avec ces filtres'
-                  : 'Importez des comparables pour commencer'
+                  : 'Aucun comparable dans ce projet'
+                }
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                {comparables.length > 0 
+                  ? 'Modifiez vos critères de recherche pour voir plus de résultats.'
+                  : 'Lancez une recherche automatique ou ajoutez des biens manuellement pour commencer.'
                 }
               </p>
               {comparables.length === 0 && (
-                <Button onClick={() => setImportModalOpen(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Importer des comparables
-                </Button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button onClick={() => setImportModalOpen(true)} variant="outline" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Importer GARY
+                  </Button>
+                  <Button onClick={() => setAddManualModalOpen(true)} className="gap-2">
+                    <FilePlus2 className="h-4 w-4" />
+                    Ajouter manuellement
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
