@@ -106,6 +106,7 @@ const PORTAILS_OPTIONS = [
   { value: 'immostreet', label: 'ImmoStreet' },
   { value: 'comparis', label: 'Comparis' },
   { value: 'newhome', label: 'Newhome' },
+  { value: 'immobilier', label: 'Immobilier.ch' },
   { value: 'autres', label: 'Autres portails' }
 ];
 
