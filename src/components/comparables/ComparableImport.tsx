@@ -88,6 +88,7 @@ export function ComparableImport({
     nombrePieces?: string;
     typeBien?: string;
     source?: string;
+    images?: string[];
   } | null>(null);
   
   // État pour recherche GARY
@@ -247,6 +248,7 @@ export function ComparableImport({
       isGary: false,
       coordinates,
       prixM2: calculatePrixM2(scrapedData?.prix || '', scrapedData?.surface || ''),
+      images: scrapedData?.images || [],
     };
 
     onImport(comparable);
@@ -448,6 +450,34 @@ export function ComparableImport({
               {scrapedData.nombrePieces && <span>• {scrapedData.nombrePieces} pièces</span>}
               {scrapedData.typeBien && <span>• {scrapedData.typeBien}</span>}
             </div>
+
+            {/* Photos scrapées */}
+            {scrapedData.images && scrapedData.images.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  📷 {scrapedData.images.length} photo{scrapedData.images.length > 1 ? 's' : ''} trouvée{scrapedData.images.length > 1 ? 's' : ''}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {scrapedData.images.slice(0, 4).map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`Photo ${idx + 1}`}
+                      className="w-16 h-16 object-cover rounded-md border flex-shrink-0"
+                      onError={(e) => {
+                        // Masquer les images en erreur
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ))}
+                  {scrapedData.images.length > 4 && (
+                    <div className="w-16 h-16 bg-muted rounded-md border flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                      +{scrapedData.images.length - 4}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {!scrapedData.prix && !scrapedData.surface && (
               <p className="text-xs text-amber-600">

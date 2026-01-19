@@ -9,6 +9,7 @@ export interface ScrapedComparableData {
   typeBien?: string;
   source: string;
   description?: string;
+  images?: string[]; // URLs des photos extraites
 }
 
 interface ScrapeResponse {

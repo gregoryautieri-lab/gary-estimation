@@ -109,6 +109,8 @@ export interface ComparableData {
   // Geocoding
   coordinates: { lat: number; lng: number } | null;
   geocodingStatus: 'pending' | 'found' | 'fallback' | 'missing';
+  // Images
+  images: string[] | null;
 }
 
 export function useProjectDetail(projectId: string | undefined) {
@@ -258,6 +260,7 @@ export function useProjectDetail(projectId: string | undefined) {
             source: 'gary',
             coordinates: storedCoords || null,
             geocodingStatus: storedCoords ? 'found' as const : 'pending' as const,
+            images: null, // GARY estimations have photos in their own structure
           };
         }
         
@@ -289,6 +292,7 @@ export function useProjectDetail(projectId: string | undefined) {
           source: comp?.source || 'manual',
           coordinates: hasCoords ? { lat: Number(comp.latitude), lng: Number(comp.longitude) } : null,
           geocodingStatus: hasCoords ? 'found' as const : 'pending' as const,
+          images: comp?.images || null,
         };
       });
 

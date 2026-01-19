@@ -758,6 +758,7 @@ export interface Comparable {
   nombrePieces?: string;
   lien?: string;
   coordinates?: { lat: number; lng: number }; // Coordonnées GPS pour la carte
+  images?: string[]; // URLs des photos scrapées
 }
 
 export interface PreEstimation {
