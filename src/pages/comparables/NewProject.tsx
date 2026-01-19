@@ -104,7 +104,7 @@ export default function NewProject() {
       if (searchError) {
         console.warn('Search error (continuing anyway):', searchError);
         toast.warning('Projet créé mais recherche échouée.');
-        navigate(`/comparables/${projectId}`);
+        navigate('/comparables');
         return;
       }
 
@@ -164,7 +164,7 @@ export default function NewProject() {
 
       // Rediriger après un court délai pour voir le feedback
       setTimeout(() => {
-        navigate(`/comparables/${projectId}`);
+        navigate('/comparables');
       }, 500);
 
     } catch (err) {
