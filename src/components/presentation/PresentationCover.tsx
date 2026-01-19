@@ -4,7 +4,7 @@
 // ============================================
 
 import React from 'react';
-import { ChevronRight, Home, BedDouble, Maximize, Layers } from 'lucide-react';
+import { ChevronRight, Home, BedDouble, Maximize, Layers, TreePine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Caracteristiques, Identification } from '@/types/estimation';
 import { format } from 'date-fns';
@@ -86,6 +86,27 @@ export function PresentationCover({
   // Date du jour
   const dateEstimation = format(new Date(), "d MMMM yyyy", { locale: fr });
   
+  // Surface terrain pour maisons
+  const surfaceTerrainRaw = caracteristiques?.surfaceTerrain;
+  const surfaceTerrain = typeof surfaceTerrainRaw === 'number' ? surfaceTerrainRaw : parseFloat(String(surfaceTerrainRaw || '0'));
+
+  // 4ème métrique : Étage pour appartements, Terrain pour maisons
+  const isMaison = typeBien === 'maison' || typeBien === 'terrain';
+  
+  const fourthMetric = isMaison
+    ? {
+        icon: TreePine,
+        value: surfaceTerrain > 0 ? `${surfaceTerrain}` : '-',
+        unit: 'm²',
+        label: 'Terrain'
+      }
+    : {
+        icon: Layers,
+        value: getEtageLabel(),
+        unit: '',
+        label: 'Étage'
+      };
+
   // Métriques cards
   const metrics = [
     {
@@ -106,12 +127,7 @@ export function PresentationCover({
       unit: '',
       label: 'Chambres'
     },
-    {
-      icon: Layers,
-      value: getEtageLabel(),
-      unit: '',
-      label: 'Étage'
-    }
+    fourthMetric
   ];
 
   return (
