@@ -100,6 +100,7 @@ interface FormData {
   typeBien: string;
   prix: string;
   surface: string;
+  surfaceParcelle: string;
   pieces: string;
   statutMarche: 'vendu' | 'en_vente';
   strategieDiffusion: string;
@@ -146,6 +147,7 @@ export function AddManualComparableModal({
     typeBien: '',
     prix: '',
     surface: '',
+    surfaceParcelle: '',
     pieces: '',
     statutMarche: 'en_vente',
     strategieDiffusion: '',
@@ -366,6 +368,7 @@ export function AddManualComparableModal({
       if (formData.typeBien) insertData.type_bien = formData.typeBien;
       if (formData.prix) insertData.prix = parseFloat(formData.prix);
       if (formData.surface) insertData.surface = parseFloat(formData.surface);
+      if (formData.surfaceParcelle) insertData.surface_parcelle = parseFloat(formData.surfaceParcelle);
       if (formData.pieces) insertData.pieces = parseFloat(formData.pieces);
       if (formData.strategieDiffusion && formData.strategieDiffusion !== 'non_specifie') insertData.strategie_diffusion = formData.strategieDiffusion;
       if (formData.dateVente) insertData.date_vente = new Date(formData.dateVente).toISOString();
@@ -557,7 +560,7 @@ export function AddManualComparableModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid gap-3 ${formData.typeBien === 'maison' ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
               <div>
                 <Label htmlFor="prix">Prix (CHF)</Label>
                 <Input
@@ -579,6 +582,18 @@ export function AddManualComparableModal({
                   onChange={(e) => handleInputChange('surface', e.target.value)}
                 />
               </div>
+              {formData.typeBien === 'maison' && (
+                <div>
+                  <Label htmlFor="surfaceParcelle">Parcelle m²</Label>
+                  <Input
+                    id="surfaceParcelle"
+                    type="number"
+                    placeholder="800"
+                    value={formData.surfaceParcelle}
+                    onChange={(e) => handleInputChange('surfaceParcelle', e.target.value)}
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="pieces">Pièces</Label>
                 <Input
