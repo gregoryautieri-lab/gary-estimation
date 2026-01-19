@@ -127,11 +127,43 @@ function extractImages(markdown: string, html: string): string[] {
     }
   }
   
-  // Filter to keep only relevant property images (exclude icons, logos, etc.)
+  // Filter to keep only relevant property images (exclude icons, logos, app store badges, etc.)
   return images.filter(url => {
-    const isLargeImage = !url.includes('icon') && !url.includes('logo') && !url.includes('avatar');
-    const hasImageExtension = /\.(jpg|jpeg|png|webp)/i.test(url) || url.includes('image') || url.includes('photo');
-    return isLargeImage && (hasImageExtension || url.includes('cdn') || url.includes('static'));
+    const lowerUrl = url.toLowerCase();
+    // Exclude known non-property images
+    const isExcluded = 
+      lowerUrl.includes('icon') || 
+      lowerUrl.includes('logo') || 
+      lowerUrl.includes('avatar') ||
+      lowerUrl.includes('app-store') ||
+      lowerUrl.includes('appstore') ||
+      lowerUrl.includes('google-play') ||
+      lowerUrl.includes('googleplay') ||
+      lowerUrl.includes('play.google') ||
+      lowerUrl.includes('apple.com/app') ||
+      lowerUrl.includes('badge') ||
+      lowerUrl.includes('sprite') ||
+      lowerUrl.includes('pixel') ||
+      lowerUrl.includes('tracking') ||
+      lowerUrl.includes('analytics') ||
+      lowerUrl.includes('facebook') ||
+      lowerUrl.includes('twitter') ||
+      lowerUrl.includes('instagram') ||
+      lowerUrl.includes('linkedin') ||
+      lowerUrl.includes('social') ||
+      lowerUrl.includes('share') ||
+      lowerUrl.includes('button') ||
+      lowerUrl.includes('1x1') ||
+      lowerUrl.includes('spacer');
+    
+    if (isExcluded) return false;
+    
+    // Must have image extension or be from CDN
+    const hasImageExtension = /\.(jpg|jpeg|png|webp)/i.test(url);
+    const isFromCDN = lowerUrl.includes('cdn') || lowerUrl.includes('static') || lowerUrl.includes('images');
+    const isLargeEnough = !lowerUrl.includes('thumb') || lowerUrl.includes('large') || lowerUrl.includes('full');
+    
+    return (hasImageExtension || isFromCDN) && isLargeEnough;
   }).slice(0, 10); // Limit to 10 images
 }
 
@@ -163,18 +195,55 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
     data.nombrePieces = piecesRaw.replace(',', '.');
   }
   
-  // Extraire l'adresse (NPA + localité)
-  const adresseMatch = markdown.match(/(\d{4})\s+([A-Za-zÀ-ÿ\s-]+?)(?:\n|,|$)/);
-  if (adresseMatch) {
-    data.adresse = `${adresseMatch[1]} ${adresseMatch[2].trim()}`;
+  // Extraire l'adresse (NPA + localité) - pattern amélioré pour Suisse
+  // Format: "1200 Genève" ou "CH-1200 Genève"
+  const npaLocalitePatterns = [
+    /(?:CH-)?(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{2,30})(?:\s*[,\n(]|$)/gm,
+    /(?:localité|commune|ville|location)[:\s]*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{2,30})/gi,
+  ];
+  
+  for (const pattern of npaLocalitePatterns) {
+    pattern.lastIndex = 0;
+    const matches = [...markdown.matchAll(new RegExp(pattern.source, pattern.flags))];
+    for (const match of matches) {
+      if (match[1] && match[2]) {
+        // NPA + Localité
+        const npa = match[1].trim();
+        const localite = match[2].trim();
+        // Vérifier que c'est un NPA suisse valide (1000-9999) et pas un prix
+        if (/^\d{4}$/.test(npa) && parseInt(npa) >= 1000 && parseInt(npa) <= 9999) {
+          data.adresse = `${npa} ${localite}`;
+          break;
+        }
+      } else if (match[1]) {
+        // Juste localité
+        data.adresse = match[1].trim();
+        break;
+      }
+    }
+    if (data.adresse) break;
   }
   
-  // Chercher une rue avec numéro
-  const rueMatch = markdown.match(/(?:^|\n)([A-Za-zÀ-ÿ\s-]+(?:strasse|weg|platz|rue|chemin|avenue|route|boulevard)\s*\d*[a-z]?)/i);
-  if (rueMatch) {
-    data.adresse = data.adresse 
-      ? `${rueMatch[1].trim()}, ${data.adresse}` 
-      : rueMatch[1].trim();
+  // Chercher une rue avec numéro (format suisse)
+  const ruePatterns = [
+    /(?:adresse|address)[:\s]*([A-Za-zÀ-ÿ\s-]+\s+\d+[a-z]?)/gi,
+    /([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]*(?:strasse|weg|platz|gasse|rue|chemin|avenue|route|boulevard|allée)\s+\d+[a-z]?)/gi,
+    /(\d+[a-z]?,?\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]*(?:strasse|weg|platz|gasse|rue|chemin|avenue|route|boulevard|allée))/gi,
+  ];
+  
+  for (const pattern of ruePatterns) {
+    pattern.lastIndex = 0;
+    const match = markdown.match(pattern);
+    if (match && match[1]) {
+      const rue = match[1].trim();
+      // Ne pas utiliser si trop court ou ressemble à un titre
+      if (rue.length > 5 && !rue.includes('CHF') && !rue.includes('pièce')) {
+        data.adresse = data.adresse 
+          ? `${rue}, ${data.adresse}` 
+          : rue;
+        break;
+      }
+    }
   }
   
   // Détecter le type de bien
@@ -263,9 +332,12 @@ serve(async (req) => {
     // Récupérer les métadonnées
     const metadata = firecrawlData.data?.metadata || {};
 
+    // Ne PAS utiliser le titre comme fallback pour l'adresse car c'est souvent
+    // le titre de l'annonce ("Vente Maison 11.5 pièces - CHF 2'590'000")
+    // L'adresse doit être explicitement extraite du contenu
     const result: ScrapedData = {
       source,
-      adresse: extractedData.adresse || metadata.title?.split('|')[0]?.trim() || '',
+      adresse: extractedData.adresse || '', // Pas de fallback sur le titre
       prix: extractedData.prix || '',
       surface: extractedData.surface || '',
       nombrePieces: extractedData.nombrePieces || '',
