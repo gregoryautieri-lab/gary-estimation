@@ -153,11 +153,11 @@ export function generateStrategiePage(
   // Header
   html += '<div class="header">';
   html += '<div>' + getLogo('white', 28) + '</div>';
-  html += '<div class="header-date">Stratégie de commercialisation</div>';
+  html += '<div class="header-date">' + (luxResult.luxMode ? copy.headerTitle : 'Stratégie de commercialisation') + '</div>';
   html += '</div>';
   
   // Timeline des phases
-  html += generateTimelineSection(phaseDureesFinales, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage);
+  html += generateTimelineSection(phaseDureesFinales, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage, luxResult.luxMode, copy);
   
   // Bloc conditionnel : Passage entre phases (si projet d'achat)
   if (hasProjetAchat && niveauContrainte > 0) {
@@ -227,10 +227,12 @@ function generateTimelineSection(
   startDate: Date,
   phase1End: Date,
   phase2End: Date,
-  pauseRecalibrage: number
+  pauseRecalibrage: number,
+  isLux: boolean,
+  copy: any
 ): string {
   let html = '<div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid #e5e7eb;">';
-  html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('calendar', 12, '#9ca3af') + 'Calendrier prévisionnel</div>';
+  html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('calendar', 12, '#9ca3af') + (isLux ? copy.timeline : 'Calendrier prévisionnel') + '</div>';
   
   html += '<div style="display:flex;gap:8px;margin-bottom:8px;">';
   
