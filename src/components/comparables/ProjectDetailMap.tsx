@@ -159,8 +159,8 @@ function MapContent({
         zoom={12}
         onLoad={onMapLoad}
         options={{
-          mapTypeId: 'roadmap',
-          mapTypeControl: false,
+          mapTypeId: 'hybrid',
+          mapTypeControl: true,
           streetViewControl: false,
           fullscreenControl: true,
           zoomControl: true,
