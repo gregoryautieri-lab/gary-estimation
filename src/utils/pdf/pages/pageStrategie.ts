@@ -159,6 +159,19 @@ export function generateStrategiePage(
   // Timeline des phases
   html += generateTimelineSection(phaseDureesFinales, typeMV, activerComingSoon, startDate, phase1End, phase2End, pauseRecalibrage);
   
+  // Bloc conditionnel : Passage entre phases (si projet d'achat)
+  if (hasProjetAchat && niveauContrainte > 0) {
+    html += '<div style="margin:12px 24px;padding:12px 16px;background:#f0f9ff;border-left:4px solid #3b82f6;border-radius:0 6px 6px 0;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#1e40af;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">';
+    html += ico('arrowRightLeft', 12, '#3b82f6') + ' Passage entre phases';
+    html += '</div>';
+    html += '<div style="font-size:8px;color:#1e3a5f;line-height:1.5;">';
+    html += 'Chaque transition de phase s\'active lorsque le délai minimum est écoulé <strong>et</strong> que les signaux du marché le justifient. ';
+    html += 'Votre projet d\'achat (niveau <strong>' + niveauContrainte + '/5</strong>) est intégré dans le calibrage des durées.';
+    html += '</div>';
+    html += '</div>';
+  }
+  
   // Trajectoires
   html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenaleArrondi, luxResult.luxMode, historique as any, copy);
   
