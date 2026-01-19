@@ -423,10 +423,7 @@ export default function PresentationPage() {
           )}
           {currentSection === 'localisation' && (
             <PresentationLocation 
-              coordinates={coordinates}
-              adresse={adresse}
-              localite={localite}
-              proximites={proximites}
+              identification={estimation.identification}
               isLuxe={isLuxe}
             />
           )}
