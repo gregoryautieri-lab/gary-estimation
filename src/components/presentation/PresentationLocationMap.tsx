@@ -46,7 +46,7 @@ export function PresentationLocationMap({
       options={{
         disableDefaultUI: true,
         clickableIcons: false,
-        mapTypeId: "hybrid", // satellite + labels (rues)
+        mapTypeId: "satellite", // vue satellite
         gestureHandling: "greedy",
       }}
     >
