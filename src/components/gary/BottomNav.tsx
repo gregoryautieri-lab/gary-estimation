@@ -1,4 +1,4 @@
-import { Home, Plus, FileText, Archive, User } from 'lucide-react';
+import { Home, Plus, FileText, Map, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { toast } from 'sonner';
@@ -76,15 +76,11 @@ export const BottomNav = () => {
           onClick={handleNewEstimation}
         />
         <NavItem
-          icon={<Archive className="h-5 w-5" />}
-          label="Archives"
-          path="/archives"
-          active={isActive('/archives')}
-          onClick={() => {
-            // Pour l'instant, redirige vers estimations avec filtre archive
-            navigate('/estimations');
-            toast.info('Utilisez le filtre "Archivés" dans la liste');
-          }}
+          icon={<Map className="h-5 w-5" />}
+          label="Comparables"
+          path="/comparables"
+          active={isActive('/comparables')}
+          onClick={() => navigate('/comparables')}
         />
         <NavItem
           icon={<User className="h-5 w-5" />}
