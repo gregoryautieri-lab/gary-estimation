@@ -1,136 +1,206 @@
 // ============================================
-// Couverture Plein Écran Mode Présentation
+// Écran 1 : Couverture du Bien
+// Impact visuel immédiat, fond sombre sans photo
 // ============================================
 
 import React from 'react';
-import { ChevronDown, MapPin, Home, Sparkles } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ChevronRight, Home, BedDouble, Maximize, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Photo } from '@/types/estimation';
+import type { Caracteristiques, Identification } from '@/types/estimation';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface PresentationCoverProps {
-  photos: Photo[];
-  adresse: string;
-  localite: string;
-  typeBien: string;
-  surface: number;
-  prixFinal: number;
+  identification: Identification;
+  caracteristiques: Caracteristiques;
   isLuxe?: boolean;
   onNext: () => void;
 }
 
+// Labels pour les types de bien
 const TYPE_BIEN_LABELS: Record<string, string> = {
-  appartement: 'Appartement',
-  maison: 'Villa / Maison',
-  terrain: 'Terrain',
-  immeuble: 'Immeuble',
-  commercial: 'Local commercial'
+  appartement: 'APPARTEMENT',
+  maison: 'MAISON',
+  terrain: 'TERRAIN',
+  immeuble: 'IMMEUBLE',
+  commercial: 'COMMERCIAL'
+};
+
+// Labels pour les sous-types
+const SOUS_TYPE_LABELS: Record<string, string> = {
+  standard: 'STANDARD',
+  duplex: 'DUPLEX',
+  attique: 'ATTIQUE',
+  loft: 'LOFT',
+  studio: 'STUDIO',
+  villa: 'VILLA',
+  villa_individuelle: 'VILLA INDIVIDUELLE',
+  villa_mitoyenne: 'VILLA MITOYENNE',
+  villa_jumelle: 'VILLA JUMELLE',
+  ferme: 'FERME',
+  chalet: 'CHALET'
 };
 
 export function PresentationCover({
-  photos,
-  adresse,
-  localite,
-  typeBien,
-  surface,
-  prixFinal,
+  identification,
+  caracteristiques,
   isLuxe = false,
   onNext
 }: PresentationCoverProps) {
-  // Utiliser la photo principale ou la première
-  const coverPhoto = photos.find(p => p.favori) || photos[0];
-  const backgroundUrl = coverPhoto?.storageUrl || coverPhoto?.dataUrl;
-  const typeBienLabel = TYPE_BIEN_LABELS[typeBien] || typeBien;
+  // Extraire les données
+  const typeBien = caracteristiques?.typeBien || 'appartement';
+  const sousType = caracteristiques?.sousType || '';
+  const rue = identification?.adresse?.rue || 'Adresse non renseignée';
+  const codePostal = identification?.adresse?.codePostal || '';
+  const localite = identification?.adresse?.localite || '';
+  
+  // Surface selon le type
+  const surfaceRaw = typeBien === 'maison' 
+    ? caracteristiques?.surfaceHabitableMaison 
+    : caracteristiques?.surfacePPE;
+  const surfaceValue = typeof surfaceRaw === 'number' ? surfaceRaw : parseFloat(String(surfaceRaw || '0'));
+  
+  // Métriques
+  const nombrePiecesRaw = caracteristiques?.nombrePieces;
+  const nombrePieces = typeof nombrePiecesRaw === 'number' ? nombrePiecesRaw : parseFloat(String(nombrePiecesRaw || '0'));
+  
+  const nombreChambresRaw = caracteristiques?.nombreChambres;
+  const nombreChambres = typeof nombreChambresRaw === 'number' ? nombreChambresRaw : parseFloat(String(nombreChambresRaw || '0'));
+  
+  const etageRaw = caracteristiques?.etage;
+  const etage = typeof etageRaw === 'number' ? etageRaw : (etageRaw ? parseFloat(String(etageRaw)) : null);
+  
+  // Formatage étage
+  const getEtageLabel = () => {
+    if (typeBien === 'maison' || typeBien === 'terrain') return 'Terrain';
+    if (etage === 0) return 'RDC';
+    if (etage === undefined || etage === null || isNaN(etage)) return '-';
+    return `${etage}e`;
+  };
+  
+  // Badge type
+  const typeBienLabel = TYPE_BIEN_LABELS[typeBien] || typeBien.toUpperCase();
+  const sousTypeLabel = sousType ? SOUS_TYPE_LABELS[sousType] || sousType.toUpperCase() : '';
+  const badgeText = sousTypeLabel ? `${typeBienLabel} • ${sousTypeLabel}` : typeBienLabel;
+  
+  // Date du jour
+  const dateEstimation = format(new Date(), "d MMMM yyyy", { locale: fr });
+  
+  // Métriques cards
+  const metrics = [
+    {
+      icon: Maximize,
+      value: surfaceValue > 0 ? `${surfaceValue}` : '-',
+      unit: 'm²',
+      label: 'Surface'
+    },
+    {
+      icon: Home,
+      value: nombrePieces > 0 ? `${nombrePieces}` : '-',
+      unit: 'pcs',
+      label: 'Pièces'
+    },
+    {
+      icon: BedDouble,
+      value: nombreChambres > 0 ? `${nombreChambres}` : '-',
+      unit: '',
+      label: 'Chambres'
+    },
+    {
+      icon: Layers,
+      value: getEtageLabel(),
+      unit: '',
+      label: 'Étage'
+    }
+  ];
 
   return (
     <div 
-      className="h-full relative overflow-hidden cursor-pointer"
+      className="h-full w-full flex flex-col items-center justify-center px-6 cursor-pointer"
+      style={{ backgroundColor: '#1a2e35' }}
       onClick={onNext}
     >
-      {/* Background image */}
-      {backgroundUrl ? (
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${backgroundUrl})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20" />
-        </div>
-      ) : (
-        <div className={cn(
-          "absolute inset-0",
-          isLuxe 
-            ? "bg-gradient-to-br from-gray-900 via-amber-900/20 to-gray-900"
-            : "bg-gradient-to-br from-gray-900 to-gray-800"
-        )} />
-      )}
-
-      {/* Logo GARY */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-10">
-        <div className={cn(
-          "flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-sm",
-          isLuxe 
-            ? "bg-gradient-to-r from-amber-500/30 to-amber-600/30 text-amber-300" 
-            : "bg-white/10 text-white"
-        )}>
-          {isLuxe && <Sparkles className="h-5 w-5" />}
-          <span className="font-bold text-xl tracking-wide">GARY</span>
-          <span className="text-white/60 text-sm">Immobilier</span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-end pb-24 px-6 z-10">
-        {/* Badge type bien */}
-        <Badge 
-          variant="secondary" 
+      {/* Badge Type de Bien */}
+      <div className="mb-8">
+        <span 
           className={cn(
-            "mb-4 text-sm px-4 py-1",
-            isLuxe 
-              ? "bg-amber-500/30 text-amber-300 border-amber-500/30"
-              : "bg-white/20 text-white border-white/20"
+            "text-xs tracking-[0.25em] uppercase font-medium",
+            isLuxe ? "text-amber-400" : "text-white/60"
           )}
         >
-          <Home className="h-4 w-4 mr-2" />
-          {typeBienLabel} • {surface > 0 ? `${surface} m²` : ''}
-        </Badge>
-
-        {/* Adresse */}
-        <h1 className={cn(
-          "text-3xl md:text-5xl font-bold text-center text-white mb-2",
-          isLuxe && "bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
-        )}>
-          {adresse || 'Votre bien'}
-        </h1>
-
-        {/* Localité */}
-        <div className="flex items-center gap-2 text-white/70 text-lg mb-6">
-          <MapPin className="h-5 w-5" />
-          <span>{localite}</span>
-        </div>
-
-        {/* Prix */}
-        <div className={cn(
-          "px-8 py-4 rounded-2xl backdrop-blur-md mb-8",
-          isLuxe 
-            ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30"
-            : "bg-white/10 border border-white/20"
-        )}>
-          <p className="text-white/50 text-sm text-center mb-1">Estimation</p>
-          <p className={cn(
-            "text-3xl md:text-4xl font-bold text-center",
-            isLuxe 
-              ? "bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent"
-              : "text-white"
-          )}>
-            CHF {prixFinal.toLocaleString('fr-CH')}
-          </p>
-        </div>
+          {badgeText}
+        </span>
       </div>
-
-      {/* Swipe indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center text-white/50 animate-bounce">
-        <span className="text-sm mb-2">Swipe pour découvrir</span>
-        <ChevronDown className="h-6 w-6" />
+      
+      {/* Adresse Principale */}
+      <div className="text-center mb-10">
+        <h1 
+          className={cn(
+            "text-3xl md:text-5xl lg:text-6xl font-bold mb-3 leading-tight",
+            isLuxe 
+              ? "bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent" 
+              : "text-white"
+          )}
+        >
+          {rue}
+        </h1>
+        <p className="text-lg md:text-xl text-white/50">
+          {codePostal} {localite}
+        </p>
+      </div>
+      
+      {/* Métriques Hero - 4 Cards */}
+      <div className="grid grid-cols-4 gap-3 md:gap-4 w-full max-w-lg mb-12">
+        {metrics.map((metric, index) => (
+          <div 
+            key={index}
+            className={cn(
+              "flex flex-col items-center justify-center py-4 px-2 rounded-xl",
+              isLuxe 
+                ? "bg-amber-500/10 border border-amber-500/20" 
+                : "bg-white/5 border border-white/10"
+            )}
+          >
+            <metric.icon 
+              className={cn(
+                "h-5 w-5 mb-2",
+                isLuxe ? "text-amber-400" : "text-white/40"
+              )} 
+            />
+            <div className="flex items-baseline gap-0.5">
+              <span 
+                className={cn(
+                  "text-xl md:text-2xl font-bold",
+                  isLuxe ? "text-amber-300" : "text-white"
+                )}
+              >
+                {metric.value}
+              </span>
+              {metric.unit && (
+                <span className="text-xs text-white/40">{metric.unit}</span>
+              )}
+            </div>
+            <span className="text-[10px] text-white/40 uppercase tracking-wide mt-1">
+              {metric.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      
+      {/* Date Estimation */}
+      <p className="text-sm text-white/30 mb-8">
+        Estimation du {dateEstimation}
+      </p>
+      
+      {/* Indicateur Navigation */}
+      <div 
+        className={cn(
+          "absolute bottom-8 right-8 flex items-center gap-2 text-sm",
+          isLuxe ? "text-amber-400" : "text-white/50"
+        )}
+      >
+        <span>Découvrir</span>
+        <ChevronRight className="h-5 w-5 animate-pulse" />
       </div>
     </div>
   );

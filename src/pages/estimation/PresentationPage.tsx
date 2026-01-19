@@ -408,12 +408,8 @@ export default function PresentationPage() {
         <div className="h-full">
           {currentSection === 'cover' && (
             <PresentationCover 
-              photos={photos}
-              adresse={adresse}
-              localite={localite}
-              typeBien={typeBien}
-              surface={surface}
-              prixFinal={prixFinal}
+              identification={estimation.identification}
+              caracteristiques={estimation.caracteristiques}
               isLuxe={isLuxe}
               onNext={goToNextSection}
             />
