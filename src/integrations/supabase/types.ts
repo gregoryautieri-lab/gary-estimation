@@ -32,6 +32,7 @@ export type Database = {
           statut_marche: string
           strategie_diffusion: string | null
           surface: number | null
+          surface_parcelle: number | null
           type_bien: Database["public"]["Enums"]["type_bien"] | null
           updated_at: string
           url_source: string | null
@@ -54,6 +55,7 @@ export type Database = {
           statut_marche?: string
           strategie_diffusion?: string | null
           surface?: number | null
+          surface_parcelle?: number | null
           type_bien?: Database["public"]["Enums"]["type_bien"] | null
           updated_at?: string
           url_source?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           statut_marche?: string
           strategie_diffusion?: string | null
           surface?: number | null
+          surface_parcelle?: number | null
           type_bien?: Database["public"]["Enums"]["type_bien"] | null
           updated_at?: string
           url_source?: string | null
