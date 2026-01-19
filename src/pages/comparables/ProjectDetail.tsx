@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen, FilePlus2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,6 +27,7 @@ import { useProjectDetail, ComparableData } from '@/hooks/useProjectDetail';
 import { ProjectDetailMap } from '@/components/comparables/ProjectDetailMap';
 import { ComparableListCard } from '@/components/comparables/ComparableListCard';
 import ImportComparablesModal from '@/components/comparables/ImportComparablesModal';
+import { AddManualComparableModal } from '@/components/comparables/AddManualComparableModal';
 
 type SortOption = 'recent' | 'oldest' | 'price_asc' | 'price_desc' | 'surface_asc' | 'surface_desc';
 type StatusFilter = 'all' | 'mandat_signe' | 'presentee' | 'other';
@@ -50,6 +51,7 @@ export default function ProjectDetail() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedComparableId, setSelectedComparableId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [addManualModalOpen, setAddManualModalOpen] = useState(false);
   const [removingComparable, setRemovingComparable] = useState<ComparableData | null>(null);
 
   // Filter and sort comparables
@@ -104,9 +106,11 @@ export default function ProjectDetail() {
     setRemovingComparable(null);
   };
 
-  // Handle view estimation details
+  // Handle view estimation details (only for GARY comparables)
   const handleViewDetails = (comparable: ComparableData) => {
-    navigate(`/estimation/${comparable.estimationId}`);
+    if (comparable.estimationId) {
+      navigate(`/estimation/${comparable.estimationId}`);
+    }
   };
 
   // Loading state
@@ -198,18 +202,19 @@ export default function ProjectDetail() {
           <div className="flex gap-2 mt-4">
             <Button
               onClick={() => setImportModalOpen(true)}
+              variant="outline"
               className="flex-1 gap-2"
             >
               <Plus className="h-4 w-4" />
-              Importer
+              Importer GARY
             </Button>
-            {/* Export button placeholder for PROMPT 6 */}
-            {/*
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Exporter
+            <Button
+              onClick={() => setAddManualModalOpen(true)}
+              className="flex-1 gap-2"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              Ajouter manuel
             </Button>
-            */}
           </div>
         </div>
 
@@ -288,7 +293,7 @@ export default function ProjectDetail() {
                   isHighlighted={comp.linkId === selectedComparableId}
                   onLocate={() => handleLocate(comp)}
                   onRemove={() => setRemovingComparable(comp)}
-                  onViewDetails={() => handleViewDetails(comp)}
+                  onViewDetails={comp.sourceType === 'gary' ? () => handleViewDetails(comp) : undefined}
                 />
               ))}
             </div>
@@ -296,13 +301,25 @@ export default function ProjectDetail() {
         </div>
       </main>
 
-      {/* Import Modal */}
+      {/* Import GARY Modal */}
       <ImportComparablesModal
         projectId={projectId || ''}
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onSuccess={() => {
           setImportModalOpen(false);
+          reload();
+        }}
+      />
+
+      {/* Add Manual Modal */}
+      <AddManualComparableModal
+        projectId={projectId || ''}
+        project={project}
+        open={addManualModalOpen}
+        onClose={() => setAddManualModalOpen(false)}
+        onSuccess={() => {
+          setAddManualModalOpen(false);
           reload();
         }}
       />

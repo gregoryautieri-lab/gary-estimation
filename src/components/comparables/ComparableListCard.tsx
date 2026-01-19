@@ -1,4 +1,4 @@
-import { MapPin, Trash2, MoreVertical, FileText, Bot, User } from 'lucide-react';
+import { MapPin, Trash2, MoreVertical, FileText, Bot, User, ExternalLink, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,20 +26,32 @@ function formatPrice(price: number | null): string {
   }).format(price) + ' CHF';
 }
 
-function getStatusLabel(statut: string): string {
-  switch (statut) {
+function getStatusLabel(comparable: ComparableData): string {
+  // For external comparables, use statutMarche
+  if (comparable.sourceType === 'external') {
+    if (comparable.statutMarche === 'vendu') return 'Vendu';
+    return 'En vente';
+  }
+  // For GARY estimations, use statut
+  switch (comparable.statut) {
     case 'mandat_signe': return 'Vendu';
     case 'presentee': return 'En vente';
     case 'en_cours': return 'En cours';
     case 'brouillon': return 'Brouillon';
     case 'a_presenter': return 'À présenter';
     case 'negociation': return 'Négociation';
-    default: return statut;
+    default: return comparable.statut;
   }
 }
 
-function getStatusColor(statut: string): string {
-  switch (statut) {
+function getStatusColor(comparable: ComparableData): string {
+  // For external comparables
+  if (comparable.sourceType === 'external') {
+    if (comparable.statutMarche === 'vendu') return 'bg-blue-500 text-white';
+    return 'bg-green-500 text-white';
+  }
+  // For GARY estimations
+  switch (comparable.statut) {
     case 'mandat_signe': return 'bg-blue-500 text-white';
     case 'presentee': return 'bg-green-500 text-white';
     case 'negociation': return 'bg-amber-500 text-white';
@@ -47,7 +59,8 @@ function getStatusColor(statut: string): string {
   }
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '-';
   try {
     return new Date(dateStr).toLocaleDateString('fr-CH', {
       month: 'short',
@@ -74,17 +87,39 @@ export function ComparableListCard({
         isHighlighted && "ring-2 ring-primary shadow-md"
       )}
     >
-      {/* Header: Status + Type */}
+      {/* Header: Status + Type + Source Badge */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Badge className={cn("text-xs", getStatusColor(comparable.statut))}>
-            {getStatusLabel(comparable.statut)}
+          <Badge className={cn("text-xs", getStatusColor(comparable))}>
+            {getStatusLabel(comparable)}
           </Badge>
           {comparable.typeBien && (
             <span className="text-xs text-muted-foreground capitalize">
               {comparable.typeBien}
             </span>
           )}
+          {/* Source badge: GARY vs Externe */}
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-xs gap-1",
+              comparable.sourceType === 'gary' 
+                ? "border-primary/50 text-primary" 
+                : "border-muted-foreground/50"
+            )}
+          >
+            {comparable.sourceType === 'gary' ? (
+              <>
+                <Building className="h-3 w-3" />
+                GARY
+              </>
+            ) : (
+              <>
+                <ExternalLink className="h-3 w-3" />
+                Externe
+              </>
+            )}
+          </Badge>
         </div>
         
         <DropdownMenu>
@@ -94,10 +129,16 @@ export function ComparableListCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {onViewDetails && (
+            {onViewDetails && comparable.sourceType === 'gary' && (
               <DropdownMenuItem onClick={onViewDetails}>
                 <FileText className="h-4 w-4 mr-2" />
                 Voir l'estimation
+              </DropdownMenuItem>
+            )}
+            {comparable.urlSource && (
+              <DropdownMenuItem onClick={() => window.open(comparable.urlSource!, '_blank')}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Voir l'annonce
               </DropdownMenuItem>
             )}
             <DropdownMenuItem 
@@ -141,9 +182,9 @@ export function ComparableListCard({
         </p>
       )}
 
-      {/* Footer: Source badge + Date + Actions */}
+      {/* Footer: Source info + Date + Actions */}
       <div className="flex items-center justify-between pt-3 border-t">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Added by badge */}
           <Badge variant="outline" className="text-xs gap-1">
             {comparable.selectedByUser ? (
@@ -159,9 +200,17 @@ export function ComparableListCard({
             )}
           </Badge>
           
+          {/* Strategie badge for external */}
+          {comparable.sourceType === 'external' && comparable.strategieDiffusion && (
+            <Badge variant="secondary" className="text-xs">
+              {comparable.strategieDiffusion === 'off_market' ? 'Off-market' : 
+               comparable.strategieDiffusion === 'coming_soon' ? 'Coming soon' : 'Public'}
+            </Badge>
+          )}
+          
           {/* Date */}
           <span className="text-xs text-muted-foreground">
-            {formatDate(comparable.updatedAt)}
+            {comparable.dateVente ? `Vendu ${formatDate(comparable.dateVente)}` : formatDate(comparable.updatedAt)}
           </span>
 
           {/* Geocoding warning */}
