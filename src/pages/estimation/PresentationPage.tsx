@@ -35,6 +35,7 @@ import { PresentationTimeline } from '@/components/presentation/PresentationTime
 import { PresentationActions } from '@/components/presentation/PresentationActions';
 import { PresentationCondition } from '@/components/presentation/PresentationCondition';
 import { PresentationMarche } from '@/components/presentation/PresentationMarche';
+import { PresentationStrategie } from '@/components/presentation/PresentationStrategie';
 
 // Types pour les sections
 type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'estimation' | 'marche' | 'strategie' | 'pitch';
@@ -454,11 +455,12 @@ export default function PresentationPage() {
             />
           )}
           {currentSection === 'strategie' && (
-            <PresentationTimeline 
-              phases={phases}
-              typeMiseEnVente={typeMiseEnVente}
-              capitalVisibilite={capitalVisibilite}
-              isLuxe={isLuxe}
+            <PresentationStrategie 
+              identification={estimation.identification}
+              caracteristiques={estimation.caracteristiques}
+              preEstimation={estimation.preEstimation}
+              strategie={estimation.strategiePitch}
+              totalVenale={prixFinal}
             />
           )}
           {currentSection === 'pitch' && (
