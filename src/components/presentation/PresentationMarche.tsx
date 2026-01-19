@@ -220,15 +220,14 @@ function MarketMap({
       zoom={13}
       onLoad={onLoad}
       options={{
-        disableDefaultUI: true,
+        disableDefaultUI: false,
         zoomControl: true,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        styles: [
-          { featureType: "poi", stylers: [{ visibility: "off" }] },
-          { featureType: "transit", stylers: [{ visibility: "off" }] },
-        ],
+        scrollwheel: true,
+        gestureHandling: "greedy",
+        mapTypeId: "hybrid",
       }}
     >
       {allMarkers.map((marker) => (
