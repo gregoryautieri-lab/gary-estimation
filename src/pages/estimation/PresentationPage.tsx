@@ -30,7 +30,7 @@ import {
 import { PresentationCover } from '@/components/presentation/PresentationCover';
 import { PresentationCharacteristics } from '@/components/presentation/PresentationCharacteristics';
 import { PresentationLocation } from '@/components/presentation/PresentationLocation';
-import { PresentationPrice } from '@/components/presentation/PresentationPrice';
+import { PresentationPrix } from '@/components/presentation/PresentationPrix';
 import { PresentationTimeline } from '@/components/presentation/PresentationTimeline';
 import { PresentationActions } from '@/components/presentation/PresentationActions';
 import { PresentationCondition } from '@/components/presentation/PresentationCondition';
@@ -437,14 +437,10 @@ export default function PresentationPage() {
             />
           )}
           {currentSection === 'estimation' && (
-            <PresentationPrice 
-              prixMin={prixMin}
-              prixMax={prixMax}
-              prixFinal={prixFinal}
+            <PresentationPrix 
+              caracteristiques={estimation.caracteristiques}
+              preEstimation={estimation.preEstimation}
               typeBien={typeBien}
-              surface={surface}
-              pointsForts={pointsForts}
-              isLuxe={isLuxe}
             />
           )}
           {currentSection === 'strategie' && (
