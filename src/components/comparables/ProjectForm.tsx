@@ -17,11 +17,10 @@ import {
 import { MultiSelectCommunes } from '@/components/ui/multi-select-communes';
 import { ProjectStatutFilter } from '@/hooks/useProjectsComparables';
 
-// Types de bien disponibles
+// Types de bien disponibles (doivent correspondre à l'enum type_bien dans la DB)
 const TYPE_BIEN_OPTIONS = [
   { value: 'appartement', label: 'Appartement' },
-  { value: 'maison', label: 'Maison' },
-  { value: 'villa', label: 'Villa' },
+  { value: 'maison', label: 'Maison / Villa' },
   { value: 'terrain', label: 'Terrain' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'immeuble', label: 'Immeuble' },
@@ -89,7 +88,7 @@ export function ProjectForm({
       communes: defaultValues?.communes || [],
       prixMin: defaultValues?.prixMin ?? null,
       prixMax: defaultValues?.prixMax ?? null,
-      typeBien: defaultValues?.typeBien || ['appartement', 'maison', 'villa'],
+      typeBien: defaultValues?.typeBien || ['appartement', 'maison'],
       surfaceMin: defaultValues?.surfaceMin ?? null,
       surfaceMax: defaultValues?.surfaceMax ?? null,
       piecesMin: defaultValues?.piecesMin ?? null,
