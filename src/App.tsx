@@ -25,6 +25,7 @@ import HistoryView from "./pages/estimation/HistoryView";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminComparables from "./pages/admin/AdminComparables";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -121,6 +122,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <AdminAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/comparables"
+          element={
+            <ProtectedRoute>
+              <AdminComparables />
             </ProtectedRoute>
           }
         />
