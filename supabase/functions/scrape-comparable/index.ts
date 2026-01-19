@@ -16,10 +16,21 @@ interface ScrapedData {
   images?: string[];
 }
 
+interface AIExtractedData {
+  prix?: string;
+  surface?: string;
+  nombrePieces?: string;
+  typeBien?: string;
+  localite?: string;
+  npa?: string;
+  rue?: string;
+  images?: string[];
+  bestImageUrl?: string;
+}
+
 // Extraction patterns améliorés pour les portails immobiliers suisses
 const EXTRACTION_PATTERNS = {
   immoscout: {
-    // Capture prix avec apostrophes suisses: 1'890'000 ou 1890000
     prix: [
       /CHF\s*([\d'',.\s]+)/gi,
       /prix[:\s]*(?:CHF\s*)?([\d'',.\s]+)/gi,
@@ -81,9 +92,7 @@ function getPatterns(source: string) {
 }
 
 function cleanPrice(priceStr: string): string {
-  // Nettoyer: "1'890'000" ou "1 890 000" ou "1,890,000" -> "1890000"
   const cleaned = priceStr.replace(/['',.\s]/g, '');
-  // Vérifier que c'est un nombre valide et réaliste (> 10000 pour l'immobilier)
   const num = parseInt(cleaned, 10);
   if (isNaN(num) || num < 10000) return '';
   return cleaned;
@@ -91,7 +100,6 @@ function cleanPrice(priceStr: string): string {
 
 function extractBestMatch(text: string, patterns: RegExp[]): string | null {
   for (const pattern of patterns) {
-    // Reset lastIndex for global patterns
     pattern.lastIndex = 0;
     const matches = [...text.matchAll(new RegExp(pattern.source, pattern.flags))];
     for (const match of matches) {
@@ -116,7 +124,7 @@ function extractImages(markdown: string, html: string): string[] {
     }
   }
   
-  // Extract from HTML if available
+  // Extract from HTML - img src
   if (html) {
     const htmlPattern = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
     while ((match = htmlPattern.exec(html)) !== null) {
@@ -125,12 +133,20 @@ function extractImages(markdown: string, html: string): string[] {
         images.push(url);
       }
     }
+    
+    // Extract og:image meta tags
+    const ogPattern = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi;
+    while ((match = ogPattern.exec(html)) !== null) {
+      const url = match[1];
+      if (url && !images.includes(url)) {
+        images.unshift(url); // Prioritize og:image
+      }
+    }
   }
   
-  // Filter to keep only relevant property images (exclude icons, logos, app store badges, etc.)
+  // Filter to keep only relevant property images
   return images.filter(url => {
     const lowerUrl = url.toLowerCase();
-    // Exclude known non-property images
     const isExcluded = 
       lowerUrl.includes('icon') || 
       lowerUrl.includes('logo') || 
@@ -141,6 +157,7 @@ function extractImages(markdown: string, html: string): string[] {
       lowerUrl.includes('googleplay') ||
       lowerUrl.includes('play.google') ||
       lowerUrl.includes('apple.com/app') ||
+      lowerUrl.includes('playstore') ||
       lowerUrl.includes('badge') ||
       lowerUrl.includes('sprite') ||
       lowerUrl.includes('pixel') ||
@@ -154,25 +171,35 @@ function extractImages(markdown: string, html: string): string[] {
       lowerUrl.includes('share') ||
       lowerUrl.includes('button') ||
       lowerUrl.includes('1x1') ||
-      lowerUrl.includes('spacer');
+      lowerUrl.includes('spacer') ||
+      lowerUrl.includes('.svg') ||
+      lowerUrl.includes('favicon') ||
+      lowerUrl.includes('emoji');
     
     if (isExcluded) return false;
     
-    // Must have image extension or be from CDN
     const hasImageExtension = /\.(jpg|jpeg|png|webp)/i.test(url);
-    const isFromCDN = lowerUrl.includes('cdn') || lowerUrl.includes('static') || lowerUrl.includes('images');
-    const isLargeEnough = !lowerUrl.includes('thumb') || lowerUrl.includes('large') || lowerUrl.includes('full');
+    const isFromCDN = lowerUrl.includes('cdn') || lowerUrl.includes('static') || lowerUrl.includes('images') || lowerUrl.includes('media');
+    const isLargeEnough = !lowerUrl.includes('thumb') || lowerUrl.includes('large') || lowerUrl.includes('full') || lowerUrl.includes('1024') || lowerUrl.includes('800');
     
     return (hasImageExtension || isFromCDN) && isLargeEnough;
-  }).slice(0, 10); // Limit to 10 images
+  }).slice(0, 10);
 }
 
 function extractDataFromMarkdown(markdown: string, source: string, html?: string): Partial<ScrapedData> {
   const patterns = getPatterns(source);
   const data: Partial<ScrapedData> = { source };
   
-  // Extraire le prix - essayer plusieurs patterns
-  const prixRaw = extractBestMatch(markdown, patterns.prix);
+  // Combine markdown and HTML metadata for better extraction
+  const combinedText = markdown + '\n' + (html || '');
+  
+  // Extract from meta description if available
+  const metaDescMatch = html?.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+  const metaDescription = metaDescMatch?.[1] || '';
+  const fullText = markdown + '\n' + metaDescription;
+  
+  // Extraire le prix
+  const prixRaw = extractBestMatch(fullText, patterns.prix);
   if (prixRaw) {
     const cleaned = cleanPrice(prixRaw);
     if (cleaned) {
@@ -181,7 +208,7 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   }
   
   // Extraire la surface
-  const surfaceRaw = extractBestMatch(markdown, patterns.surface);
+  const surfaceRaw = extractBestMatch(fullText, patterns.surface);
   if (surfaceRaw) {
     const surfaceNum = parseInt(surfaceRaw.replace(/\D/g, ''), 10);
     if (!isNaN(surfaceNum) && surfaceNum > 10 && surfaceNum < 10000) {
@@ -190,13 +217,12 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   }
   
   // Extraire le nombre de pièces
-  const piecesRaw = extractBestMatch(markdown, patterns.pieces);
+  const piecesRaw = extractBestMatch(fullText, patterns.pieces);
   if (piecesRaw) {
     data.nombrePieces = piecesRaw.replace(',', '.');
   }
   
-  // Extraire l'adresse (NPA + localité) - pattern amélioré pour Suisse
-  // Format: "1200 Genève" ou "CH-1200 Genève"
+  // Extraire l'adresse (NPA + localité)
   const npaLocalitePatterns = [
     /(?:CH-)?(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{2,30})(?:\s*[,\n(]|$)/gm,
     /(?:localité|commune|ville|location)[:\s]*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{2,30})/gi,
@@ -204,19 +230,16 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   
   for (const pattern of npaLocalitePatterns) {
     pattern.lastIndex = 0;
-    const matches = [...markdown.matchAll(new RegExp(pattern.source, pattern.flags))];
+    const matches = [...fullText.matchAll(new RegExp(pattern.source, pattern.flags))];
     for (const match of matches) {
       if (match[1] && match[2]) {
-        // NPA + Localité
         const npa = match[1].trim();
         const localite = match[2].trim();
-        // Vérifier que c'est un NPA suisse valide (1000-9999) et pas un prix
         if (/^\d{4}$/.test(npa) && parseInt(npa) >= 1000 && parseInt(npa) <= 9999) {
           data.adresse = `${npa} ${localite}`;
           break;
         }
       } else if (match[1]) {
-        // Juste localité
         data.adresse = match[1].trim();
         break;
       }
@@ -224,19 +247,17 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
     if (data.adresse) break;
   }
   
-  // Chercher une rue avec numéro (format suisse)
+  // Chercher une rue
   const ruePatterns = [
     /(?:adresse|address)[:\s]*([A-Za-zÀ-ÿ\s-]+\s+\d+[a-z]?)/gi,
     /([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]*(?:strasse|weg|platz|gasse|rue|chemin|avenue|route|boulevard|allée)\s+\d+[a-z]?)/gi,
-    /(\d+[a-z]?,?\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]*(?:strasse|weg|platz|gasse|rue|chemin|avenue|route|boulevard|allée))/gi,
   ];
   
   for (const pattern of ruePatterns) {
     pattern.lastIndex = 0;
-    const match = markdown.match(pattern);
+    const match = fullText.match(pattern);
     if (match && match[1]) {
       const rue = match[1].trim();
-      // Ne pas utiliser si trop court ou ressemble à un titre
       if (rue.length > 5 && !rue.includes('CHF') && !rue.includes('pièce')) {
         data.adresse = data.adresse 
           ? `${rue}, ${data.adresse}` 
@@ -247,11 +268,11 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   }
   
   // Détecter le type de bien
-  if (/appartement|wohnung|apartment/i.test(markdown)) {
+  if (/appartement|wohnung|apartment/i.test(fullText)) {
     data.typeBien = 'appartement';
-  } else if (/maison|villa|haus|house/i.test(markdown)) {
+  } else if (/maison|villa|haus|house/i.test(fullText)) {
     data.typeBien = 'maison';
-  } else if (/terrain|bauland|land/i.test(markdown)) {
+  } else if (/terrain|bauland|land/i.test(fullText)) {
     data.typeBien = 'terrain';
   }
   
@@ -261,8 +282,169 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   return data;
 }
 
+// AI fallback using Lovable AI to extract data when regex fails
+async function extractWithAI(markdown: string, html: string, source: string): Promise<AIExtractedData | null> {
+  try {
+    // Get the Supabase URL from environment
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('Supabase credentials not available for AI fallback');
+      return null;
+    }
+
+    // Extract meta description and og:image for context
+    const metaDescMatch = html?.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    const metaDescription = metaDescMatch?.[1] || '';
+    
+    // Get og:image URLs
+    const ogImages: string[] = [];
+    const ogPattern = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi;
+    let ogMatch;
+    while ((ogMatch = ogPattern.exec(html)) !== null) {
+      if (ogMatch[1]) ogImages.push(ogMatch[1]);
+    }
+    
+    // Prepare a concise prompt for the AI
+    const textContent = (metaDescription + '\n' + markdown).substring(0, 4000);
+    
+    const prompt = `Tu es un extracteur de données immobilières. Analyse ce texte d'annonce immobilière suisse et extrais les informations suivantes en JSON:
+
+TEXTE DE L'ANNONCE:
+${textContent}
+
+IMAGES DISPONIBLES:
+${ogImages.slice(0, 5).join('\n')}
+
+Extrais et retourne UNIQUEMENT un JSON valide avec ces champs (laisse vide si non trouvé):
+{
+  "prix": "prix en chiffres sans espaces ni apostrophes (ex: 1890000)",
+  "surface": "surface habitable en m² (juste le chiffre)",
+  "nombrePieces": "nombre de pièces (ex: 5.5)",
+  "typeBien": "appartement ou maison ou terrain",
+  "localite": "nom de la commune/ville",
+  "npa": "code postal suisse 4 chiffres",
+  "rue": "nom de rue avec numéro si disponible",
+  "bestImageUrl": "URL de la meilleure photo du bien (pas logo/icône)"
+}
+
+Réponds UNIQUEMENT avec le JSON, sans explication.`;
+
+    console.log('Calling Lovable AI for extraction...');
+    
+    // Call Lovable AI via the ai-chat function pattern
+    const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'google/gemini-2.5-flash-lite', // Fast and cheap model
+      }),
+    });
+
+    if (!response.ok) {
+      console.log('AI chat function not available, skipping AI extraction');
+      return null;
+    }
+
+    const aiResult = await response.json();
+    const aiContent = aiResult.choices?.[0]?.message?.content || aiResult.content || '';
+    
+    console.log('AI response received:', aiContent.substring(0, 200));
+    
+    // Parse the JSON response
+    const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('No valid JSON found in AI response');
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]) as AIExtractedData;
+    
+    // Add og:images if AI found a best image
+    if (parsed.bestImageUrl) {
+      parsed.images = [parsed.bestImageUrl, ...ogImages.filter(img => img !== parsed.bestImageUrl)];
+    } else if (ogImages.length > 0) {
+      parsed.images = ogImages;
+    }
+    
+    console.log('AI extracted data:', parsed);
+    return parsed;
+    
+  } catch (error) {
+    console.error('AI extraction error:', error);
+    return null;
+  }
+}
+
+function mergeData(regexData: Partial<ScrapedData>, aiData: AIExtractedData | null): ScrapedData {
+  const source = regexData.source || 'Web';
+  
+  // Start with regex data
+  const result: ScrapedData = {
+    source,
+    adresse: regexData.adresse || '',
+    prix: regexData.prix || '',
+    surface: regexData.surface || '',
+    nombrePieces: regexData.nombrePieces || '',
+    typeBien: regexData.typeBien || '',
+    description: regexData.description || '',
+    images: regexData.images || [],
+  };
+  
+  if (!aiData) return result;
+  
+  // Fill in missing data from AI
+  if (!result.prix && aiData.prix) {
+    const cleaned = cleanPrice(aiData.prix);
+    if (cleaned) result.prix = cleaned;
+  }
+  
+  if (!result.surface && aiData.surface) {
+    const surfaceNum = parseInt(aiData.surface.replace(/\D/g, ''), 10);
+    if (!isNaN(surfaceNum) && surfaceNum > 10 && surfaceNum < 10000) {
+      result.surface = surfaceNum.toString();
+    }
+  }
+  
+  if (!result.nombrePieces && aiData.nombrePieces) {
+    result.nombrePieces = aiData.nombrePieces.replace(',', '.');
+  }
+  
+  if (!result.typeBien && aiData.typeBien) {
+    const typeLower = aiData.typeBien.toLowerCase();
+    if (['appartement', 'maison', 'terrain'].includes(typeLower)) {
+      result.typeBien = typeLower;
+    }
+  }
+  
+  // Build address from AI data if missing
+  if (!result.adresse) {
+    const parts: string[] = [];
+    if (aiData.rue) parts.push(aiData.rue);
+    if (aiData.npa && aiData.localite) {
+      parts.push(`${aiData.npa} ${aiData.localite}`);
+    } else if (aiData.localite) {
+      parts.push(aiData.localite);
+    }
+    if (parts.length > 0) {
+      result.adresse = parts.join(', ');
+    }
+  }
+  
+  // Prefer AI images if regex found none or only excluded ones
+  if ((!result.images || result.images.length === 0) && aiData.images && aiData.images.length > 0) {
+    result.images = aiData.images.slice(0, 10);
+  }
+  
+  return result;
+}
+
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -290,11 +472,10 @@ serve(async (req) => {
       );
     }
 
-    // Détecter la source
     const source = detectSource(url);
     console.log('Scraping URL:', url, 'Source:', source);
 
-    // Appeler Firecrawl pour scraper la page (avec HTML pour les images)
+    // Call Firecrawl
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -304,7 +485,7 @@ serve(async (req) => {
       body: JSON.stringify({
         url: url,
         formats: ['markdown', 'html'],
-        onlyMainContent: true,
+        onlyMainContent: false, // Get full page for better image extraction
         waitFor: 3000,
       }),
     });
@@ -324,34 +505,34 @@ serve(async (req) => {
       );
     }
 
-    // Extraire les données du markdown et HTML
     const markdown = firecrawlData.data?.markdown || '';
     const html = firecrawlData.data?.html || '';
-    const extractedData = extractDataFromMarkdown(markdown, source, html);
-
-    // Récupérer les métadonnées
     const metadata = firecrawlData.data?.metadata || {};
-
-    // Ne PAS utiliser le titre comme fallback pour l'adresse car c'est souvent
-    // le titre de l'annonce ("Vente Maison 11.5 pièces - CHF 2'590'000")
-    // L'adresse doit être explicitement extraite du contenu
-    const result: ScrapedData = {
-      source,
-      adresse: extractedData.adresse || '', // Pas de fallback sur le titre
-      prix: extractedData.prix || '',
-      surface: extractedData.surface || '',
-      nombrePieces: extractedData.nombrePieces || '',
-      typeBien: extractedData.typeBien || '',
-      description: metadata.description || '',
-      images: extractedData.images || [],
-    };
-
-    console.log('Extracted data:', result);
+    
+    // Step 1: Try regex extraction
+    const regexData = extractDataFromMarkdown(markdown, source, html);
+    regexData.description = metadata.description || '';
+    
+    // Step 2: Check if we need AI fallback
+    const needsAI = !regexData.prix || !regexData.surface || !regexData.adresse || 
+                    !regexData.images || regexData.images.length === 0;
+    
+    let aiData: AIExtractedData | null = null;
+    if (needsAI) {
+      console.log('Regex extraction incomplete, trying AI fallback...');
+      aiData = await extractWithAI(markdown, html, source);
+    }
+    
+    // Step 3: Merge data
+    const result = mergeData(regexData, aiData);
+    
+    console.log('Final extracted data:', result);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         data: result,
+        aiUsed: aiData !== null,
         raw: {
           markdownPreview: markdown.substring(0, 500),
           metadata
