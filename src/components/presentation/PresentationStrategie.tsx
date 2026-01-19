@@ -133,6 +133,12 @@ export function PresentationStrategie({
   const dejaDiffuse = historiqueData?.dejaDiffuse === true;
   const dureeDiffusion = historiqueData?.duree || '';
   
+  // Calcul de la pause recalibrage (seulement si déjà diffusé ET capital < 70%)
+  const needsRecalibrage = dejaDiffuse && capitalValue < 70;
+  const pauseRecalibrage = !needsRecalibrage ? 0 :
+    capitalValue >= 50 ? 2 :
+    capitalValue >= 30 ? 3 : 4;
+  
   // Détection projet d'achat (pour passage entre phases)
   const contexteData = contexte as { motifVente?: string } | undefined;
   const hasProjetAchat = contexteData?.motifVente === 'achat' || 
@@ -170,13 +176,14 @@ export function PresentationStrategie({
   
   let currentDate = new Date(dateDebut);
   
-  // Phase 0 - Préparation (toujours)
-  if (phaseDurees.phase0 > 0) {
-    const phaseFin = addWeeks(currentDate, phaseDurees.phase0);
+  // Phase 0 - Préparation (+ recalibrage si nécessaire)
+  const dureePhase0 = (phaseDurees.phase0 || 1) + pauseRecalibrage;
+  if (dureePhase0 > 0) {
+    const phaseFin = addWeeks(currentDate, dureePhase0);
     phases.push({
       id: 'preparation',
-      nom: 'Préparation',
-      duree: phaseDurees.phase0,
+      nom: needsRecalibrage ? 'Préparation & Recalibrage' : 'Préparation',
+      duree: dureePhase0,
       dateDebut: new Date(currentDate),
       dateFin: phaseFin,
       isPointDepart: false,
@@ -346,14 +353,14 @@ export function PresentationStrategie({
           )}
         </div>
 
-        {/* BLOC CONDITIONNEL : Alerte Recalibrage (si bien déjà diffusé) */}
-        {dejaDiffuse && (
+        {/* BLOC CONDITIONNEL : Alerte Recalibrage (si bien déjà diffusé ET capital < 70%) */}
+        {needsRecalibrage && (
           <div className="animate-fade-in rounded-xl p-4 bg-orange-500/10 border border-orange-500/30">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-orange-300 font-medium text-sm">
-                  Phase de recalibrage marché recommandée
+                  Phase de recalibrage marché recommandée ({pauseRecalibrage} sem.)
                 </p>
                 <p className="text-orange-200/70 text-xs mt-1">
                   Ce bien a déjà été diffusé{dureeDiffusion ? ` (${dureeDiffusion.replace('moins', '< ').replace('plus', '> ').replace('mois', ' mois')})` : ''}. 
