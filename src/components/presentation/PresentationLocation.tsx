@@ -1,42 +1,25 @@
 // ============================================
 // Écran 3 : Localisation et Proximités
-// Google Maps + Adresse + Cadastre + Proximités
+// Google Maps Static + Adresse + Cadastre + Proximités
 // ============================================
 
-import React from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import React, { useState, useEffect } from 'react';
 import { 
   MapPin, 
   Bus, 
-  Train, 
   GraduationCap, 
   ShoppingBag, 
   TreePine,
-  Building2,
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import type { Identification, Proximite, CadastreData } from '@/types/estimation';
+import { supabase } from '@/integrations/supabase/client';
+import type { Identification } from '@/types/estimation';
 
 interface PresentationLocationProps {
   identification: Identification;
   isLuxe?: boolean;
 }
-
-// Style de carte sobre/luxe
-const MAP_STYLES_DARK = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#515c6d' }] },
-  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-];
 
 // Catégories de proximités
 interface ProximiteCategory {
@@ -73,64 +56,54 @@ const PROXIMITE_CATEGORIES: ProximiteCategory[] = [
   }
 ];
 
-// Composant carte séparé pour éviter le re-render du loader
-function MapContainer({ 
-  apiKey, 
-  coordinates, 
-  isLuxe 
-}: { 
-  apiKey: string; 
-  coordinates: { lat: number; lng: number }; 
-  isLuxe: boolean;
-}) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-presentation',
-    googleMapsApiKey: apiKey,
-  });
+// Hook pour charger la carte statique via le proxy
+function useStaticMap(coordinates: { lat: number; lng: number } | undefined) {
+  const [mapImage, setMapImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!isLoaded) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-800">
-        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!coordinates) return;
 
-  return (
-    <GoogleMap
-      mapContainerStyle={{ width: '100%', height: '100%' }}
-      center={coordinates}
-      zoom={16}
-      options={{
-        styles: MAP_STYLES_DARK,
-        disableDefaultUI: true,
-        zoomControl: false,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false
-      }}
-    >
-      <Marker 
-        position={coordinates}
-        icon={{
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 12,
-          fillColor: isLuxe ? '#f59e0b' : '#FA4238',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 3
-        }}
-      />
-    </GoogleMap>
-  );
+    const fetchMap = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('static-map-proxy', {
+          body: {
+            type: 'google',
+            lat: coordinates.lat,
+            lng: coordinates.lng,
+            zoom: 16,
+            mapType: 'roadmap'
+          }
+        });
+
+        if (fnError) throw fnError;
+        if (data?.image) {
+          setMapImage(data.image);
+        } else if (data?.error) {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        console.error('[PresentationLocation] Static map error:', err);
+        setError(err instanceof Error ? err.message : 'Erreur chargement carte');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMap();
+  }, [coordinates?.lat, coordinates?.lng]);
+
+  return { mapImage, loading, error };
 }
 
 export function PresentationLocation({
   identification,
   isLuxe = false
 }: PresentationLocationProps) {
-  const { apiKey, loading: keyLoading } = useGoogleMapsKey();
-  
   // Données adresse
   const adresse = identification?.adresse;
   const rue = adresse?.rue || '';
@@ -139,6 +112,9 @@ export function PresentationLocation({
   const canton = adresse?.canton || 'Genève';
   const coordinates = adresse?.coordinates;
   const cadastre = adresse?.cadastreData;
+  
+  // Charger la carte statique
+  const { mapImage, loading: mapLoading, error: mapError } = useStaticMap(coordinates);
   
   // Proximités
   const proximites = identification?.proximites || [];
@@ -151,31 +127,43 @@ export function PresentationLocation({
       .slice(0, 3) // Max 3 par catégorie
   })).filter(cat => cat.items.length > 0);
 
-  const center = coordinates || { lat: 46.2044, lng: 6.1432 }; // Default: Genève
-
   return (
     <div 
       className="h-full w-full flex flex-col overflow-hidden"
       style={{ backgroundColor: '#1a2e35' }}
     >
-      {/* 1. Carte Google Maps (60% hauteur) */}
+      {/* 1. Carte Google Maps Static (60% hauteur) */}
       <div className="h-[60%] relative">
-        {keyLoading ? (
+        {mapLoading ? (
           <div className="h-full flex items-center justify-center bg-gray-800">
             <Loader2 className="h-8 w-8 animate-spin text-white/50" />
           </div>
-        ) : apiKey && coordinates ? (
-          <MapContainer 
-            apiKey={apiKey} 
-            coordinates={coordinates} 
-            isLuxe={isLuxe} 
-          />
+        ) : mapImage ? (
+          <div className="h-full w-full relative">
+            <img 
+              src={mapImage} 
+              alt={`Carte ${rue}`}
+              className="h-full w-full object-cover"
+            />
+            {/* Overlay marker */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div 
+                className={cn(
+                  "w-6 h-6 rounded-full border-4 border-white shadow-lg",
+                  isLuxe ? "bg-amber-500" : "bg-primary"
+                )} 
+              />
+            </div>
+          </div>
         ) : (
-          // Fallback si pas de coordonnées ou pas de clé
+          // Fallback si pas de coordonnées ou erreur
           <div className="h-full flex flex-col items-center justify-center bg-gray-800">
             <MapPin className={cn("h-12 w-12 mb-4", isLuxe ? "text-amber-400" : "text-primary")} />
             <p className="text-white text-lg font-medium">{rue}</p>
             <p className="text-white/50">{codePostal} {localite}</p>
+            {mapError && (
+              <p className="text-red-400/60 text-xs mt-2">{mapError}</p>
+            )}
           </div>
         )}
       </div>
