@@ -1,7 +1,5 @@
-import { Home, Plus, FileText, Map, User } from 'lucide-react';
+import { Home, FileText, Map, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
-import { toast } from 'sonner';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -9,23 +7,20 @@ interface NavItemProps {
   path: string;
   active?: boolean;
   onClick?: () => void;
-  isPrimary?: boolean;
 }
 
-const NavItem = ({ icon, label, active, onClick, isPrimary }: NavItemProps) => (
+const NavItem = ({ icon, label, active, onClick }: NavItemProps) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 min-w-[56px] transition-all ${
-      isPrimary 
-        ? "text-primary-foreground bg-primary rounded-full -mt-5 shadow-lg w-14 h-14 flex items-center justify-center" 
-        : active 
-          ? "text-primary" 
-          : "text-muted-foreground hover:text-foreground"
+    className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 min-w-[64px] transition-all ${
+      active 
+        ? "text-primary" 
+        : "text-muted-foreground hover:text-foreground"
     }`}
     aria-label={label}
   >
     {icon}
-    {!isPrimary && <span className="text-[10px] font-medium">{label}</span>}
+    <span className="text-[10px] font-medium">{label}</span>
   </button>
 );
 
@@ -33,18 +28,6 @@ export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { createEstimation } = useEstimationPersistence();
-
-  const handleNewEstimation = async () => {
-    try {
-      const created = await createEstimation({ statut: 'brouillon' });
-      if (created?.id) {
-        navigate(`/estimation/${created.id}/1`);
-      }
-    } catch (err) {
-      toast.error('Erreur lors de la création');
-    }
-  };
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -69,13 +52,6 @@ export const BottomNav = () => {
           onClick={() => navigate('/estimations')}
         />
         <NavItem
-          icon={<Plus className="h-6 w-6" />}
-          label="Nouveau"
-          path="/new"
-          isPrimary
-          onClick={handleNewEstimation}
-        />
-        <NavItem
           icon={<Map className="h-5 w-5" />}
           label="Comparables"
           path="/comparables"
@@ -86,7 +62,7 @@ export const BottomNav = () => {
           icon={<User className="h-5 w-5" />}
           label="Profil"
           path="/settings"
-          active={isActive('/settings')}
+          active={isActive('/settings') || isActive('/admin')}
           onClick={() => navigate('/settings')}
         />
       </div>
