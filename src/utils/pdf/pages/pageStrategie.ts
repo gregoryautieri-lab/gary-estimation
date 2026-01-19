@@ -188,6 +188,19 @@ export function generateStrategiePage(
     html += generateValeurPreserverSection();
   }
   
+  // Bloc conditionnel : Cadre de pilotage (si projet d'achat)
+  if (hasProjetAchat && niveauContrainte > 0) {
+    html += '<div style="margin:12px 24px;padding:12px 16px;background:#f9fafb;border-left:4px solid #FA4238;border-radius:0 6px 6px 0;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#1a2e35;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">';
+    html += ico('settings', 12, '#FA4238') + ' Cadre de pilotage';
+    html += '</div>';
+    html += '<div style="font-size:8px;color:#4b5563;line-height:1.5;">';
+    html += 'La stratégie reste <strong>réversible et ajustable</strong>. ';
+    html += 'Si votre projet d\'achat évolue, les phases peuvent être accélérées ou étendues sans compromettre le positionnement marché.';
+    html += '</div>';
+    html += '</div>';
+  }
+  
   // Disclaimer
   html += generateDisclaimerSection(luxResult.luxMode, copy);
   
