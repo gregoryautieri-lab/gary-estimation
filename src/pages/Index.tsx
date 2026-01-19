@@ -2,115 +2,113 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { useProjectsComparables } from '@/hooks/useProjectsComparables';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   LogOut, 
   Plus, 
   FileText, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle,
+  Map, 
   ChevronRight,
-  MapPin,
-  Calendar,
-  Zap
+  Zap,
+  Search
 } from "lucide-react";
-import type { EstimationData } from '@/types/estimation';
-import { formatPriceCHF } from '@/hooks/useEstimationCalcul';
+import { supabase } from '@/integrations/supabase/client';
 
-interface StatCardProps {
+interface ToolCardProps {
   icon: React.ReactNode;
-  value: string | number;
-  label: string;
+  title: string;
+  stats: { label: string; value: string | number }[];
+  onClick: () => void;
   color: string;
-  onClick?: () => void;
 }
 
-const StatCard = ({ icon, value, label, color, onClick }: StatCardProps) => (
-  <button 
+const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
+  <Card 
+    className="border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
     onClick={onClick}
-    className={`bg-card border border-border rounded-xl p-4 text-left transition-all hover:border-primary/50 active:scale-[0.98] ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
   >
-    <div className="flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-        {icon}
-      </div>
-      <div>
-        <div className="text-2xl font-bold text-foreground">{value}</div>
-        <div className="text-xs text-muted-foreground">{label}</div>
-      </div>
-    </div>
-  </button>
-);
-
-const RecentEstimationCard = ({ estimation, onClick }: { estimation: EstimationData; onClick: () => void }) => {
-  const vendeur = estimation.vendeurNom || estimation.identification?.vendeur?.nom || 'Sans nom';
-  const adresse = estimation.adresse || estimation.identification?.adresse?.rue || '';
-  const localite = estimation.localite || estimation.identification?.adresse?.localite || '';
-  const date = estimation.updatedAt 
-    ? new Date(estimation.updatedAt).toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' })
-    : '';
-
-  const statusColors: Record<string, string> = {
-    brouillon: 'bg-muted text-muted-foreground',
-    en_cours: 'bg-amber-100 text-amber-700',
-    termine: 'bg-emerald-100 text-emerald-700',
-    archive: 'bg-slate-100 text-slate-500'
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full bg-card border border-border rounded-xl p-3 text-left transition-all hover:border-primary/50 active:scale-[0.98]"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${statusColors[estimation.statut] || statusColors.brouillon}`}>
-              {estimation.statut === 'en_cours' ? 'En cours' : estimation.statut}
-            </span>
-            <span className="text-xs text-muted-foreground truncate">{vendeur}</span>
-          </div>
-          <p className="text-sm font-medium text-foreground truncate mt-1">
-            {adresse || localite || 'Adresse non renseignée'}
-          </p>
-          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-            <span>{date}</span>
-            {estimation.prixFinal && (
-              <>
-                <span>•</span>
-                <span className="font-medium text-foreground">{formatPriceCHF(estimation.prixFinal)}</span>
-              </>
-            )}
-          </div>
+    <CardContent className="p-4">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
+          {icon}
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
       </div>
-    </button>
-  );
-};
+      <h3 className="font-semibold text-lg text-foreground mb-3">{title}</h3>
+      <div className="space-y-2">
+        {stats.map((stat, i) => (
+          <div key={i} className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{stat.label}</span>
+            <span className="font-medium text-foreground">{stat.value}</span>
+          </div>
+        ))}
+      </div>
+      <Button className="w-full mt-4" variant="outline">
+        Ouvrir
+      </Button>
+    </CardContent>
+  </Card>
+);
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { fetchEstimations, createEstimation, loading } = useEstimationPersistence();
-  const [estimations, setEstimations] = useState<EstimationData[]>([]);
+  const { fetchEstimations, createEstimation, loading: creatingEstimation } = useEstimationPersistence();
+  const { fetchProjects } = useProjectsComparables();
+  
   const [loadingData, setLoadingData] = useState(true);
+  const [estimationsStats, setEstimationsStats] = useState({ total: 0, enCours: 0 });
+  const [comparablesStats, setComparablesStats] = useState({ projects: 0, totalComparables: 0 });
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     if (!user) return;
     loadData();
+    loadUserName();
   }, [user]);
+
+  const loadUserName = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (data?.full_name) {
+      setUserName(data.full_name.split(' ')[0]);
+    } else {
+      setUserName(user.email?.split('@')[0] || 'Courtier');
+    }
+  };
 
   const loadData = async () => {
     setLoadingData(true);
-    const data = await fetchEstimations();
-    setEstimations(data);
-    setLoadingData(false);
+    try {
+      // Fetch estimations
+      const estimations = await fetchEstimations();
+      setEstimationsStats({
+        total: estimations.length,
+        enCours: estimations.filter(e => e.statut === 'en_cours').length
+      });
+
+      // Fetch projects comparables
+      const projects = await fetchProjects({ archived: false });
+      const totalComparables = projects.reduce((sum, p) => sum + (p.nbComparables || 0), 0);
+      setComparablesStats({
+        projects: projects.length,
+        totalComparables
+      });
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+    } finally {
+      setLoadingData(false);
+    }
   };
 
   const handleNewEstimation = async () => {
@@ -120,33 +118,15 @@ const Index = () => {
     }
   };
 
-  // Stats calculées
-  const stats = {
-    total: estimations.length,
-    brouillons: estimations.filter(e => e.statut === 'brouillon').length,
-    enCours: estimations.filter(e => e.statut === 'en_cours').length,
-    termines: estimations.filter(e => e.statut === 'termine').length,
-    volumeTotal: estimations
-      .filter(e => e.statut === 'termine' && e.prixFinal)
-      .reduce((sum, e) => sum + (e.prixFinal || 0), 0)
-  };
-
-  // 5 dernières estimations modifiées
-  const recentEstimations = [...estimations]
-    .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
-    .slice(0, 5);
-
-  // Nom utilisateur
-  const userName = user?.email?.split('@')[0] || 'Courtier';
-  const greeting = new Date().getHours() < 12 ? 'Bonjour' : new Date().getHours() < 18 ? 'Bon après-midi' : 'Bonsoir';
+  // Greeting based on time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 bg-background z-50">
-        <div className="flex items-center gap-2">
-          <GaryLogo className="h-6 text-primary" />
-        </div>
+        <GaryLogo className="h-6 text-primary" />
         <Button
           variant="ghost"
           size="icon"
@@ -159,108 +139,47 @@ const Index = () => {
 
       {/* Main content */}
       <main className="flex-1 p-4 pb-24">
-        <div className="space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6">
           {/* Welcome */}
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {greeting}, {userName} 👋
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Votre tableau de bord GARY
-              </p>
-            </div>
-            <Button onClick={handleNewEstimation} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle
-            </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {greeting}, {userName} 👋
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Votre tableau de bord GARY
+            </p>
           </div>
 
-          {/* Stats Grid */}
+          {/* Tool Cards Grid */}
           {loadingData ? (
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map(i => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Skeleton className="h-48 rounded-xl" />
+              <Skeleton className="h-48 rounded-xl" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <StatCard
-                icon={<FileText className="h-5 w-5 text-primary" />}
-                value={stats.total}
-                label="Total estimations"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ToolCard
+                icon={<FileText className="h-6 w-6 text-primary" />}
+                title="Estimations"
+                stats={[
+                  { label: 'Total estimations', value: estimationsStats.total },
+                  { label: 'En cours', value: estimationsStats.enCours }
+                ]}
+                onClick={() => navigate('/estimations')}
                 color="bg-primary/10"
-                onClick={() => navigate('/estimations')}
               />
-              <StatCard
-                icon={<Clock className="h-5 w-5 text-amber-600" />}
-                value={stats.enCours}
-                label="En cours"
-                color="bg-amber-100"
-                onClick={() => navigate('/estimations')}
-              />
-              <StatCard
-                icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
-                value={stats.termines}
-                label="Terminées"
+              <ToolCard
+                icon={<Map className="h-6 w-6 text-emerald-600" />}
+                title="Comparables"
+                stats={[
+                  { label: 'Projets', value: comparablesStats.projects },
+                  { label: 'Total comparables', value: comparablesStats.totalComparables }
+                ]}
+                onClick={() => navigate('/comparables')}
                 color="bg-emerald-100"
-                onClick={() => navigate('/estimations')}
-              />
-              <StatCard
-                icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
-                value={stats.volumeTotal > 0 ? `${(stats.volumeTotal / 1000000).toFixed(1)}M` : '—'}
-                label="Volume terminé"
-                color="bg-blue-100"
               />
             </div>
           )}
-
-          {/* Recent Estimations */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-foreground">Récentes</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-muted-foreground"
-                onClick={() => navigate('/estimations')}
-              >
-                Voir tout
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-            
-            {loadingData ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map(i => (
-                  <Skeleton key={i} className="h-16 rounded-xl" />
-                ))}
-              </div>
-            ) : recentEstimations.length === 0 ? (
-              <Card className="p-6 text-center">
-                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Aucune estimation pour le moment
-                </p>
-                <Button onClick={handleNewEstimation} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer ma première
-                </Button>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {recentEstimations.map(estimation => (
-                  <RecentEstimationCard
-                    key={estimation.id}
-                    estimation={estimation}
-                    onClick={() => navigate(`/estimation/${estimation.id}/1`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Quick Actions */}
           <div>
@@ -270,20 +189,46 @@ const Index = () => {
                 variant="outline" 
                 className="h-auto py-4 flex-col gap-2"
                 onClick={handleNewEstimation}
+                disabled={creatingEstimation}
               >
                 <Plus className="h-5 w-5" />
                 <span className="text-sm">Nouvelle estimation</span>
               </Button>
               <Button 
-                variant="default" 
-                className="h-auto py-4 flex-col gap-2 bg-amber-500 hover:bg-amber-600 text-white"
-                onClick={() => navigate('/estimation-express')}
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/comparables/explore')}
               >
-                <Zap className="h-5 w-5" />
-                <span className="text-sm">Estimation Express</span>
+                <Search className="h-5 w-5" />
+                <span className="text-sm">Explorer comparables</span>
               </Button>
             </div>
           </div>
+
+          {/* Estimation Express promo */}
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-amber-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Zap className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground">Estimation Express</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Calculez rapidement une estimation simplifiée
+                  </p>
+                </div>
+                <Button 
+                  size="sm"
+                  variant="default"
+                  className="bg-amber-500 hover:bg-amber-600 shrink-0"
+                  onClick={() => navigate('/estimation-express')}
+                >
+                  Lancer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
 
