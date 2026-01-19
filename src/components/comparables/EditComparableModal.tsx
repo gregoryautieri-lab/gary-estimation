@@ -42,6 +42,8 @@ interface FormData {
   dateVente: string;
   notes: string;
   urlSource: string;
+  acheteurs: string;
+  vendeurs: string;
 }
 
 export function EditComparableModal({
@@ -65,6 +67,8 @@ export function EditComparableModal({
     dateVente: '',
     notes: '',
     urlSource: '',
+    acheteurs: '',
+    vendeurs: '',
   });
 
   // Populate form when comparable changes
@@ -101,6 +105,8 @@ export function EditComparableModal({
       dateVente: data.date_vente ? data.date_vente.split('T')[0] : '',
       notes: data.notes || '',
       urlSource: data.url_source || '',
+      acheteurs: data.acheteurs || '',
+      vendeurs: data.vendeurs || '',
     });
   };
 
@@ -134,6 +140,8 @@ export function EditComparableModal({
         updateData.strategie_diffusion = null;
       }
       if (formData.dateVente) updateData.date_vente = new Date(formData.dateVente).toISOString();
+      if (formData.acheteurs.trim()) updateData.acheteurs = formData.acheteurs.trim();
+      if (formData.vendeurs.trim()) updateData.vendeurs = formData.vendeurs.trim();
 
       const { error } = await supabase
         .from('comparables')
@@ -316,6 +324,30 @@ export function EditComparableModal({
               />
             </div>
           </div>
+
+          {/* Vendeurs / Acheteurs */}
+          {formData.statutMarche === 'vendu' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-vendeurs">Vendeur(s)</Label>
+                <Input
+                  id="edit-vendeurs"
+                  placeholder="Nom du vendeur"
+                  value={formData.vendeurs}
+                  onChange={(e) => handleInputChange('vendeurs', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-acheteurs">Acheteur(s)</Label>
+                <Input
+                  id="edit-acheteurs"
+                  placeholder="Nom de l'acheteur"
+                  value={formData.acheteurs}
+                  onChange={(e) => handleInputChange('acheteurs', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           {/* URL Source */}
           <div>

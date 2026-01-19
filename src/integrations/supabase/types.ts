@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       comparables: {
         Row: {
+          acheteurs: string | null
           adresse: string | null
           code_postal: string | null
           created_at: string
@@ -37,8 +38,10 @@ export type Database = {
           updated_at: string
           url_source: string | null
           user_id: string
+          vendeurs: string | null
         }
         Insert: {
+          acheteurs?: string | null
           adresse?: string | null
           code_postal?: string | null
           created_at?: string
@@ -60,8 +63,10 @@ export type Database = {
           updated_at?: string
           url_source?: string | null
           user_id: string
+          vendeurs?: string | null
         }
         Update: {
+          acheteurs?: string | null
           adresse?: string | null
           code_postal?: string | null
           created_at?: string
@@ -83,6 +88,7 @@ export type Database = {
           updated_at?: string
           url_source?: string | null
           user_id?: string
+          vendeurs?: string | null
         }
         Relationships: []
       }
