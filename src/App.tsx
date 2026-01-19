@@ -9,6 +9,7 @@ import { useBeforeUnloadWarning } from "@/hooks/useBeforeUnloadWarning";
 import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
+import NewProject from "./pages/comparables/NewProject";
 import EstimationOverview from "./pages/estimation/EstimationOverview";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
@@ -69,6 +70,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <ComparablesProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/comparables/nouveau"
+          element={
+            <ProtectedRoute>
+              <NewProject />
             </ProtectedRoute>
           }
         />
