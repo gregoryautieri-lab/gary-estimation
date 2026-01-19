@@ -57,7 +57,7 @@ const TYPE_BIEN_OPTIONS = [
 ];
 
 const STRATEGIE_OPTIONS = [
-  { value: '', label: 'Non spécifié' },
+  { value: 'non_specifie', label: 'Non spécifié' },
   { value: 'off_market', label: 'Off-market' },
   { value: 'coming_soon', label: 'Coming soon' },
   { value: 'public', label: 'Public' },
@@ -230,7 +230,7 @@ export function AddManualComparableModal({
       if (formData.prix) insertData.prix = parseFloat(formData.prix);
       if (formData.surface) insertData.surface = parseFloat(formData.surface);
       if (formData.pieces) insertData.pieces = parseFloat(formData.pieces);
-      if (formData.strategieDiffusion) insertData.strategie_diffusion = formData.strategieDiffusion;
+      if (formData.strategieDiffusion && formData.strategieDiffusion !== 'non_specifie') insertData.strategie_diffusion = formData.strategieDiffusion;
       if (formData.dateVente) insertData.date_vente = new Date(formData.dateVente).toISOString();
       if (coordinates?.lat) insertData.latitude = coordinates.lat;
       if (coordinates?.lng) insertData.longitude = coordinates.lng;
