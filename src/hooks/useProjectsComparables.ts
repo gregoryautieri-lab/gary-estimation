@@ -161,6 +161,30 @@ export function useProjectsComparables() {
     }
   }, [user?.id]);
 
+  // Fetch distinct courtier names for filter
+  const fetchDistinctCourtiers = useCallback(async (): Promise<string[]> => {
+    if (!user?.id) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('projects_comparables')
+        .select('courtier_name')
+        .eq('user_id', user.id)
+        .not('courtier_name', 'is', null);
+
+      if (error) {
+        console.error('Error fetching courtiers:', error);
+        return [];
+      }
+
+      const courtiers = [...new Set((data || []).map(d => d.courtier_name).filter(Boolean))] as string[];
+      return courtiers.sort();
+    } catch (err) {
+      console.error('Error fetching courtiers:', err);
+      return [];
+    }
+  }, [user?.id]);
+
   // Create a new project
   const createProject = useCallback(async (data: Partial<ProjectComparable>): Promise<ProjectComparable | null> => {
     if (!user?.id) {
@@ -356,6 +380,7 @@ export function useProjectsComparables() {
     error,
     fetchProjects,
     fetchDistinctCommunes,
+    fetchDistinctCourtiers,
     createProject,
     updateProjectName,
     toggleArchived,

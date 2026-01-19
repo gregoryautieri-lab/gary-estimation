@@ -1,4 +1,4 @@
-import { Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -17,6 +17,9 @@ interface ProjectFiltersProps {
   communeFilter: string;
   onCommuneChange: (value: string) => void;
   availableCommunes: string[];
+  courtierFilter: string;
+  onCourtierChange: (value: string) => void;
+  availableCourtiers: string[];
   archivedFilter: ArchivedFilter;
   onArchivedChange: (value: ArchivedFilter) => void;
   sortBy: SortOption;
@@ -30,6 +33,9 @@ export function ProjectFilters({
   communeFilter,
   onCommuneChange,
   availableCommunes,
+  courtierFilter,
+  onCourtierChange,
+  availableCourtiers,
   archivedFilter,
   onArchivedChange,
   sortBy,
@@ -52,6 +58,24 @@ export function ProjectFilters({
 
       {/* Filters row */}
       <div className="flex flex-wrap gap-2">
+        {/* Courtier filter */}
+        {availableCourtiers.length > 1 && (
+          <Select value={courtierFilter} onValueChange={onCourtierChange}>
+            <SelectTrigger className="w-[160px]">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Courtier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les courtiers</SelectItem>
+              {availableCourtiers.map((courtier) => (
+                <SelectItem key={courtier} value={courtier}>
+                  {courtier}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Commune filter */}
         <Select value={communeFilter} onValueChange={onCommuneChange}>
           <SelectTrigger className="w-[140px]">
