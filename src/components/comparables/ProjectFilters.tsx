@@ -59,7 +59,7 @@ export function ProjectFilters({
       {/* Filters row */}
       <div className="flex flex-wrap gap-2">
         {/* Courtier filter */}
-        {availableCourtiers.length > 1 && (
+        {availableCourtiers.length > 0 && (
           <Select value={courtierFilter} onValueChange={onCourtierChange}>
             <SelectTrigger className="w-[160px]">
               <User className="h-4 w-4 mr-2 text-muted-foreground" />
