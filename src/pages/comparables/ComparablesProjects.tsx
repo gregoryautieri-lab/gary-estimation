@@ -20,6 +20,7 @@ export default function ComparablesProjects() {
     loading,
     fetchProjects,
     fetchDistinctCommunes,
+    fetchDistinctCourtiers,
     createProject,
     updateProjectName,
     toggleArchived,
@@ -30,11 +31,13 @@ export default function ComparablesProjects() {
   // State
   const [projects, setProjects] = useState<ProjectComparable[]>([]);
   const [communes, setCommunes] = useState<string[]>([]);
+  const [courtiers, setCourtiers] = useState<string[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
 
   // Filters from URL params
   const search = searchParams.get('q') || '';
   const communeFilter = searchParams.get('commune') || 'all';
+  const courtierFilter = searchParams.get('courtier') || 'all';
   const archivedFilter = (searchParams.get('status') || 'active') as ArchivedFilter;
   const sortBy = (searchParams.get('sort') || 'recent') as SortOption;
 
@@ -48,12 +51,14 @@ export default function ComparablesProjects() {
       if (!user) return;
       setInitialLoading(true);
       try {
-        const [projectsData, communesData] = await Promise.all([
+        const [projectsData, communesData, courtiersData] = await Promise.all([
           fetchProjects({ archived: null }), // Fetch all, filter client-side for search
           fetchDistinctCommunes(),
+          fetchDistinctCourtiers(),
         ]);
         setProjects(projectsData);
         setCommunes(communesData);
+        setCourtiers(courtiersData);
       } catch (err) {
         console.error('Error loading projects data:', err);
       } finally {
@@ -62,7 +67,7 @@ export default function ComparablesProjects() {
     };
     
     loadData();
-  }, [user, fetchProjects, fetchDistinctCommunes]);
+  }, [user, fetchProjects, fetchDistinctCommunes, fetchDistinctCourtiers]);
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
@@ -75,6 +80,11 @@ export default function ComparablesProjects() {
         p.projectName.toLowerCase().includes(searchLower) ||
         p.communes?.some(c => c.toLowerCase().includes(searchLower))
       );
+    }
+
+    // Filter by courtier
+    if (courtierFilter && courtierFilter !== 'all') {
+      result = result.filter(p => p.courtierName === courtierFilter);
     }
 
     // Filter by commune
@@ -103,7 +113,7 @@ export default function ComparablesProjects() {
     });
 
     return result;
-  }, [projects, search, communeFilter, archivedFilter, sortBy]);
+  }, [projects, search, courtierFilter, communeFilter, archivedFilter, sortBy]);
 
   // Update URL params
   const updateFilter = (key: string, value: string) => {
@@ -215,6 +225,9 @@ export default function ComparablesProjects() {
               communeFilter={communeFilter}
               onCommuneChange={(v) => updateFilter('commune', v)}
               availableCommunes={communes}
+              courtierFilter={courtierFilter}
+              onCourtierChange={(v) => updateFilter('courtier', v)}
+              availableCourtiers={courtiers}
               archivedFilter={archivedFilter}
               onArchivedChange={(v) => updateFilter('status', v)}
               sortBy={sortBy}
