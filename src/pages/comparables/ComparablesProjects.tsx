@@ -44,21 +44,25 @@ export default function ComparablesProjects() {
 
   // Load data on mount
   useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-
-  const loadData = async () => {
-    setInitialLoading(true);
-    const [projectsData, communesData] = await Promise.all([
-      fetchProjects({ archived: null }), // Fetch all, filter client-side for search
-      fetchDistinctCommunes(),
-    ]);
-    setProjects(projectsData);
-    setCommunes(communesData);
-    setInitialLoading(false);
-  };
+    const loadData = async () => {
+      if (!user) return;
+      setInitialLoading(true);
+      try {
+        const [projectsData, communesData] = await Promise.all([
+          fetchProjects({ archived: null }), // Fetch all, filter client-side for search
+          fetchDistinctCommunes(),
+        ]);
+        setProjects(projectsData);
+        setCommunes(communesData);
+      } catch (err) {
+        console.error('Error loading projects data:', err);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [user, fetchProjects, fetchDistinctCommunes]);
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
