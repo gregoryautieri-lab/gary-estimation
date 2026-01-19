@@ -44,6 +44,21 @@ const EXPOSITION_LABELS: Record<string, string> = {
   'nord-est': 'NE', 'nord-ouest': 'NO', 'sud-est': 'SE', 'sud-ouest': 'SO'
 };
 
+// Labels sous-types
+const SOUS_TYPE_LABELS: Record<string, string> = {
+  standard: 'Standard',
+  duplex: 'Duplex',
+  attique: 'Attique',
+  loft: 'Loft',
+  studio: 'Studio',
+  villa: 'Villa',
+  villa_individuelle: 'Villa individuelle',
+  villa_mitoyenne: 'Villa mitoyenne',
+  villa_jumelle: 'Villa jumelle',
+  ferme: 'Ferme',
+  chalet: 'Chalet'
+};
+
 // Labels vue
 const VUE_LABELS: Record<string, string> = {
   degagee: 'Vue dégagée',
@@ -149,7 +164,9 @@ export function PresentationCharacteristics({
               {adresseComplete || 'Adresse non renseignée'}
             </h1>
             {sousType && (
-              <p className="text-white/50 text-sm uppercase tracking-wide">{sousType}</p>
+              <p className="text-white/50 text-sm uppercase tracking-wide">
+                {SOUS_TYPE_LABELS[sousType] || sousType.replace(/_/g, ' ')}
+              </p>
             )}
           </div>
           {anneeConstruction && (
