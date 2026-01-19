@@ -352,7 +352,7 @@ export function ImportPopetyModal({
             </div>
 
             {/* Transaction list */}
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <ScrollArea className="flex-1 max-h-[50vh] -mx-6 px-6">
               <div className="space-y-3 py-4">
                 {transactions.map((tx, index) => (
                   <div
