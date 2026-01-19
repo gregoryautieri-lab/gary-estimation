@@ -13,7 +13,8 @@ import {
   getLuxCopy,
   calculateSurfaces, 
   calculateValeurs,
-  calculatePauseRecalibrage
+  calculatePauseRecalibrage,
+  calculateNiveauContrainte
 } from '../pdfCalculs';
 
 interface PageStrategieConfig {
@@ -95,6 +96,14 @@ export function generateStrategiePage(
   );
   const copy = getLuxCopy(luxResult.luxMode);
   const pauseRecalibrage = calculatePauseRecalibrage(historique);
+  
+  // Projet post-vente
+  const projetPostVente = identification.projetPostVente || {};
+  const hasProjetAchat = projetPostVente.nature === 'achat';
+  const niveauContrainte = calculateNiveauContrainte(projetPostVente);
+  const flexibilite = projetPostVente.flexibilite || 'moyenne';
+  const toleranceVenteRapide = projetPostVente.toleranceVenteRapide || false;
+  const toleranceVenteLongue = projetPostVente.toleranceVenteLongue || false;
   
   // Durées phases
   const phaseDurees = strategie.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 6 };
