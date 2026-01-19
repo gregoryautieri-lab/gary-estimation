@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
@@ -13,11 +12,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { ArrowLeft, Filter, Save, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, Filter, Save, MapPin, Loader2, Building2, Home, Ruler, DoorOpen } from 'lucide-react';
 import { MultiSelectCommunes } from '@/components/ui/multi-select-communes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // Types de bien disponibles
 const TYPE_BIEN_OPTIONS = [
@@ -28,6 +28,24 @@ const TYPE_BIEN_OPTIONS = [
   { value: 'commercial', label: 'Commercial' },
   { value: 'immeuble', label: 'Immeuble' },
 ];
+
+// Configuration des statuts
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  mandat_signe: { label: 'Vendu', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+  presentee: { label: 'En vente', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
+  brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400' },
+  en_cours: { label: 'En cours', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  termine: { label: 'Terminé', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' },
+};
+
+const TYPE_BIEN_ICONS: Record<string, React.ReactNode> = {
+  appartement: <Building2 className="h-4 w-4" />,
+  maison: <Home className="h-4 w-4" />,
+  villa: <Home className="h-4 w-4" />,
+  terrain: <MapPin className="h-4 w-4" />,
+  commercial: <Building2 className="h-4 w-4" />,
+  immeuble: <Building2 className="h-4 w-4" />,
+};
 
 interface ExploreFilters {
   communes: string[];
@@ -45,19 +63,24 @@ interface ComparableResult {
   statut: string;
   surface: number | null;
   pieces: number | null;
-  lat?: number;
-  lng?: number;
 }
 
 export default function ComparablesExplore() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [filters, setFilters] = useState<ExploreFilters>({
-    communes: [],
-    prixMin: null,
-    prixMax: null,
-    typeBien: ['appartement', 'maison', 'villa'],
+  
+  // Initialiser les filtres depuis les params URL si présents
+  const [filters, setFilters] = useState<ExploreFilters>(() => {
+    const communesParam = searchParams.get('communes');
+    return {
+      communes: communesParam ? communesParam.split(',') : [],
+      prixMin: searchParams.get('prixMin') ? Number(searchParams.get('prixMin')) : null,
+      prixMax: searchParams.get('prixMax') ? Number(searchParams.get('prixMax')) : null,
+      typeBien: searchParams.get('types') ? searchParams.get('types')!.split(',') : ['appartement', 'maison', 'villa'],
+    };
   });
+  
   const [results, setResults] = useState<ComparableResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -75,7 +98,7 @@ export default function ComparablesExplore() {
       try {
         let query = supabase
           .from('estimations')
-          .select('id, adresse, localite, prix_final, type_bien, statut, caracteristiques, identification');
+          .select('id, adresse, localite, prix_final, type_bien, statut, caracteristiques');
 
         // Filtre communes
         query = query.in('localite', filters.communes);
@@ -104,19 +127,16 @@ export default function ComparablesExplore() {
         // Transformer les résultats
         const transformed: ComparableResult[] = (data || []).map((est) => {
           const carac = est.caracteristiques as any;
-          const ident = est.identification as any;
           
           return {
             id: est.id,
-            adresse: est.adresse || ident?.adresseComplete || 'Adresse inconnue',
+            adresse: est.adresse || 'Adresse inconnue',
             localite: est.localite || 'Commune inconnue',
             prixFinal: est.prix_final,
             typeBien: est.type_bien || 'inconnu',
             statut: est.statut,
             surface: parseFloat(carac?.surfacePPE || carac?.surfaceHabitableMaison || '0') || null,
             pieces: parseFloat(carac?.nombrePieces || '0') || null,
-            lat: ident?.latitude,
-            lng: ident?.longitude,
           };
         });
 
@@ -135,88 +155,41 @@ export default function ComparablesExplore() {
   }, [filters]);
 
   // Séparer les résultats par statut
-  const { vendus, enVente } = useMemo(() => {
+  const { vendus, enVente, autres } = useMemo(() => {
     const vendus: ComparableResult[] = [];
     const enVente: ComparableResult[] = [];
+    const autres: ComparableResult[] = [];
 
     results.forEach((r) => {
       if (r.statut === 'mandat_signe') {
         vendus.push(r);
       } else if (r.statut === 'presentee') {
         enVente.push(r);
+      } else {
+        autres.push(r);
       }
     });
 
-    return { vendus, enVente };
+    return { vendus, enVente, autres };
   }, [results]);
 
-  // Créer un projet avec ces critères
-  const handleCreateProject = async () => {
-    if (!user?.id) {
-      toast.error('Vous devez être connecté');
-      return;
+  // Créer un projet avec ces critères - navigue vers NewProject avec params
+  const handleCreateProject = () => {
+    const params = new URLSearchParams();
+    if (filters.communes.length > 0) {
+      params.set('communes', filters.communes.join(','));
     }
-
-    if (filters.communes.length === 0) {
-      toast.error('Sélectionnez au moins une commune');
-      return;
+    if (filters.prixMin) {
+      params.set('prixMin', filters.prixMin.toString());
     }
-
-    setCreatingProject(true);
-    try {
-      // Récupérer le nom du courtier
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      // Générer un nom de projet basé sur les filtres
-      const projectName = filters.communes.length === 1 
-        ? `${filters.communes[0]}${filters.prixMin || filters.prixMax ? ` ${(filters.prixMin ? filters.prixMin / 1000000 : 0).toFixed(1)}-${(filters.prixMax ? filters.prixMax / 1000000 : '∞')}M` : ''}`
-        : `${filters.communes.length} communes`;
-
-      const { data: newProject, error } = await supabase
-        .from('projects_comparables')
-        .insert({
-          user_id: user.id,
-          courtier_name: profile?.full_name || user.email,
-          project_name: projectName,
-          communes: filters.communes,
-          prix_min: filters.prixMin,
-          prix_max: filters.prixMax,
-          type_bien: filters.typeBien,
-          statut_filter: 'tous',
-          last_search_date: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error || !newProject) {
-        console.error('Error creating project:', error);
-        toast.error('Erreur lors de la création');
-        return;
-      }
-
-      // Lier les résultats actuels au projet
-      if (results.length > 0) {
-        const linksToInsert = results.map((r) => ({
-          project_id: newProject.id,
-          estimation_id: r.id,
-          selected_by_user: false,
-        }));
-
-        await supabase.from('project_comparables_links').insert(linksToInsert);
-      }
-
-      toast.success(`Projet "${projectName}" créé avec ${results.length} comparables !`);
-      navigate(`/comparables/${newProject.id}`);
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Erreur lors de la création');
-    } finally {
-      setCreatingProject(false);
+    if (filters.prixMax) {
+      params.set('prixMax', filters.prixMax.toString());
     }
+    if (filters.typeBien.length > 0) {
+      params.set('types', filters.typeBien.join(','));
+    }
+    
+    navigate(`/comparables/nouveau?${params.toString()}`);
   };
 
   const updateFilter = <K extends keyof ExploreFilters>(key: K, value: ExploreFilters[K]) => {
@@ -230,6 +203,62 @@ export default function ComparablesExplore() {
 
   const formatNumber = (value: number | null): string => {
     return value ? value.toLocaleString('fr-CH') : '';
+  };
+
+  const formatPrice = (price: number | null): string => {
+    if (!price) return '—';
+    return new Intl.NumberFormat('fr-CH', {
+      style: 'currency',
+      currency: 'CHF',
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
+  // Composant carte de résultat
+  const ResultCard = ({ item }: { item: ComparableResult }) => {
+    const statusConfig = STATUS_CONFIG[item.statut] || STATUS_CONFIG.brouillon;
+    const icon = TYPE_BIEN_ICONS[item.typeBien] || <Building2 className="h-4 w-4" />;
+    
+    return (
+      <div
+        className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors cursor-pointer"
+        onClick={() => navigate(`/estimation/${item.id}/overview`)}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{icon}</span>
+            <span className="font-medium">{item.localite}</span>
+          </div>
+          <Badge className={cn("text-xs shrink-0", statusConfig.color)}>
+            {statusConfig.label}
+          </Badge>
+        </div>
+        
+        <p className="text-lg font-semibold text-primary mb-2">
+          {formatPrice(item.prixFinal)}
+        </p>
+        
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+          {item.surface && (
+            <span className="flex items-center gap-1">
+              <Ruler className="h-3.5 w-3.5" />
+              {item.surface} m²
+            </span>
+          )}
+          {item.pieces && (
+            <span className="flex items-center gap-1">
+              <DoorOpen className="h-3.5 w-3.5" />
+              {item.pieces} p
+            </span>
+          )}
+        </div>
+        
+        <p className="text-sm text-muted-foreground truncate">
+          <MapPin className="h-3.5 w-3.5 inline mr-1" />
+          {item.adresse}
+        </p>
+      </div>
+    );
   };
 
   return (
@@ -259,13 +288,8 @@ export default function ComparablesExplore() {
             <Button
               size="sm"
               onClick={handleCreateProject}
-              disabled={creatingProject}
             >
-              {creatingProject ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
+              <Save className="h-4 w-4 mr-2" />
               Créer projet
             </Button>
           )}
@@ -350,6 +374,12 @@ export default function ComparablesExplore() {
                     <span className="text-muted-foreground">En vente</span>
                     <Badge variant="outline">{enVente.length}</Badge>
                   </div>
+                  {autres.length > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Autres</span>
+                      <Badge variant="outline">{autres.length}</Badge>
+                    </div>
+                  )}
                 </div>
               </div>
             </SheetContent>
@@ -358,15 +388,15 @@ export default function ComparablesExplore() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 relative">
+      <main className="flex-1 p-4 pb-8">
         {filters.communes.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex-1 flex items-center justify-center p-8 min-h-[50vh]">
             <div className="text-center space-y-4 max-w-sm">
               <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
               <div>
                 <p className="font-medium text-foreground">Sélectionnez des communes</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Ouvrez les filtres et choisissez les communes à explorer sur la carte.
+                  Ouvrez les filtres et choisissez les communes à explorer.
                 </p>
               </div>
               <Button variant="outline" onClick={() => setFiltersOpen(true)}>
@@ -376,11 +406,11 @@ export default function ComparablesExplore() {
             </div>
           </div>
         ) : loading ? (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center min-h-[50vh]">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : results.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex-1 flex items-center justify-center p-8 min-h-[50vh]">
             <div className="text-center space-y-4">
               <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
               <div>
@@ -392,27 +422,51 @@ export default function ComparablesExplore() {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-60px)]">
-            <ComparablesMap
-              principalAdresse={filters.communes.join(', ')}
-              principalCommune={filters.communes[0]}
-              vendus={vendus.map((v) => ({
-                adresse: v.adresse,
-                commune: v.localite,
-                prix: v.prixFinal?.toString() || '',
-                prixM2: v.surface ? ((v.prixFinal || 0) / v.surface).toFixed(0) : '',
-                lat: v.lat,
-                lng: v.lng,
-              }))}
-              enVente={enVente.map((v) => ({
-                adresse: v.adresse,
-                commune: v.localite,
-                prix: v.prixFinal?.toString() || '',
-                prixM2: v.surface ? ((v.prixFinal || 0) / v.surface).toFixed(0) : '',
-                lat: v.lat,
-                lng: v.lng,
-              }))}
-            />
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Vendus */}
+            {vendus.length > 0 && (
+              <div>
+                <h2 className="font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  Vendus ({vendus.length})
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {vendus.map((item) => (
+                    <ResultCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* En vente */}
+            {enVente.length > 0 && (
+              <div>
+                <h2 className="font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  En vente ({enVente.length})
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {enVente.map((item) => (
+                    <ResultCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Autres */}
+            {autres.length > 0 && (
+              <div>
+                <h2 className="font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
+                  Autres ({autres.length})
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {autres.map((item) => (
+                    <ResultCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

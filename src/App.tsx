@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
 import NewProject from "./pages/comparables/NewProject";
+import ComparablesExplore from "./pages/comparables/ComparablesExplore";
 import EstimationOverview from "./pages/estimation/EstimationOverview";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
@@ -78,6 +79,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <NewProject />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/comparables/explore"
+          element={
+            <ProtectedRoute>
+              <ComparablesExplore />
             </ProtectedRoute>
           }
         />
