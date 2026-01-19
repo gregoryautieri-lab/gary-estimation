@@ -68,6 +68,7 @@ export function ImportPopetyModal({
   const [parsing, setParsing] = useState(false);
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [importing, setImporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Reset state when modal closes
   const handleClose = () => {
@@ -76,11 +77,8 @@ export function ImportPopetyModal({
     onClose();
   };
 
-  // Handle file upload
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // Process file (shared between input and drop)
+  const processFile = useCallback(async (file: File) => {
     // Check file type
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
       toast.error('Format non supporté. Utilisez .xlsx, .xls ou .csv');
@@ -137,6 +135,39 @@ export function ImportPopetyModal({
       setParsing(false);
     }
   }, []);
+
+  // Handle file input change
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  // Drag & drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
 
   // Toggle selection
   const toggleSelection = (index: number) => {
@@ -299,8 +330,16 @@ export function ImportPopetyModal({
         </DialogHeader>
 
         {step === 'upload' && (
-          <div className="py-8">
-            <div className="border-2 border-dashed rounded-xl p-8 text-center">
+          <div 
+            className="py-8"
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              isDragging ? 'border-primary bg-primary/5' : 'border-border'
+            }`}>
               {parsing ? (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
