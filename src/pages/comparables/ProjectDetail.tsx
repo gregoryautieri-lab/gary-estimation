@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen, FilePlus2 } from 'lucide-react';
+import { ArrowLeft, Download, Plus, MapPin, Filter, ArrowUpDown, Loader2, AlertTriangle, FolderOpen, FilePlus2, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { useProjectDetail, ComparableData } from '@/hooks/useProjectDetail';
@@ -28,6 +29,7 @@ import { ProjectDetailMap } from '@/components/comparables/ProjectDetailMap';
 import { ComparableListCard } from '@/components/comparables/ComparableListCard';
 import ImportComparablesModal from '@/components/comparables/ImportComparablesModal';
 import { AddManualComparableModal } from '@/components/comparables/AddManualComparableModal';
+import { supabase } from '@/integrations/supabase/client';
 
 type SortOption = 'recent' | 'oldest' | 'price_asc' | 'price_desc' | 'surface_asc' | 'surface_desc';
 type StatusFilter = 'all' | 'mandat_signe' | 'presentee' | 'other';
@@ -53,6 +55,103 @@ export default function ProjectDetail() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [addManualModalOpen, setAddManualModalOpen] = useState(false);
   const [removingComparable, setRemovingComparable] = useState<ComparableData | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Get geolocated comparables for export
+  const geolocatedComparables = useMemo(() => 
+    comparables.filter(c => c.coordinates?.lat && c.coordinates?.lng),
+    [comparables]
+  );
+
+  // Export map as PNG
+  const handleExportMap = async () => {
+    if (geolocatedComparables.length === 0) {
+      toast.error("Aucun comparable géolocalisé à exporter");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      // Build markers array with colors based on status
+      const markers = geolocatedComparables.map(c => {
+        // Blue for sold (mandat_signe/vendu), Green for en_vente, Gray for others
+        let color: "blue" | "green" | "gray" = "gray";
+        if (c.sourceType === 'external') {
+          // External comparables use statut_marche
+          color = c.statut === 'vendu' ? 'blue' : c.statut === 'en_vente' ? 'green' : 'gray';
+        } else {
+          // GARY estimations use statut
+          color = c.statut === 'mandat_signe' ? 'blue' : c.statut === 'presentee' ? 'green' : 'gray';
+        }
+        return {
+          lat: c.coordinates!.lat,
+          lng: c.coordinates!.lng,
+          color
+        };
+      });
+
+      // Calculate center (average of coordinates)
+      const avgLat = markers.reduce((sum, m) => sum + m.lat, 0) / markers.length;
+      const avgLng = markers.reduce((sum, m) => sum + m.lng, 0) / markers.length;
+
+      // Calculate optimal zoom based on bounding box
+      const latitudes = markers.map(m => m.lat);
+      const longitudes = markers.map(m => m.lng);
+      const latDelta = Math.max(...latitudes) - Math.min(...latitudes);
+      const lngDelta = Math.max(...longitudes) - Math.min(...longitudes);
+      const maxDelta = Math.max(latDelta, lngDelta);
+
+      let zoom = 13;
+      if (maxDelta > 0.1) zoom = 11;
+      if (maxDelta > 0.2) zoom = 10;
+      if (maxDelta > 0.5) zoom = 9;
+      if (maxDelta < 0.02) zoom = 14;
+      if (maxDelta < 0.005) zoom = 15;
+
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke('static-map-proxy', {
+        body: {
+          type: 'static-export',
+          lat: avgLat,
+          lng: avgLng,
+          zoom,
+          mapType: 'roadmap',
+          markers
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.image) throw new Error("Pas d'image reçue");
+
+      // Convert base64 to blob and download
+      const base64Data = data.image.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const safeName = project?.projectName?.replace(/[^a-zA-Z0-9]/g, '-') || 'carte';
+      link.download = `carte-comparables-${safeName}-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Carte exportée avec succès !");
+    } catch (err) {
+      console.error('Export map error:', err);
+      toast.error("Échec de l'export, réessayez.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Filter and sort comparables
   const filteredComparables = useMemo(() => {
@@ -218,13 +317,31 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        {/* Map */}
+        {/* Map with Export button */}
         <div className="px-4 pt-4">
-          <ProjectDetailMap
-            comparables={comparables}
-            selectedComparableId={selectedComparableId}
-            className="h-80 md:h-96"
-          />
+          <div className="relative">
+            <ProjectDetailMap
+              comparables={comparables}
+              selectedComparableId={selectedComparableId}
+              className="h-80 md:h-96"
+            />
+            {/* Export PNG button overlay */}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-3 right-3 gap-1.5 shadow-md bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={handleExportMap}
+              disabled={exporting || geolocatedComparables.length === 0}
+              title={geolocatedComparables.length === 0 ? "Aucun comparable géolocalisé" : "Exporter la carte en PNG"}
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Image className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Exporter PNG</span>
+            </Button>
+          </div>
         </div>
 
         {/* Comparables List */}

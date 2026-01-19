@@ -6,16 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface Marker {
+  lat: number;
+  lng: number;
+  color: "blue" | "green" | "red" | "gray";
+}
+
 interface MapRequest {
-  type: "google" | "cadastre";
+  type: "google" | "cadastre" | "static-export";
   lat: number;
   lng: number;
   zoom?: number;
-  mapType?: "satellite" | "hybrid" | "roadmap";
+  mapType?: "satellite" | "hybrid" | "roadmap" | "terrain";
   markerLat?: number;
   markerLng?: number;
   width?: number;
   height?: number;
+  // For static-export type with multiple markers
+  markers?: Marker[];
 }
 
 serve(async (req) => {
@@ -26,20 +34,83 @@ serve(async (req) => {
 
   try {
     const params: MapRequest = await req.json();
-    const { type, lat, lng, zoom = 18, mapType = "satellite", markerLat, markerLng, width = 800, height = 500 } = params;
+    const { type, lat, lng, zoom = 18, mapType = "satellite", markerLat, markerLng, width = 800, height = 500, markers } = params;
 
-    console.log(`[static-map-proxy] Request: type=${type}, lat=${lat}, lng=${lng}, zoom=${zoom}`);
-
-    if (!lat || !lng) {
-      return new Response(
-        JSON.stringify({ error: "Missing lat/lng coordinates" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log(`[static-map-proxy] Request: type=${type}, lat=${lat}, lng=${lng}, zoom=${zoom}, markers=${markers?.length || 0}`);
 
     let imageBase64: string | null = null;
 
-    if (type === "google") {
+    // New type for exporting map with multiple markers
+    if (type === "static-export") {
+      const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
+      if (!GOOGLE_MAPS_API_KEY) {
+        console.error("[static-map-proxy] GOOGLE_MAPS_API_KEY not configured");
+        return new Response(
+          JSON.stringify({ error: "Google Maps API key not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!markers || markers.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No markers provided for static-export" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Group markers by color and build URL parameters
+      const markersByColor: Record<string, Marker[]> = {};
+      for (const m of markers) {
+        if (!markersByColor[m.color]) {
+          markersByColor[m.color] = [];
+        }
+        markersByColor[m.color].push(m);
+      }
+
+      // Build markers query string
+      const markerParams: string[] = [];
+      for (const [color, colorMarkers] of Object.entries(markersByColor)) {
+        const coords = colorMarkers.map(m => `${m.lat},${m.lng}`).join('|');
+        markerParams.push(`markers=color:${color}|${coords}`);
+      }
+
+      // Build final URL (640x640 max for free tier, scale=2 for Retina)
+      const size = Math.min(width || 640, 640);
+      const googleUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
+        `center=${lat},${lng}` +
+        `&zoom=${Math.min(zoom || 12, 20)}` +
+        `&size=${size}x${size}` +
+        `&scale=2` +
+        `&maptype=${mapType || 'roadmap'}` +
+        `&${markerParams.join('&')}` +
+        `&key=${GOOGLE_MAPS_API_KEY}`;
+
+      console.log(`[static-map-proxy] Static export URL built with ${markers.length} markers`);
+      
+      const response = await fetch(googleUrl);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[static-map-proxy] Google Maps error: ${response.status} - ${errorText}`);
+        return new Response(
+          JSON.stringify({ error: `Google Maps API error: ${response.status}`, details: errorText.substring(0, 200) }),
+          { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = encodeBase64(arrayBuffer);
+      imageBase64 = `data:image/png;base64,${base64}`;
+      console.log(`[static-map-proxy] Static export image fetched, size: ${base64.length} chars`);
+
+    } else if (type === "google") {
+      if (!lat || !lng) {
+        return new Response(
+          JSON.stringify({ error: "Missing lat/lng coordinates" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Fetch Google Static Maps
       const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
       if (!GOOGLE_MAPS_API_KEY) {
@@ -72,6 +143,13 @@ serve(async (req) => {
       console.log(`[static-map-proxy] Google Maps image fetched, size: ${base64.length} chars`);
 
     } else if (type === "cadastre") {
+      if (!lat || !lng) {
+        return new Response(
+          JSON.stringify({ error: "Missing lat/lng coordinates" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Fetch Swiss cadastre via WMS GetMap
       // Calculate BBOX for WGS84 (EPSG:4326)
       // At zoom ~19, approximately 0.0008 degrees buffer (~80m)
@@ -112,7 +190,7 @@ serve(async (req) => {
       console.log(`[static-map-proxy] Cadastre image fetched, size: ${base64.length} chars`);
     } else {
       return new Response(
-        JSON.stringify({ error: "Invalid type. Use 'google' or 'cadastre'" }),
+        JSON.stringify({ error: "Invalid type. Use 'google', 'cadastre', or 'static-export'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
