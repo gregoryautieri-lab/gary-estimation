@@ -470,7 +470,11 @@ export default function PresentationPage() {
             <PresentationPrix 
               caracteristiques={estimation.caracteristiques}
               preEstimation={estimation.preEstimation}
+              analyseTerrain={estimation.analyseTerrain}
               typeBien={typeBien}
+              typeMiseEnVente={typeMiseEnVente}
+              totalVenale={prixFinal}
+              isLuxe={isLuxe}
             />
           )}
           {currentSection === 'next' && (

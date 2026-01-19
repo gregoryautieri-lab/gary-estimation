@@ -1,5 +1,5 @@
 // ============================================
-// Écran 5 : Prix et justification
+// Écran 8 : Objectif de Valorisation (Prix)
 // ============================================
 
 import React, { useState } from 'react';
@@ -15,61 +15,37 @@ import {
   MapPin,
   Box,
   Hammer,
-  Plus
+  Plus,
+  Target,
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEstimationCalcul } from '@/hooks/useEstimationCalcul';
-import type { Caracteristiques, PreEstimation } from '@/types/estimation';
+import type { Caracteristiques, PreEstimation, AnalyseTerrain, TypeMiseEnVente } from '@/types/estimation';
 
 interface PresentationPrixProps {
   caracteristiques: Caracteristiques;
   preEstimation: PreEstimation;
+  analyseTerrain?: AnalyseTerrain;
   typeBien: string;
+  typeMiseEnVente?: TypeMiseEnVente;
+  totalVenale?: number;
+  isLuxe?: boolean;
 }
 
 // Formateur de prix CHF
 function formatCHF(value: number): string {
   if (!value || value === 0) return '—';
-  return value.toLocaleString('fr-CH');
+  return new Intl.NumberFormat('fr-CH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value).replace(/\s/g, "'");
 }
 
-// Card pour les 3 valeurs
-function ValueCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  sublabel,
-  accent = false 
-}: { 
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  sublabel?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className={cn(
-      "flex flex-col items-center p-4 rounded-xl backdrop-blur-sm",
-      accent 
-        ? "bg-primary/20 border border-primary/30" 
-        : "bg-white/5 border border-white/10"
-    )}>
-      <Icon className={cn(
-        "h-5 w-5 mb-2",
-        accent ? "text-primary" : "text-white/60"
-      )} />
-      <p className="text-xs text-white/50 uppercase tracking-wide mb-1">{label}</p>
-      <p className={cn(
-        "text-lg font-bold",
-        accent ? "text-primary" : "text-white"
-      )}>
-        {value}
-      </p>
-      {sublabel && (
-        <p className="text-xs text-white/40 mt-1">{sublabel}</p>
-      )}
-    </div>
-  );
+// Arrondir à 5000
+function roundTo5000(value: number): number {
+  return Math.round(value / 5000) * 5000;
 }
 
 // Ligne de détail valorisation
@@ -111,10 +87,27 @@ function DetailLine({
   );
 }
 
+// Labels selon trajectoire
+const TRAJECTOIRE_LABELS: Record<string, string> = {
+  offmarket: 'Prix de lancement Off-Market',
+  comingsoon: 'Prix de lancement Coming Soon',
+  public: 'Prix de lancement Public',
+};
+
+const TRAJECTOIRE_NOMS: Record<string, string> = {
+  offmarket: 'Off-Market',
+  comingsoon: 'Coming Soon',
+  public: 'Public',
+};
+
 export function PresentationPrix({ 
   caracteristiques, 
   preEstimation,
-  typeBien 
+  analyseTerrain,
+  typeBien,
+  typeMiseEnVente = 'public',
+  totalVenale = 0,
+  isLuxe = false
 }: PresentationPrixProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   
@@ -124,87 +117,203 @@ export function PresentationPrix({
   const isAppartement = typeBien === 'appartement';
   const isMaison = typeBien === 'maison';
   
+  // Pourcentages par trajectoire
+  const pourcOffmarket = preEstimation?.pourcOffmarket ?? 15;
+  const pourcComingsoon = preEstimation?.pourcComingsoon ?? 10;
+  const pourcPublic = preEstimation?.pourcPublic ?? 6;
+  
+  // Prix de base (valeur vénale)
+  const basePrice = totalVenale > 0 ? totalVenale : calcul.totalVenaleArrondi;
+  
+  // Prix hero selon trajectoire sélectionnée
+  const pourcentageObjectif = 
+    typeMiseEnVente === 'offmarket' ? pourcOffmarket :
+    typeMiseEnVente === 'comingsoon' ? pourcComingsoon : pourcPublic;
+  
+  const prixHero = roundTo5000(basePrice * (1 + pourcentageObjectif / 100));
+  
+  // Fourchette de négociation (prix hero = prix affiché, vente attendue = -0% à -5%)
+  const prixVenteMin = roundTo5000(prixHero * 0.95);
+  const prixVenteMax = prixHero;
+  
   // Prix au m² (ou m³ pour maison)
   const prixUnitaire = isAppartement 
     ? calcul.prixM2Ajuste 
     : calcul.prixM3Ajuste;
   const unitLabel = isAppartement ? 'm²' : 'm³';
   
-  // Taux de rendement
-  const tauxRendement = preEstimation.tauxCapitalisation || 3.5;
-  const loyerMensuel = parseFloat(preEstimation.loyerMensuel || '0');
-  const hasRendement = loyerMensuel > 0;
+  // Points forts du bien (depuis analyseTerrain)
+  const pointsForts: string[] = [];
+  
+  // Récupérer depuis analyseTerrain
+  if (analyseTerrain?.pointsForts && Array.isArray(analyseTerrain.pointsForts)) {
+    pointsForts.push(...analyseTerrain.pointsForts.slice(0, 5));
+  }
+  
+  // Fallback avec des points génériques si rien
+  if (pointsForts.length === 0) {
+    if (caracteristiques?.vue) pointsForts.push(`Vue ${caracteristiques.vue}`);
+    if (caracteristiques?.piscine) pointsForts.push('Piscine');
+    if (caracteristiques?.parkingInterieur && parseInt(caracteristiques.parkingInterieur) > 0) {
+      pointsForts.push('Parking intérieur');
+    }
+    if (caracteristiques?.cave) pointsForts.push('Cave privative');
+    if (caracteristiques?.fitness) pointsForts.push('Salle de fitness');
+  }
+
+  // Label trajectoire
+  const labelTrajectoire = TRAJECTOIRE_LABELS[typeMiseEnVente] || TRAJECTOIRE_LABELS.public;
+  const nomTrajectoire = TRAJECTOIRE_NOMS[typeMiseEnVente] || TRAJECTOIRE_NOMS.public;
 
   return (
     <div className="h-full overflow-auto p-6 md:p-8">
       <div className="max-w-2xl mx-auto space-y-8">
         
-        {/* Hero Prix - Fourchette avec animation fade-in */}
-        <div className="text-center py-8 animate-fade-in">
-          <p className="text-white/50 text-sm mb-4 uppercase tracking-widest">
-            Estimation de valeur
+        {/* Titre */}
+        <div className="text-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">
+            {isLuxe ? 'Objectif de Valorisation' : 'Notre Recommandation'}
+          </h1>
+          <p className="text-white/60 mt-2">
+            {isLuxe ? 'Positionnement stratégique' : 'Basée sur notre analyse complète'}
+          </p>
+        </div>
+        
+        {/* Hero Prix avec label trajectoire */}
+        <div className="text-center py-8 md:py-12 animate-fade-in">
+          {/* Label trajectoire */}
+          <p className="text-white/50 text-sm md:text-base mb-4">
+            {labelTrajectoire}
           </p>
           
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className="text-4xl md:text-5xl font-bold text-primary">
-              CHF {formatCHF(calcul.prixEntreCalcule)}
-            </span>
-            <span className="text-2xl md:text-3xl text-white/40">—</span>
-            <span className="text-4xl md:text-5xl font-bold text-primary">
-              {formatCHF(calcul.prixEtCalcule)}
+          {/* Prix Hero principal */}
+          <div className="mb-4">
+            <span className={cn(
+              "text-5xl md:text-6xl lg:text-7xl font-bold",
+              isLuxe ? "text-amber-400" : "text-primary"
+            )}>
+              CHF {formatCHF(prixHero)}
             </span>
           </div>
           
           {/* Prix au m² */}
           {prixUnitaire > 0 && (
-            <p className="text-white/40 mt-4 text-lg">
+            <p className="text-white/40 text-base md:text-lg">
               soit CHF {formatCHF(prixUnitaire)} / {unitLabel}
             </p>
           )}
         </div>
 
-        {/* Les 3 valeurs */}
-        <div className="grid grid-cols-3 gap-3 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <ValueCard
-            icon={Building2}
-            label="Vénale"
-            value={`CHF ${formatCHF(calcul.totalVenaleArrondi)}`}
-            sublabel="Base de calcul"
-            accent
-          />
-          <ValueCard
-            icon={TrendingUp}
-            label="Rendement"
-            value={hasRendement ? `CHF ${formatCHF(calcul.valeurRendement)}` : 'N/A'}
-            sublabel={hasRendement ? `Taux ${tauxRendement}%` : 'Pas de loyer'}
-          />
-          <ValueCard
-            icon={Landmark}
-            label="Gage"
-            value={`CHF ${formatCHF(calcul.valeurGageArrondi)}`}
-            sublabel="Réf. bancaire"
-          />
+        {/* Fourchette de négociation */}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <p className="text-white/60 text-sm text-center mb-3">
+            Fourchette de négociation attendue
+          </p>
+          
+          {/* Barre visuelle */}
+          <div className="relative h-3 bg-white/10 rounded-full overflow-hidden max-w-md mx-auto">
+            <div 
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full",
+                isLuxe ? "bg-gradient-to-r from-amber-500 to-amber-400" : "bg-gradient-to-r from-primary to-primary/70"
+              )}
+              style={{ width: '95%' }}
+            />
+            {/* Curseur à 95% (position du prix affiché) */}
+            <div 
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-white shadow-lg",
+                isLuxe ? "bg-amber-400" : "bg-primary"
+              )}
+              style={{ left: 'calc(95% - 10px)' }}
+            />
+          </div>
+          
+          {/* Labels min/max */}
+          <div className="flex justify-between text-xs text-white/40 mt-2 max-w-md mx-auto">
+            <span>CHF {formatCHF(prixVenteMin)}</span>
+            <span>CHF {formatCHF(prixVenteMax)}</span>
+          </div>
+          
+          {/* Texte explicatif */}
+          <p className="text-center text-white/50 text-xs md:text-sm italic mt-4">
+            Prix affiché : CHF {formatCHF(prixHero)} • Prix de vente attendu : CHF {formatCHF(prixVenteMin)} à {formatCHF(prixVenteMax)}
+          </p>
         </div>
+
+        {/* Card Rappel Trajectoire */}
+        <div 
+          className="animate-fade-in rounded-xl p-5 bg-white/5 border border-white/10"
+          style={{ animationDelay: '0.2s' }}
+        >
+          <div className="flex items-start gap-3">
+            <div className={cn(
+              "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+              isLuxe ? "bg-amber-500/20" : "bg-primary/20"
+            )}>
+              <Target className={cn(
+                "h-5 w-5",
+                isLuxe ? "text-amber-400" : "text-primary"
+              )} />
+            </div>
+            <div>
+              <p className="text-white font-medium">
+                Point de départ recommandé : <span className={isLuxe ? "text-amber-400" : "text-primary"}>{nomTrajectoire}</span>
+              </p>
+              <p className="text-white/60 text-sm mt-1">
+                Objectif de valorisation : <span className="font-semibold text-white">+{pourcentageObjectif}%</span> par rapport à la valeur de base
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Points forts / Atouts */}
+        {pointsForts.length > 0 && (
+          <div 
+            className="animate-fade-in"
+            style={{ animationDelay: '0.3s' }}
+          >
+            <h2 className="text-lg font-semibold text-white mb-4">
+              {isLuxe ? 'Éléments de valeur' : 'Atouts qui justifient cette valorisation'}
+            </h2>
+            <div className="space-y-2">
+              {pointsForts.map((point, idx) => (
+                <div 
+                  key={idx}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/5"
+                >
+                  <Check className={cn(
+                    "h-4 w-4 shrink-0",
+                    isLuxe ? "text-amber-400" : "text-primary"
+                  )} />
+                  <span className="text-white/80 text-sm">{point}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Accordéon détail valorisation */}
         <div 
-          className="bg-white/5 rounded-xl overflow-hidden animate-fade-in"
-          style={{ animationDelay: '0.2s' }}
+          className="animate-fade-in"
+          style={{ animationDelay: '0.4s' }}
         >
           <button
             onClick={() => setIsDetailOpen(!isDetailOpen)}
-            className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 text-white/50 hover:text-white/70 transition-colors group"
           >
-            <span className="text-white font-medium">Voir le détail du calcul</span>
+            <span className="text-sm underline-offset-4 group-hover:underline">
+              {isDetailOpen ? 'Masquer le détail' : 'Voir le détail du calcul'}
+            </span>
             {isDetailOpen ? (
-              <ChevronUp className="h-5 w-5 text-white/60" />
+              <ChevronUp className="h-4 w-4" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-white/60" />
+              <ChevronDown className="h-4 w-4" />
             )}
           </button>
           
           {isDetailOpen && (
-            <div className="px-4 pb-4 space-y-1 animate-fade-in">
+            <div className="mt-4 p-4 rounded-xl bg-white/5 space-y-1 animate-fade-in">
               {isAppartement ? (
                 <>
                   {/* Détail Appartement */}
@@ -294,41 +403,17 @@ export function PresentationPrix({
               
               {/* Total */}
               <div className="flex items-center justify-between pt-3 mt-2 border-t border-white/20">
-                <span className="text-white font-semibold">Total valeur vénale</span>
-                <span className="text-xl font-bold text-primary">
+                <span className="text-white font-semibold">Valeur vénale de base</span>
+                <span className={cn(
+                  "text-xl font-bold",
+                  isLuxe ? "text-amber-400" : "text-primary"
+                )}>
                   CHF {formatCHF(calcul.totalVenaleArrondi)}
                 </span>
               </div>
             </div>
           )}
         </div>
-
-        {/* Rendement locatif (si loyer renseigné) */}
-        {hasRendement && (
-          <div 
-            className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5 animate-fade-in"
-            style={{ animationDelay: '0.3s' }}
-          >
-            <h3 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Potentiel locatif
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-white/50 text-xs uppercase">Loyer mensuel</p>
-                <p className="text-white text-lg font-semibold">
-                  CHF {formatCHF(loyerMensuel)}
-                </p>
-              </div>
-              <div>
-                <p className="text-white/50 text-xs uppercase">Rendement brut</p>
-                <p className="text-emerald-400 text-lg font-semibold">
-                  {tauxRendement}%
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
