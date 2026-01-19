@@ -11,6 +11,8 @@ interface PresentationPitchProps {
   pitch: string;
   vendeurNom: string;
   vendeurPrenom: string;
+  vendeurTelephone?: string;
+  vendeurEmail?: string;
   isLuxe?: boolean;
 }
 
@@ -82,7 +84,9 @@ function TimelineSection({
 export function PresentationPitch({ 
   pitch, 
   vendeurNom, 
-  vendeurPrenom, 
+  vendeurPrenom,
+  vendeurTelephone,
+  vendeurEmail,
   isLuxe = false 
 }: PresentationPitchProps) {
   // Formatter le pitch avec des paragraphes
@@ -246,7 +250,8 @@ export function PresentationPitch({
               "flex-col h-auto py-4 border-white/20 text-white hover:bg-white/10",
               isLuxe && "border-amber-500/30 hover:bg-amber-500/10"
             )}
-            onClick={() => window.open('tel:+41223456789')}
+            onClick={() => vendeurTelephone && window.open(`tel:${vendeurTelephone}`)}
+            disabled={!vendeurTelephone}
           >
             <Phone className="h-5 w-5 mb-2" />
             <span className="text-xs">Appeler</span>
@@ -258,6 +263,8 @@ export function PresentationPitch({
               "flex-col h-auto py-4 border-white/20 text-white hover:bg-white/10",
               isLuxe && "border-amber-500/30 hover:bg-amber-500/10"
             )}
+            onClick={() => vendeurEmail && window.open(`mailto:${vendeurEmail}`)}
+            disabled={!vendeurEmail}
           >
             <Mail className="h-5 w-5 mb-2" />
             <span className="text-xs">Email</span>

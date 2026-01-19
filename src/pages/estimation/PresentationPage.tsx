@@ -33,7 +33,7 @@ import { PresentationCharacteristics } from '@/components/presentation/Presentat
 import { PresentationLocation } from '@/components/presentation/PresentationLocation';
 import { PresentationPrix } from '@/components/presentation/PresentationPrix';
 import { PresentationTimeline } from '@/components/presentation/PresentationTimeline';
-import { PresentationActions } from '@/components/presentation/PresentationActions';
+import { PresentationPitch } from '@/components/presentation/PresentationPitch';
 import { PresentationCondition } from '@/components/presentation/PresentationCondition';
 import { PresentationMarche } from '@/components/presentation/PresentationMarche';
 import { PresentationStrategie } from '@/components/presentation/PresentationStrategie';
@@ -477,8 +477,8 @@ export default function PresentationPage() {
               isLuxe={isLuxe}
             />
           )}
-          {currentSection === 'next' && (
-            <PresentationActions 
+{currentSection === 'next' && (
+            <PresentationPitch 
               pitch={pitchText}
               vendeurNom={vendeurNom}
               vendeurPrenom={vendeurPrenom}
