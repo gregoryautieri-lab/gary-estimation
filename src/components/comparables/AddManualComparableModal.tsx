@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, AlertTriangle, MapPin, Loader2, ExternalLink } from 'lucide-react';
+import { Plus, Search, AlertTriangle, MapPin, Loader2, ExternalLink, Link, Image } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,65 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ProjectData } from '@/hooks/useProjectDetail';
+import { scrapeComparableUrl, detectSourceFromUrl } from '@/lib/api/comparables';
+
+// NPA coordinates fallback for commune center
+const NPA_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  "1200": { lat: 46.2044, lng: 6.1432 },
+  "1201": { lat: 46.2088, lng: 6.1420 },
+  "1202": { lat: 46.2155, lng: 6.1296 },
+  "1203": { lat: 46.2180, lng: 6.1180 },
+  "1204": { lat: 46.2000, lng: 6.1450 },
+  "1205": { lat: 46.1920, lng: 6.1400 },
+  "1206": { lat: 46.1900, lng: 6.1600 },
+  "1207": { lat: 46.1950, lng: 6.1750 },
+  "1208": { lat: 46.1880, lng: 6.1650 },
+  "1209": { lat: 46.2250, lng: 6.1100 },
+  "1212": { lat: 46.1870, lng: 6.1250 },
+  "1213": { lat: 46.1750, lng: 6.1350 },
+  "1214": { lat: 46.1800, lng: 6.0950 },
+  "1215": { lat: 46.2000, lng: 6.0800 },
+  "1216": { lat: 46.1950, lng: 6.0600 },
+  "1217": { lat: 46.2000, lng: 6.0400 },
+  "1218": { lat: 46.1870, lng: 6.1150 },
+  "1219": { lat: 46.2150, lng: 6.1050 },
+  "1220": { lat: 46.2200, lng: 6.0800 },
+  "1222": { lat: 46.2050, lng: 6.0500 },
+  "1223": { lat: 46.2120, lng: 6.1850 },
+  "1224": { lat: 46.1800, lng: 6.1800 },
+  "1225": { lat: 46.1850, lng: 6.2000 },
+  "1226": { lat: 46.1900, lng: 6.2100 },
+  "1227": { lat: 46.1700, lng: 6.1550 },
+  "1228": { lat: 46.1650, lng: 6.1400 },
+  "1231": { lat: 46.1550, lng: 6.1200 },
+  "1232": { lat: 46.1500, lng: 6.1050 },
+  "1233": { lat: 46.1400, lng: 6.0900 },
+  "1234": { lat: 46.1600, lng: 6.0700 },
+  "1236": { lat: 46.1350, lng: 6.1200 },
+  "1237": { lat: 46.1200, lng: 6.1100 },
+  "1239": { lat: 46.1100, lng: 6.0900 },
+  "1241": { lat: 46.2400, lng: 6.0600 },
+  "1242": { lat: 46.2300, lng: 6.0400 },
+  "1243": { lat: 46.2100, lng: 6.0200 },
+  "1244": { lat: 46.1900, lng: 6.2300 },
+  "1245": { lat: 46.2000, lng: 6.2400 },
+  "1246": { lat: 46.2100, lng: 6.2550 },
+  "1247": { lat: 46.2200, lng: 6.2700 },
+  "1248": { lat: 46.2300, lng: 6.2900 },
+  "1251": { lat: 46.1300, lng: 6.0650 },
+  "1252": { lat: 46.1400, lng: 6.0500 },
+  "1253": { lat: 46.1550, lng: 6.0350 },
+  "1254": { lat: 46.1650, lng: 6.0200 },
+  "1255": { lat: 46.1750, lng: 6.0100 },
+  "1256": { lat: 46.1600, lng: 5.9950 },
+  "1257": { lat: 46.1450, lng: 5.9800 },
+  "1258": { lat: 46.1300, lng: 5.9650 },
+  "1260": { lat: 46.3833, lng: 6.2333 },
+  "1196": { lat: 46.2900, lng: 6.1700 },
+  "1197": { lat: 46.3100, lng: 6.1900 },
+  "1180": { lat: 46.4600, lng: 6.3800 },
+  "1110": { lat: 46.5110, lng: 6.4990 },
+};
 
 interface AddManualComparableModalProps {
   projectId: string;
@@ -73,9 +132,12 @@ export function AddManualComparableModal({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [coordinatesFallback, setCoordinatesFallback] = useState(false); // true if using NPA fallback
+  const [scrapedImages, setScrapedImages] = useState<string[]>([]);
   
   const [formData, setFormData] = useState<FormData>({
     adresse: '',
@@ -103,6 +165,8 @@ export function AddManualComparableModal({
       }));
       setDuplicates([]);
       setCoordinates(null);
+      setCoordinatesFallback(false);
+      setScrapedImages([]);
     }
   }, [open, project]);
 
@@ -170,35 +234,107 @@ export function AddManualComparableModal({
     return () => clearTimeout(timer);
   }, [open, formData.adresse, formData.localite]);
 
-  // Geocode address
-  const handleGeocode = useCallback(async () => {
-    if (!formData.adresse || !formData.localite) {
-      toast.error('Renseignez l\'adresse et la localité');
-      return;
-    }
-
-    setGeocoding(true);
+  // Scrape URL when entered
+  const handleScrapeUrl = useCallback(async (url: string) => {
+    if (!url || !url.startsWith('http')) return;
+    
+    setScraping(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-places', {
-        body: {
-          action: 'geocode',
-          address: `${formData.adresse}, ${formData.codePostal} ${formData.localite}, Suisse`,
-        },
-      });
-
-      if (error || !data?.success || !data?.location) {
-        toast.error('Impossible de géolocaliser cette adresse');
-        return;
+      const result = await scrapeComparableUrl(url);
+      
+      if (result.success && result.data) {
+        const scraped = result.data;
+        
+        // Auto-fill form with scraped data
+        setFormData(prev => ({
+          ...prev,
+          adresse: scraped.adresse || prev.adresse,
+          prix: scraped.prix?.replace(/[^\d]/g, '') || prev.prix,
+          surface: scraped.surface?.replace(/[^\d.,]/g, '').replace(',', '.') || prev.surface,
+          pieces: scraped.nombrePieces?.replace(/[^\d.,]/g, '').replace(',', '.') || prev.pieces,
+          typeBien: scraped.typeBien?.toLowerCase() === 'maison' ? 'maison' : 
+                    scraped.typeBien?.toLowerCase() === 'terrain' ? 'terrain' : 
+                    prev.typeBien || 'appartement',
+        }));
+        
+        // Store scraped images
+        if (scraped.images && scraped.images.length > 0) {
+          setScrapedImages(scraped.images);
+        }
+        
+        toast.success(`Données extraites de ${scraped.source || detectSourceFromUrl(url)}`);
+      } else if (result.fallback) {
+        toast.info('Scraping limité - remplissez les champs manuellement');
+      } else {
+        toast.error('Impossible d\'extraire les données');
       }
-
-      setCoordinates(data.location);
-      toast.success('Adresse géolocalisée');
     } catch (err) {
-      console.error('Geocoding error:', err);
-      toast.error('Erreur de géolocalisation');
+      console.error('Scrape error:', err);
+      toast.error('Erreur lors de l\'extraction');
     } finally {
+      setScraping(false);
+    }
+  }, []);
+
+  // Geocode address (with NPA fallback)
+  const handleGeocode = useCallback(async () => {
+    // If we have an address, try exact geocoding
+    if (formData.adresse && formData.localite) {
+      setGeocoding(true);
+      setCoordinatesFallback(false);
+      try {
+        const { data, error } = await supabase.functions.invoke('google-places', {
+          body: {
+            action: 'geocode',
+            address: `${formData.adresse}, ${formData.codePostal} ${formData.localite}, Suisse`,
+          },
+        });
+
+        if (!error && data?.success && data?.location) {
+          setCoordinates(data.location);
+          toast.success('Adresse géolocalisée');
+          setGeocoding(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+      }
       setGeocoding(false);
     }
+    
+    // Fallback: use NPA coordinates for commune center
+    if (formData.codePostal && NPA_COORDINATES[formData.codePostal]) {
+      setCoordinates(NPA_COORDINATES[formData.codePostal]);
+      setCoordinatesFallback(true);
+      toast.success('Position au centre de la commune (NPA)');
+      return;
+    }
+    
+    // Try geocoding just the locality
+    if (formData.localite) {
+      setGeocoding(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('google-places', {
+          body: {
+            action: 'geocode',
+            address: `${formData.codePostal || ''} ${formData.localite}, Suisse`,
+          },
+        });
+
+        if (!error && data?.success && data?.location) {
+          setCoordinates(data.location);
+          setCoordinatesFallback(true);
+          toast.success('Position au centre de la commune');
+          setGeocoding(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Geocoding locality error:', err);
+      }
+      setGeocoding(false);
+    }
+    
+    toast.error('Impossible de géolocaliser - renseignez le NPA ou la localité');
   }, [formData.adresse, formData.codePostal, formData.localite]);
 
   // Submit form
@@ -208,8 +344,9 @@ export function AddManualComparableModal({
       return;
     }
 
-    if (!formData.adresse || !formData.localite) {
-      toast.error('L\'adresse et la localité sont obligatoires');
+    // Adresse peut être vide si on a au moins la localité (pour biens "en vente" sans adresse exacte)
+    if (!formData.localite) {
+      toast.error('La localité est obligatoire');
       return;
     }
 
@@ -218,11 +355,11 @@ export function AddManualComparableModal({
       // 1. Insert into comparables table
       const insertData: any = {
         user_id: user.id,
-        adresse: formData.adresse.trim(),
+        adresse: formData.adresse.trim() || `${formData.localite} (centre)`, // Fallback if no address
         code_postal: formData.codePostal.trim() || null,
         localite: formData.localite.trim(),
         statut_marche: formData.statutMarche,
-        source: 'manual',
+        source: formData.urlSource ? detectSourceFromUrl(formData.urlSource) : 'manual',
       };
       
       // Add optional fields
@@ -236,6 +373,7 @@ export function AddManualComparableModal({
       if (coordinates?.lng) insertData.longitude = coordinates.lng;
       if (formData.urlSource.trim()) insertData.url_source = formData.urlSource.trim();
       if (formData.notes.trim()) insertData.notes = formData.notes.trim();
+      if (scrapedImages.length > 0) insertData.images = scrapedImages;
 
       const { data: newComparable, error: insertError } = await supabase
         .from('comparables')
@@ -319,11 +457,11 @@ export function AddManualComparableModal({
           {/* Address Section */}
           <div className="space-y-3">
             <div>
-              <Label htmlFor="adresse">Adresse *</Label>
+              <Label htmlFor="adresse">Adresse (optionnel pour "en vente")</Label>
               <div className="relative">
                 <Input
                   id="adresse"
-                  placeholder="Rue et numéro"
+                  placeholder="Rue et numéro (ou vide si inconnu)"
                   value={formData.adresse}
                   onChange={(e) => handleInputChange('adresse', e.target.value)}
                 />
@@ -360,7 +498,7 @@ export function AddManualComparableModal({
               variant="outline"
               size="sm"
               onClick={handleGeocode}
-              disabled={geocoding || !formData.adresse || !formData.localite}
+              disabled={geocoding || (!formData.localite && !formData.codePostal)}
               className="w-full"
             >
               {geocoding ? (
@@ -368,8 +506,17 @@ export function AddManualComparableModal({
               ) : (
                 <MapPin className="h-4 w-4 mr-2" />
               )}
-              {coordinates ? 'Géolocalisé ✓' : 'Géolocaliser l\'adresse'}
+              {coordinates 
+                ? coordinatesFallback 
+                  ? 'Position commune ✓' 
+                  : 'Géolocalisé ✓' 
+                : 'Géolocaliser l\'adresse'}
             </Button>
+            {coordinatesFallback && coordinates && (
+              <p className="text-xs text-amber-600 text-center">
+                📍 Position au centre de la commune (pas d'adresse exacte)
+              </p>
+            )}
           </div>
 
           {/* Characteristics Section */}
@@ -482,14 +629,65 @@ export function AddManualComparableModal({
           <div className="border-t pt-4 space-y-3">
             <div>
               <Label htmlFor="urlSource">URL source (optionnel)</Label>
-              <Input
-                id="urlSource"
-                type="url"
-                placeholder="https://immoscout24.ch/..."
-                value={formData.urlSource}
-                onChange={(e) => handleInputChange('urlSource', e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="urlSource"
+                  type="url"
+                  placeholder="https://immoscout24.ch/..."
+                  value={formData.urlSource}
+                  onChange={(e) => handleInputChange('urlSource', e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleScrapeUrl(formData.urlSource)}
+                  disabled={scraping || !formData.urlSource || !formData.urlSource.startsWith('http')}
+                  title="Extraire les données de l'annonce"
+                >
+                  {scraping ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {scraping && (
+                <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                  ⏳ Extraction des données en cours...
+                </p>
+              )}
             </div>
+            
+            {/* Scraped images preview */}
+            {scrapedImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Image className="h-3 w-3" />
+                  {scrapedImages.length} photo{scrapedImages.length > 1 ? 's' : ''} trouvée{scrapedImages.length > 1 ? 's' : ''}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {scrapedImages.slice(0, 4).map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`Photo ${idx + 1}`}
+                      className="w-14 h-14 object-cover rounded-md border flex-shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ))}
+                  {scrapedImages.length > 4 && (
+                    <div className="w-14 h-14 bg-muted rounded-md border flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                      +{scrapedImages.length - 4}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <div>
               <Label htmlFor="notes">Notes (optionnel)</Label>
               <Textarea
@@ -510,7 +708,7 @@ export function AddManualComparableModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !formData.adresse || !formData.localite}
+            disabled={loading || !formData.localite}
             className="flex-1"
           >
             {loading ? (
