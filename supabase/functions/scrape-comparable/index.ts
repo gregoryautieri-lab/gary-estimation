@@ -133,6 +133,29 @@ function extractImages(markdown: string, html: string): string[] {
         images.push(url);
       }
     }
+
+    // Extract from HTML - img data-src
+    const dataSrcPattern = /<img[^>]+data-src=["']([^"']+)["'][^>]*>/gi;
+    while ((match = dataSrcPattern.exec(html)) !== null) {
+      const url = match[1];
+      if (url && !url.includes('data:') && !url.includes('placeholder') && !images.includes(url)) {
+        images.push(url);
+      }
+    }
+
+    // Extract from HTML - img srcset (pick largest candidate)
+    const srcsetPattern = /<img[^>]+srcset=["']([^"']+)["'][^>]*>/gi;
+    while ((match = srcsetPattern.exec(html)) !== null) {
+      const srcset = match[1];
+      const candidates = srcset
+        .split(',')
+        .map(s => s.trim().split(' ')[0])
+        .filter(Boolean);
+      const best = candidates[candidates.length - 1];
+      if (best && !best.includes('data:') && !best.includes('placeholder') && !images.includes(best)) {
+        images.push(best);
+      }
+    }
     
     // Extract og:image meta tags
     const ogPattern = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi;
@@ -268,10 +291,12 @@ function extractDataFromMarkdown(markdown: string, source: string, html?: string
   }
   
   // Détecter le type de bien
-  if (/appartement|wohnung|apartment/i.test(fullText)) {
-    data.typeBien = 'appartement';
-  } else if (/maison|villa|haus|house/i.test(fullText)) {
+  // Note: certains portails incluent des mots-clés "appartement" dans la navigation.
+  // On priorise donc "maison" si les deux apparaissent.
+  if (/maison|villa|haus|house/i.test(fullText)) {
     data.typeBien = 'maison';
+  } else if (/appartement|wohnung|apartment/i.test(fullText)) {
+    data.typeBien = 'appartement';
   } else if (/terrain|bauland|land/i.test(fullText)) {
     data.typeBien = 'terrain';
   }
@@ -305,29 +330,32 @@ async function extractWithAI(markdown: string, html: string, source: string): Pr
     }
     
     // Prepare a concise prompt for the AI
-    const textContent = (metaDescription + '\n' + markdown).substring(0, 4000);
+    // Note: on reçoit souvent peu de texte exploitable sur certains portails, donc on ajoute
+    // du contexte explicite et on force des strings vides plutôt que null.
+    const textContent = (`SOURCE: ${source}\n` + (metaDescription ? `META_DESCRIPTION: ${metaDescription}\n` : '') + markdown)
+      .substring(0, 6000);
     
-    const prompt = `Tu es un extracteur de données immobilières. Analyse ce texte d'annonce immobilière suisse et extrais les informations suivantes en JSON:
+    const prompt = `Tu es un extracteur de données immobilières (Suisse). Analyse le contenu et renvoie UNIQUEMENT un JSON VALIDE.
 
-TEXTE DE L'ANNONCE:
+CONTENU:
 ${textContent}
 
-IMAGES DISPONIBLES:
-${ogImages.slice(0, 5).join('\n')}
+IMAGES_CANDIDATES:
+${ogImages.slice(0, 10).join('\n')}
 
-Extrais et retourne UNIQUEMENT un JSON valide avec ces champs (laisse vide si non trouvé):
+Retourne exactement ces champs. Si une info est absente, mets une string vide "" (PAS null).
 {
-  "prix": "prix en chiffres sans espaces ni apostrophes (ex: 1890000)",
-  "surface": "surface habitable en m² (juste le chiffre)",
-  "nombrePieces": "nombre de pièces (ex: 5.5)",
-  "typeBien": "appartement ou maison ou terrain",
-  "localite": "nom de la commune/ville",
-  "npa": "code postal suisse 4 chiffres",
-  "rue": "nom de rue avec numéro si disponible",
-  "bestImageUrl": "URL de la meilleure photo du bien (pas logo/icône)"
+  "prix": "",            // ex: 2590000
+  "surface": "",         // ex: 180
+  "nombrePieces": "",    // ex: 11.5
+  "typeBien": "",        // appartement | maison | terrain
+  "localite": "",        // ex: Versoix
+  "npa": "",             // ex: 1290
+  "rue": "",             // ex: Chemin de ... 12
+  "bestImageUrl": ""      // url de photo du bien (pas logo/icône)
 }
 
-Réponds UNIQUEMENT avec le JSON, sans explication.`;
+Important: ne mets pas de balises de code autour du JSON. Réponds uniquement avec le JSON.`;
 
     console.log('Calling Lovable AI Gateway for extraction...');
     
@@ -339,7 +367,7 @@ Réponds UNIQUEMENT avec le JSON, sans explication.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'google/gemini-3-flash-preview',
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -482,9 +510,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: url,
-        formats: ['markdown', 'html'],
+        formats: ['markdown', 'html', 'rawHtml'],
         onlyMainContent: false, // Get full page for better image extraction
-        waitFor: 3000,
+        waitFor: 8000,
       }),
     });
 
@@ -503,22 +531,27 @@ serve(async (req) => {
       );
     }
 
-    const markdown = firecrawlData.data?.markdown || '';
-    const html = firecrawlData.data?.html || '';
     const metadata = firecrawlData.data?.metadata || {};
-    
-    // Step 1: Try regex extraction
-    const regexData = extractDataFromMarkdown(markdown, source, html);
-    regexData.description = metadata.description || '';
-    
+    const metadataDescription = typeof metadata.description === 'string' ? metadata.description : '';
+
+    const markdown = firecrawlData.data?.markdown || '';
+    const rawHtml = firecrawlData.data?.rawHtml || '';
+    const html = [firecrawlData.data?.html || '', rawHtml].filter(Boolean).join('\n');
+
+    // Step 1: Try regex extraction (on pré-injecte la description metadata car elle contient
+    // souvent les infos clés sur immobilier.ch)
+    const enhancedMarkdown = metadataDescription ? `${metadataDescription}\n\n${markdown}` : markdown;
+    const regexData = extractDataFromMarkdown(enhancedMarkdown, source, html);
+    regexData.description = metadataDescription;
+
     // Step 2: Check if we need AI fallback
-    const needsAI = !regexData.prix || !regexData.surface || !regexData.adresse || 
+    const needsAI = !regexData.prix || !regexData.surface || !regexData.adresse ||
                     !regexData.images || regexData.images.length === 0;
-    
+
     let aiData: AIExtractedData | null = null;
     if (needsAI) {
       console.log('Regex extraction incomplete, trying AI fallback...');
-      aiData = await extractWithAI(markdown, html, source);
+      aiData = await extractWithAI(enhancedMarkdown, html, source);
     }
     
     // Step 3: Merge data
