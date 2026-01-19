@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { PresentationLocationMap } from '@/components/presentation/PresentationLocationMap';
 import type { Identification } from '@/types/estimation';
 
 interface PresentationLocationProps {
@@ -113,9 +115,9 @@ export function PresentationLocation({
   const coordinates = adresse?.coordinates;
   const cadastre = adresse?.cadastreData;
   
-  // Charger la carte statique
-  const { mapImage, loading: mapLoading, error: mapError } = useStaticMap(coordinates);
-  
+  // Clé Google Maps (carte dynamique)
+  const { apiKey, loading: apiKeyLoading, error: apiKeyError } = useGoogleMapsKey();
+
   // Proximités
   const proximites = identification?.proximites || [];
   
@@ -132,37 +134,33 @@ export function PresentationLocation({
       className="h-full w-full flex flex-col overflow-hidden"
       style={{ backgroundColor: '#1a2e35' }}
     >
-      {/* 1. Carte Google Maps Static (60% hauteur) */}
+      {/* 1. Carte satellite dynamique (60% hauteur) */}
       <div className="h-[60%] relative">
-        {mapLoading ? (
-          <div className="h-full flex items-center justify-center bg-gray-800">
-            <Loader2 className="h-8 w-8 animate-spin text-white/50" />
-          </div>
-        ) : mapImage ? (
-          <div className="h-full w-full relative">
-            <img 
-              src={mapImage} 
-              alt={`Carte ${rue}`}
-              className="h-full w-full object-cover"
-            />
-            {/* Overlay marker */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div 
-                className={cn(
-                  "w-6 h-6 rounded-full border-4 border-white shadow-lg",
-                  isLuxe ? "bg-amber-500" : "bg-primary"
-                )} 
-              />
-            </div>
-          </div>
-        ) : (
-          // Fallback si pas de coordonnées ou erreur
+        {!coordinates ? (
           <div className="h-full flex flex-col items-center justify-center bg-gray-800">
             <MapPin className={cn("h-12 w-12 mb-4", isLuxe ? "text-amber-400" : "text-primary")} />
             <p className="text-white text-lg font-medium">{rue}</p>
             <p className="text-white/50">{codePostal} {localite}</p>
-            {mapError && (
-              <p className="text-red-400/60 text-xs mt-2">{mapError}</p>
+          </div>
+        ) : apiKeyLoading ? (
+          <div className="h-full flex items-center justify-center bg-gray-800">
+            <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+          </div>
+        ) : apiKey ? (
+          <PresentationLocationMap
+            apiKey={apiKey}
+            center={coordinates}
+            isLuxe={isLuxe}
+            addressLabel={`${rue} ${codePostal} ${localite}`.trim()}
+          />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center bg-gray-800">
+            <MapPin className={cn("h-12 w-12 mb-4", isLuxe ? "text-amber-400" : "text-primary")} />
+            <p className="text-white/70 text-sm">Clé Google Maps indisponible</p>
+            <p className="text-white text-lg font-medium">{rue}</p>
+            <p className="text-white/50">{codePostal} {localite}</p>
+            {apiKeyError && (
+              <p className="text-red-400/60 text-xs mt-2">{apiKeyError}</p>
             )}
           </div>
         )}
