@@ -1,6 +1,7 @@
 // ============================================
 // Page Présentation Client - Route Dédiée
-// 6 écrans en swipe plein écran
+// 9 écrans en swipe plein écran
+// Ordre narratif : Contexte → Confiance → Solution → Closing
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -36,9 +37,11 @@ import { PresentationActions } from '@/components/presentation/PresentationActio
 import { PresentationCondition } from '@/components/presentation/PresentationCondition';
 import { PresentationMarche } from '@/components/presentation/PresentationMarche';
 import { PresentationStrategie } from '@/components/presentation/PresentationStrategie';
+import { PresentationGary } from '@/components/presentation/PresentationGary';
 
-// Types pour les sections
-type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'estimation' | 'marche' | 'strategie' | 'pitch';
+// Types pour les sections - Nouvel ordre en 9 écrans
+// 1. Couverture → 2. Le Bien → 3. Localisation → 4. État → 5. Qui est GARY → 6. Marché → 7. Stratégie → 8. Prix → 9. Prochaines étapes
+type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'gary' | 'marche' | 'strategie' | 'prix' | 'next';
 
 // Type local simplifié pour la page presentation
 interface PresentationEstimation {
@@ -58,15 +61,17 @@ interface PresentationEstimation {
   strategiePitch: StrategiePitch;
 }
 
+// Nouvel ordre des sections (9 écrans)
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'cover', label: 'Couverture' },
   { id: 'bien', label: 'Le Bien' },
   { id: 'localisation', label: 'Localisation' },
   { id: 'etat', label: 'État' },
-  { id: 'estimation', label: 'Estimation' },
+  { id: 'gary', label: 'Qui est GARY' },
   { id: 'marche', label: 'Marché' },
   { id: 'strategie', label: 'Stratégie' },
-  { id: 'pitch', label: 'Proposition' },
+  { id: 'prix', label: 'Prix' },
+  { id: 'next', label: 'Prochaines étapes' },
 ];
 
 export default function PresentationPage() {
@@ -439,11 +444,9 @@ export default function PresentationPage() {
               isLuxe={isLuxe}
             />
           )}
-          {currentSection === 'estimation' && (
-            <PresentationPrix 
-              caracteristiques={estimation.caracteristiques}
-              preEstimation={estimation.preEstimation}
-              typeBien={typeBien}
+          {currentSection === 'gary' && (
+            <PresentationGary 
+              isLuxe={isLuxe}
             />
           )}
           {currentSection === 'marche' && (
@@ -463,7 +466,14 @@ export default function PresentationPage() {
               totalVenale={prixFinal}
             />
           )}
-          {currentSection === 'pitch' && (
+          {currentSection === 'prix' && (
+            <PresentationPrix 
+              caracteristiques={estimation.caracteristiques}
+              preEstimation={estimation.preEstimation}
+              typeBien={typeBien}
+            />
+          )}
+          {currentSection === 'next' && (
             <PresentationActions 
               pitch={pitchText}
               vendeurNom={vendeurNom}
