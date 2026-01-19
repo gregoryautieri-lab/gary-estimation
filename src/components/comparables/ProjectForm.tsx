@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,7 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { supabase } from '@/integrations/supabase/client';
+import { useCommunes } from '@/hooks/useCommunes';
 import { ProjectStatutFilter } from '@/hooks/useProjectsComparables';
 
 // Types de bien disponibles
@@ -90,8 +89,7 @@ export function ProjectForm({
   isSubmitting,
   defaultValues 
 }: ProjectFormProps) {
-  const [communes, setCommunes] = useState<string[]>([]);
-  const [loadingCommunes, setLoadingCommunes] = useState(true);
+  const { communes, loading: loadingCommunes } = useCommunes();
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectFormSchema),
@@ -108,38 +106,6 @@ export function ProjectForm({
       statutFilter: defaultValues?.statutFilter as any || 'tous',
     },
   });
-
-  // Fetch communes from estimations
-  useEffect(() => {
-    async function fetchCommunes() {
-      setLoadingCommunes(true);
-      try {
-        const { data, error } = await supabase
-          .from('estimations')
-          .select('localite')
-          .not('localite', 'is', null);
-
-        if (error) {
-          console.error('Error fetching communes:', error);
-          return;
-        }
-
-        const uniqueCommunes = [...new Set(
-          (data || [])
-            .map(e => e.localite)
-            .filter(Boolean)
-        )].sort() as string[];
-        
-        setCommunes(uniqueCommunes);
-      } catch (err) {
-        console.error('Error fetching communes:', err);
-      } finally {
-        setLoadingCommunes(false);
-      }
-    }
-
-    fetchCommunes();
-  }, []);
 
   // Format number with thousands separator
   const formatNumber = (value: string) => {
