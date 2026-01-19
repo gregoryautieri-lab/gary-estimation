@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { FileSpreadsheet, Loader2, Check, X, MapPin, AlertTriangle } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Check, X, MapPin, AlertTriangle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,8 @@ interface ParsedTransaction {
   imported?: boolean;
   error?: string;
   isGary?: boolean;
+  isDuplicate?: boolean;
+  duplicateReason?: string;
 }
 
 interface ImportPopetyModalProps {
@@ -118,15 +121,56 @@ export function ImportPopetyModal({
         return;
       }
 
-      // Mark all as selected by default
-      const txs = (result.transactions || []).map((tx: ParsedTransaction) => ({
-        ...tx,
-        selected: true,
-        isGary: false,
-      }));
+      // Check for duplicates against existing comparables in DB
+      const { data: existingComparables } = await supabase
+        .from('comparables')
+        .select('adresse, prix, localite, code_postal')
+        .eq('statut_marche', 'vendu');
 
+      // Normalize string for comparison
+      const normalize = (str: string | null) => 
+        (str || '').toLowerCase().trim().replace(/\s+/g, ' ');
+
+      // Check if a transaction is a duplicate
+      const isDuplicate = (tx: ParsedTransaction): { isDup: boolean; reason: string } => {
+        if (!existingComparables) return { isDup: false, reason: '' };
+        
+        for (const existing of existingComparables) {
+          const sameAddress = normalize(tx.adresse) === normalize(existing.adresse);
+          const samePrice = tx.prix && existing.prix && tx.prix === existing.prix;
+          const sameLocality = normalize(tx.localite) === normalize(existing.localite);
+          
+          // Match if same address + locality OR same address + price
+          if (sameAddress && (sameLocality || samePrice)) {
+            return { 
+              isDup: true, 
+              reason: `${existing.adresse}, ${existing.localite} - ${formatPrice(existing.prix)}`
+            };
+          }
+        }
+        return { isDup: false, reason: '' };
+      };
+
+      // Mark transactions with duplicate status
+      const txs = (result.transactions || []).map((tx: ParsedTransaction) => {
+        const { isDup, reason } = isDuplicate(tx);
+        return {
+          ...tx,
+          selected: !isDup, // Deselect duplicates by default
+          isGary: false,
+          isDuplicate: isDup,
+          duplicateReason: reason,
+        };
+      });
+
+      const duplicateCount = txs.filter((t: ParsedTransaction) => t.isDuplicate).length;
+      
       setTransactions(txs);
       setStep('preview');
+      
+      if (duplicateCount > 0) {
+        toast.warning(`${duplicateCount} doublon(s) détecté(s) et désélectionné(s)`);
+      }
       toast.success(`${txs.length} transaction(s) détectée(s)`);
     } catch (err) {
       console.error('File parse error:', err);
@@ -399,6 +443,7 @@ export function ImportPopetyModal({
                     className={`border rounded-lg p-4 transition-all ${
                       tx.imported ? 'bg-green-50 dark:bg-green-950/20 border-green-200' :
                       tx.error ? 'bg-destructive/10 border-destructive/30' :
+                      tx.isDuplicate ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-300' :
                       tx.selected ? 'border-primary/50' : 'opacity-60'
                     }`}
                   >
@@ -423,6 +468,20 @@ export function ImportPopetyModal({
                             <Badge className="bg-primary text-primary-foreground">
                               GARY
                             </Badge>
+                          )}
+                          {tx.isDuplicate && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400 cursor-help">
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  Doublon
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="text-xs">Existe déjà dans la base :</p>
+                                <p className="text-xs font-medium">{tx.duplicateReason}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
 
