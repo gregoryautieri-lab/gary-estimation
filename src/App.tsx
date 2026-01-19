@@ -11,6 +11,7 @@ import EstimationsList from "./pages/EstimationsList";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
 import NewProject from "./pages/comparables/NewProject";
 import ComparablesExplore from "./pages/comparables/ComparablesExplore";
+import ProjectDetail from "./pages/comparables/ProjectDetail";
 import EstimationOverview from "./pages/estimation/EstimationOverview";
 import Module1Identification from "./pages/estimation/Module1Identification";
 import Module2Caracteristiques from "./pages/estimation/Module2Caracteristiques";
@@ -91,10 +92,10 @@ function AppWithWarning() {
           }
         />
         <Route
-          path="/comparables/:id"
+          path="/comparables/:projectId"
           element={
             <ProtectedRoute>
-              <ComparablesProjects />
+              <ProjectDetail />
             </ProtectedRoute>
           }
         />

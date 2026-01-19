@@ -164,7 +164,7 @@ export default function NewProject() {
 
       // Rediriger après un court délai pour voir le feedback
       setTimeout(() => {
-        navigate('/comparables');
+        navigate(`/comparables/${projectId}`);
       }, 500);
 
     } catch (err) {
