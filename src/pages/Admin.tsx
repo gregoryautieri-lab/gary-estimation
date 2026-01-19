@@ -458,7 +458,7 @@ export default function Admin() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button 
             onClick={() => setShowInviteDialog(true)}
             className="w-full"
@@ -473,6 +473,14 @@ export default function Admin() {
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin/comparables')}
+            className="w-full"
+          >
+            <Building2 className="h-4 w-4 mr-2" />
+            Comparables
           </Button>
         </div>
 
