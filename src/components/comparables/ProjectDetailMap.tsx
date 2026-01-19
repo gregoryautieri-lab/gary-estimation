@@ -41,13 +41,18 @@ function getStatusColor(statut: string): 'default' | 'secondary' | 'destructive'
   }
 }
 
-export function ProjectDetailMap({ 
+// Inner component that uses useJsApiLoader only when API key is ready
+function MapContent({ 
+  apiKey,
   comparables, 
-  onLocateComparable,
   selectedComparableId,
   className 
-}: ProjectDetailMapProps) {
-  const { apiKey, loading: loadingKey, error: keyError } = useGoogleMapsKey();
+}: {
+  apiKey: string;
+  comparables: ComparableData[];
+  selectedComparableId?: string | null;
+  className?: string;
+}) {
   const [selectedMarker, setSelectedMarker] = useState<ComparableData | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -58,7 +63,7 @@ export function ProjectDetailMap({
   const missingCount = comparables.length - geolocatedComparables.length;
 
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey || '',
+    googleMapsApiKey: apiKey,
   });
 
   // Auto-zoom to fit all markers
@@ -109,25 +114,13 @@ export function ProjectDetailMap({
     }
   };
 
-  // Loading states
-  if (loadingKey) {
-    return (
-      <div className={cn("flex items-center justify-center bg-muted rounded-xl h-80", className)}>
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Chargement de la carte...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (keyError || loadError) {
+  if (loadError) {
     return (
       <div className={cn("flex items-center justify-center bg-muted rounded-xl h-80", className)}>
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
           <p className="text-sm text-destructive">Impossible de charger Google Maps</p>
-          <p className="text-xs text-muted-foreground mt-1">{keyError || loadError?.message}</p>
+          <p className="text-xs text-muted-foreground mt-1">{loadError?.message}</p>
         </div>
       </div>
     );
@@ -253,5 +246,50 @@ export function ProjectDetailMap({
         </div>
       )}
     </div>
+  );
+}
+
+// Main component that waits for API key before rendering map
+export function ProjectDetailMap({ 
+  comparables, 
+  onLocateComparable,
+  selectedComparableId,
+  className 
+}: ProjectDetailMapProps) {
+  const { apiKey, loading: loadingKey, error: keyError } = useGoogleMapsKey();
+
+  // Loading state - waiting for API key
+  if (loadingKey) {
+    return (
+      <div className={cn("flex items-center justify-center bg-muted rounded-xl h-80", className)}>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Chargement de la carte...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - API key fetch failed
+  if (keyError || !apiKey) {
+    return (
+      <div className={cn("flex items-center justify-center bg-muted rounded-xl h-80", className)}>
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+          <p className="text-sm text-destructive">Impossible de charger Google Maps</p>
+          <p className="text-xs text-muted-foreground mt-1">{keyError || "Clé API non disponible"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // API key is ready - render the map
+  return (
+    <MapContent
+      apiKey={apiKey}
+      comparables={comparables}
+      selectedComparableId={selectedComparableId}
+      className={className}
+    />
   );
 }
