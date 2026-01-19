@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/gary/BottomNav";
-import { GaryLogo } from "@/components/gary/GaryLogo";
 import { ThemeToggle } from "@/components/gary/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +37,9 @@ import {
   Edit2,
   RefreshCw,
   BarChart3,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -57,6 +59,15 @@ export default function Settings() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editFullName, setEditFullName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // État pour changement de mot de passe
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -113,6 +124,56 @@ export default function Settings() {
       toast.error("Erreur lors de la mise à jour");
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("Le nouveau mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      // First verify the current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        toast.error("Mot de passe actuel incorrect");
+        return;
+      }
+
+      // Update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      toast.success("Mot de passe modifié avec succès");
+      setShowChangePassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast.error(error.message || "Erreur lors du changement de mot de passe");
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -304,8 +365,14 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <button className="flex items-center justify-between w-full py-2 hover:bg-muted rounded-lg px-2 -mx-2 transition-colors">
-              <span>Changer le mot de passe</span>
+            <button 
+              className="flex items-center justify-between w-full py-2 hover:bg-muted rounded-lg px-2 -mx-2 transition-colors"
+              onClick={() => setShowChangePassword(true)}
+            >
+              <div className="flex items-center gap-3">
+                <KeyRound className="h-5 w-5 text-muted-foreground" />
+                <span>Changer le mot de passe</span>
+              </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
           </CardContent>
@@ -366,6 +433,104 @@ export default function Settings() {
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showChangePassword} onOpenChange={(open) => {
+        setShowChangePassword(open);
+        if (!open) {
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+          setShowCurrentPassword(false);
+          setShowNewPassword(false);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Changer le mot de passe
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Mot de passe actuel</Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nouveau mot de passe</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Minimum 6 caractères"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmer le nouveau mot de passe</Label>
+              <Input
+                id="confirm-password"
+                type={showNewPassword ? "text" : "password"}
+                placeholder="Répétez le mot de passe"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-destructive">
+                  Les mots de passe ne correspondent pas
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowChangePassword(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleChangePassword} 
+              disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 6}
+            >
+              {savingPassword ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <KeyRound className="h-4 w-4 mr-2" />
+              )}
+              Modifier
             </Button>
           </DialogFooter>
         </DialogContent>
