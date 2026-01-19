@@ -97,15 +97,13 @@ export default function ImportComparablesModal({
         .from('estimations')
         .select('id, type_bien, localite, prix_final, caracteristiques, statut, adresse, updated_at', { count: 'exact' });
 
-      // Filtre statut (RLS gère déjà la visibilité)
+      // Filtre statut (optionnel - RLS gère la visibilité)
       if (debouncedFilters.statut === 'vendus') {
         query = query.eq('statut', 'mandat_signe');
       } else if (debouncedFilters.statut === 'en_vente') {
         query = query.eq('statut', 'presentee');
-      } else {
-        // "tous" - filtrer sur les statuts visibles
-        query = query.in('statut', ['mandat_signe', 'presentee']);
       }
+      // "tous" = pas de filtre statut, RLS s'occupe de la visibilité
 
       // Filtre commune
       if (debouncedFilters.commune) {
