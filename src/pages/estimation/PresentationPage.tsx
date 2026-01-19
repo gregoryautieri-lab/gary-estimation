@@ -416,9 +416,8 @@ export default function PresentationPage() {
           )}
           {currentSection === 'bien' && (
             <PresentationCharacteristics 
-              photos={photos}
+              identification={estimation.identification}
               caracteristiques={estimation.caracteristiques}
-              pointsForts={pointsForts}
               isLuxe={isLuxe}
             />
           )}
