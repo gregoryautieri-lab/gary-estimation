@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/gary/BottomNav";
-import { GaryLogo } from "@/components/gary/GaryLogo";
 import { ThemeToggle } from "@/components/gary/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -49,6 +56,12 @@ import {
   RefreshCw,
   AlertTriangle,
   BarChart3,
+  MoreVertical,
+  UserX,
+  UserCheck,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -62,6 +75,7 @@ interface UserWithRole {
   created_at: string;
   roles: AppRole[];
   email?: string;
+  is_disabled?: boolean;
 }
 
 const ROLE_LABELS: Record<AppRole, { label: string; icon: typeof Crown; color: string }> = {
@@ -72,7 +86,7 @@ const ROLE_LABELS: Record<AppRole, { label: string; icon: typeof Crown; color: s
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +102,13 @@ export default function Admin() {
   const [inviteRole, setInviteRole] = useState<AppRole>("courtier");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviting, setInviting] = useState(false);
+
+  // État pour les actions admin
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<UserWithRole | null>(null);
+  const [showResetPassword, setShowResetPassword] = useState<UserWithRole | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -105,7 +126,6 @@ export default function Admin() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
@@ -113,14 +133,12 @@ export default function Admin() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch all roles
       const { data: allRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("*");
 
       if (rolesError) throw rolesError;
 
-      // Map roles to users
       const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => ({
         id: profile.id,
         user_id: profile.user_id,
@@ -151,7 +169,6 @@ export default function Admin() {
     setSavingRole(true);
 
     try {
-      // Delete existing roles for this user
       const { error: deleteError } = await supabase
         .from("user_roles")
         .delete()
@@ -159,7 +176,6 @@ export default function Admin() {
 
       if (deleteError) throw deleteError;
 
-      // Insert new role
       const { error: insertError } = await supabase
         .from("user_roles")
         .insert({
@@ -180,25 +196,91 @@ export default function Admin() {
     }
   };
 
-  const handleRemoveRole = async (userToRemove: UserWithRole) => {
-    if (userToRemove.user_id === user?.id) {
-      toast.error("Vous ne pouvez pas supprimer votre propre rôle");
+  const callAdminApi = async (action: string, targetUserId: string, newPassword?: string) => {
+    if (!session?.access_token) {
+      throw new Error("Session invalide");
+    }
+
+    const response = await supabase.functions.invoke("admin-users", {
+      body: { action, target_user_id: targetUserId, new_password: newPassword },
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+
+    return response.data;
+  };
+
+  const handleDisableUser = async (targetUser: UserWithRole) => {
+    if (targetUser.user_id === user?.id) {
+      toast.error("Vous ne pouvez pas désactiver votre propre compte");
       return;
     }
 
+    setActionLoading(targetUser.user_id);
     try {
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userToRemove.user_id);
-
-      if (error) throw error;
-
-      toast.success("Rôle supprimé");
+      await callAdminApi("disable", targetUser.user_id);
+      toast.success(`${targetUser.full_name || "Utilisateur"} désactivé`);
       loadUsers();
-    } catch (error) {
-      console.error("Error removing role:", error);
-      toast.error("Erreur lors de la suppression du rôle");
+    } catch (error: any) {
+      console.error("Error disabling user:", error);
+      toast.error(error.message || "Erreur lors de la désactivation");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleEnableUser = async (targetUser: UserWithRole) => {
+    setActionLoading(targetUser.user_id);
+    try {
+      await callAdminApi("enable", targetUser.user_id);
+      toast.success(`${targetUser.full_name || "Utilisateur"} réactivé`);
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error enabling user:", error);
+      toast.error(error.message || "Erreur lors de la réactivation");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!showDeleteConfirm) return;
+
+    setActionLoading(showDeleteConfirm.user_id);
+    try {
+      await callAdminApi("delete", showDeleteConfirm.user_id);
+      toast.success(`${showDeleteConfirm.full_name || "Utilisateur"} supprimé définitivement`);
+      setShowDeleteConfirm(null);
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Erreur lors de la suppression");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!showResetPassword || !newPassword) return;
+
+    if (newPassword.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    setActionLoading(showResetPassword.user_id);
+    try {
+      await callAdminApi("reset_password", showResetPassword.user_id, newPassword);
+      toast.success(`Mot de passe réinitialisé pour ${showResetPassword.full_name || "l'utilisateur"}`);
+      setShowResetPassword(null);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      toast.error(error.message || "Erreur lors de la réinitialisation");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -215,7 +297,6 @@ export default function Admin() {
 
     setInviting(true);
     try {
-      // Sauvegarder la session actuelle de l'admin
       const { data: currentSession } = await supabase.auth.getSession();
       const adminSession = currentSession?.session;
       
@@ -223,7 +304,6 @@ export default function Admin() {
         throw new Error("Session admin non trouvée");
       }
 
-      // Créer l'utilisateur via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: inviteEmail,
         password: invitePassword,
@@ -242,25 +322,19 @@ export default function Admin() {
 
       const newUserId = authData.user.id;
 
-      // Restaurer immédiatement la session admin
       await supabase.auth.setSession({
         access_token: adminSession.access_token,
         refresh_token: adminSession.refresh_token,
       });
 
-      // Attendre que le trigger s'exécute
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Le trigger handle_new_user crée automatiquement le profil et le rôle courtier
-      // Si le rôle choisi est différent, on le met à jour
       if (inviteRole !== "courtier") {
-        // Supprimer le rôle courtier par défaut
         await supabase
           .from("user_roles")
           .delete()
           .eq("user_id", newUserId);
         
-        // Ajouter le rôle choisi
         await supabase
           .from("user_roles")
           .insert({
@@ -269,7 +343,6 @@ export default function Admin() {
           });
       }
 
-      // Mettre à jour le nom dans le profil
       await supabase
         .from("profiles")
         .update({ full_name: inviteFullName })
@@ -330,7 +403,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header - Design épuré */}
+      {/* Header */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 pb-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -355,7 +428,7 @@ export default function Admin() {
       </div>
 
       <div className="p-4 space-y-3">
-        {/* Stats Cards - Plus compact */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-2">
           <Card className="border-0 shadow-sm">
             <CardContent className="p-3 text-center">
@@ -384,7 +457,7 @@ export default function Admin() {
           </Card>
         </div>
 
-        {/* Boutons d'action */}
+        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
           <Button 
             onClick={() => setShowInviteDialog(true)}
@@ -445,7 +518,7 @@ export default function Admin() {
                     <TableRow>
                       <TableHead>Utilisateur</TableHead>
                       <TableHead>Rôle</TableHead>
-                      <TableHead>Créé le</TableHead>
+                      <TableHead className="hidden sm:table-cell">Créé le</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -491,30 +564,57 @@ export default function Admin() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                           {formatDate(u.created_at)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEditRole(u)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            {u.user_id !== user?.id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleRemoveRole(u)}
+                                className="h-8 w-8"
+                                disabled={actionLoading === u.user_id}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {actionLoading === u.user_id ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <MoreVertical className="h-4 w-4" />
+                                )}
                               </Button>
-                            )}
-                          </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditRole(u)}>
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Modifier le rôle
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setShowResetPassword(u)}>
+                                <KeyRound className="h-4 w-4 mr-2" />
+                                Réinitialiser mot de passe
+                              </DropdownMenuItem>
+                              {u.user_id !== user?.id && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleDisableUser(u)}>
+                                    <UserX className="h-4 w-4 mr-2" />
+                                    Désactiver
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEnableUser(u)}>
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Réactiver
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => setShowDeleteConfirm(u)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Supprimer définitivement
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -525,7 +625,7 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* Roles Legend - Plus discret */}
+        {/* Roles Legend */}
         <Card className="border-0 shadow-sm bg-muted/30">
           <CardContent className="py-3 px-4">
             <p className="text-xs font-medium text-muted-foreground mb-2">Légende</p>
@@ -685,6 +785,127 @@ export default function Admin() {
                 <UserPlus className="h-4 w-4 mr-2" />
               )}
               Créer l'utilisateur
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Supprimer définitivement
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. L'utilisateur et toutes ses données seront supprimés.
+            </DialogDescription>
+          </DialogHeader>
+          {showDeleteConfirm && (
+            <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <Avatar>
+                <AvatarImage src={showDeleteConfirm.avatar_url || undefined} />
+                <AvatarFallback>{getInitials(showDeleteConfirm.full_name)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{showDeleteConfirm.full_name || "Sans nom"}</p>
+                <p className="text-xs text-muted-foreground">
+                  Sera supprimé définitivement
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+              Annuler
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteUser}
+              disabled={actionLoading === showDeleteConfirm?.user_id}
+            >
+              {actionLoading === showDeleteConfirm?.user_id ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!showResetPassword} onOpenChange={() => {
+        setShowResetPassword(null);
+        setNewPassword("");
+        setShowNewPassword(false);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Réinitialiser le mot de passe
+            </DialogTitle>
+          </DialogHeader>
+          {showResetPassword && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Avatar>
+                  <AvatarImage src={showResetPassword.avatar_url || undefined} />
+                  <AvatarFallback>{getInitials(showResetPassword.full_name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{showResetPassword.full_name || "Sans nom"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ID: {showResetPassword.user_id.slice(0, 8)}...
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Minimum 6 caractères"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Communiquez ce mot de passe à l'utilisateur de manière sécurisée
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowResetPassword(null);
+              setNewPassword("");
+            }}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleResetPassword}
+              disabled={actionLoading === showResetPassword?.user_id || newPassword.length < 6}
+            >
+              {actionLoading === showResetPassword?.user_id ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <KeyRound className="h-4 w-4 mr-2" />
+              )}
+              Réinitialiser
             </Button>
           </DialogFooter>
         </DialogContent>
