@@ -293,20 +293,20 @@ export function PresentationStrategie({
             {copy.timeline}
           </h2>
           
-          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-thin">
             {phases.map((phase) => (
               <div
                 key={phase.id}
                 className={cn(
-                  "flex-1 min-w-[140px] rounded-xl p-3 md:p-4 transition-all",
+                  "flex-shrink-0 w-[160px] md:w-[180px] rounded-xl p-3 md:p-4 transition-all",
                   phase.isPointDepart 
                     ? "bg-primary/20 ring-2 ring-primary" 
                     : "bg-white/5"
                 )}
               >
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-start gap-2 mb-2">
                   <div className={cn(
-                    "h-8 w-8 rounded-full flex items-center justify-center",
+                    "h-8 w-8 shrink-0 rounded-full flex items-center justify-center",
                     phase.isPointDepart 
                       ? "bg-primary text-white" 
                       : "bg-white/10 text-white/60"
@@ -314,7 +314,7 @@ export function PresentationStrategie({
                     {PHASE_ICONS[phase.id] || <Circle className="h-4 w-4" />}
                   </div>
                   <span className={cn(
-                    "font-semibold text-sm",
+                    "font-semibold text-sm leading-tight",
                     phase.isPointDepart ? "text-primary" : "text-white"
                   )}>
                     {phase.nom}
