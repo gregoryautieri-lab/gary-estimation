@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      comparables: {
+        Row: {
+          adresse: string | null
+          code_postal: string | null
+          created_at: string
+          date_vente: string | null
+          id: string
+          latitude: number | null
+          localite: string | null
+          longitude: number | null
+          notes: string | null
+          pieces: number | null
+          prix: number | null
+          source: string | null
+          statut_marche: string
+          strategie_diffusion: string | null
+          surface: number | null
+          type_bien: Database["public"]["Enums"]["type_bien"] | null
+          updated_at: string
+          url_source: string | null
+          user_id: string
+        }
+        Insert: {
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          date_vente?: string | null
+          id?: string
+          latitude?: number | null
+          localite?: string | null
+          longitude?: number | null
+          notes?: string | null
+          pieces?: number | null
+          prix?: number | null
+          source?: string | null
+          statut_marche?: string
+          strategie_diffusion?: string | null
+          surface?: number | null
+          type_bien?: Database["public"]["Enums"]["type_bien"] | null
+          updated_at?: string
+          url_source?: string | null
+          user_id: string
+        }
+        Update: {
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          date_vente?: string | null
+          id?: string
+          latitude?: number | null
+          localite?: string | null
+          longitude?: number | null
+          notes?: string | null
+          pieces?: number | null
+          prix?: number | null
+          source?: string | null
+          statut_marche?: string
+          strategie_diffusion?: string | null
+          surface?: number | null
+          type_bien?: Database["public"]["Enums"]["type_bien"] | null
+          updated_at?: string
+          url_source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       estimation_modifications: {
         Row: {
           action: string
@@ -262,30 +328,40 @@ export type Database = {
       }
       project_comparables_links: {
         Row: {
+          comparable_id: string | null
           created_at: string
-          estimation_id: string
+          estimation_id: string | null
           id: string
           notes: string | null
           project_id: string
           selected_by_user: boolean | null
         }
         Insert: {
+          comparable_id?: string | null
           created_at?: string
-          estimation_id: string
+          estimation_id?: string | null
           id?: string
           notes?: string | null
           project_id: string
           selected_by_user?: boolean | null
         }
         Update: {
+          comparable_id?: string | null
           created_at?: string
-          estimation_id?: string
+          estimation_id?: string | null
           id?: string
           notes?: string | null
           project_id?: string
           selected_by_user?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_comparables_links_comparable_id_fkey"
+            columns: ["comparable_id"]
+            isOneToOne: false
+            referencedRelation: "comparables"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_comparables_links_estimation_id_fkey"
             columns: ["estimation_id"]

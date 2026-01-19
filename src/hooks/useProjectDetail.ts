@@ -84,20 +84,28 @@ export interface ProjectData {
 
 export interface ComparableData {
   linkId: string;
-  estimationId: string;
+  // Either estimation or comparable (external)
+  estimationId: string | null;
+  comparableId: string | null;
+  sourceType: 'gary' | 'external';
   selectedByUser: boolean;
   notes: string | null;
   createdAt: string;
-  // Estimation data
+  // Common data
   adresse: string | null;
   localite: string | null;
   codePostal: string | null;
   prixFinal: number | null;
   typeBien: string | null;
   statut: string;
+  statutMarche: 'vendu' | 'en_vente' | null; // For external comparables
+  strategieDiffusion: string | null;
   surface: number | null;
   pieces: number | null;
   updatedAt: string;
+  dateVente: string | null;
+  urlSource: string | null;
+  source: string | null; // 'manual', 'immoscout', etc.
   // Geocoding
   coordinates: { lat: number; lng: number } | null;
   geocodingStatus: 'pending' | 'found' | 'fallback' | 'missing';
@@ -156,10 +164,10 @@ export function useProjectDetail(projectId: string | undefined) {
         updatedAt: projectData.updated_at,
       });
 
-      // 2. Fetch links with estimations
+      // 2. Fetch links (with both estimation_id and comparable_id)
       const { data: linksData, error: linksError } = await supabase
         .from('project_comparables_links')
-        .select('id, created_at, selected_by_user, notes, estimation_id')
+        .select('id, created_at, selected_by_user, notes, estimation_id, comparable_id')
         .eq('project_id', projectId);
 
       if (linksError) {
@@ -175,51 +183,112 @@ export function useProjectDetail(projectId: string | undefined) {
         return;
       }
 
-      // 3. Fetch estimation details for each link
-      const estimationIds = linksData.map(l => l.estimation_id);
-      const { data: estimationsData, error: estimationsError } = await supabase
-        .from('estimations')
-        .select('id, adresse, localite, code_postal, prix_final, type_bien, statut, caracteristiques, identification, updated_at')
-        .in('id', estimationIds);
+      // 3a. Fetch estimation details for GARY comparables
+      const estimationIds = linksData
+        .filter(l => l.estimation_id)
+        .map(l => l.estimation_id!);
+      
+      let estimationsMap = new Map<string, any>();
+      if (estimationIds.length > 0) {
+        const { data: estimationsData, error: estimationsError } = await supabase
+          .from('estimations')
+          .select('id, adresse, localite, code_postal, prix_final, type_bien, statut, caracteristiques, identification, updated_at')
+          .in('id', estimationIds);
 
-      if (estimationsError) {
-        console.error('Estimations fetch error:', estimationsError);
+        if (estimationsError) {
+          console.error('Estimations fetch error:', estimationsError);
+        }
+        estimationsMap = new Map((estimationsData || []).map(e => [e.id, e]));
+      }
+
+      // 3b. Fetch external comparables
+      const comparableIds = linksData
+        .filter(l => l.comparable_id)
+        .map(l => l.comparable_id!);
+      
+      let comparablesMap = new Map<string, any>();
+      if (comparableIds.length > 0) {
+        const { data: comparablesData, error: comparablesError } = await supabase
+          .from('comparables')
+          .select('*')
+          .in('id', comparableIds);
+
+        if (comparablesError) {
+          console.error('Comparables fetch error:', comparablesError);
+        }
+        comparablesMap = new Map((comparablesData || []).map(c => [c.id, c]));
       }
 
       // 4. Map data together
-      const estimationsMap = new Map(
-        (estimationsData || []).map(e => [e.id, e])
-      );
-
       const mappedComparables: ComparableData[] = linksData.map(link => {
-        const est = estimationsMap.get(link.estimation_id);
-        const carac = est?.caracteristiques as any;
-        const ident = est?.identification as any;
+        // GARY estimation
+        if (link.estimation_id) {
+          const est = estimationsMap.get(link.estimation_id);
+          const carac = est?.caracteristiques as any;
+          const ident = est?.identification as any;
+          
+          const surface = parseFloat(carac?.surfacePPE || carac?.surfaceHabitableMaison || '0') || null;
+          const pieces = parseFloat(carac?.nombrePieces || '0') || null;
+          const storedCoords = ident?.adresse?.coordinates;
+          
+          // Map estimation status to market status
+          const statutMarche = est?.statut === 'mandat_signe' ? 'vendu' as const : 'en_vente' as const;
+          
+          return {
+            linkId: link.id,
+            estimationId: link.estimation_id,
+            comparableId: null,
+            sourceType: 'gary' as const,
+            selectedByUser: link.selected_by_user || false,
+            notes: link.notes,
+            createdAt: link.created_at,
+            adresse: est?.adresse || null,
+            localite: est?.localite || null,
+            codePostal: est?.code_postal || null,
+            prixFinal: est?.prix_final ? Number(est.prix_final) : null,
+            typeBien: est?.type_bien || null,
+            statut: est?.statut || 'brouillon',
+            statutMarche,
+            strategieDiffusion: null,
+            surface,
+            pieces,
+            updatedAt: est?.updated_at || link.created_at,
+            dateVente: null,
+            urlSource: null,
+            source: 'gary',
+            coordinates: storedCoords || null,
+            geocodingStatus: storedCoords ? 'found' as const : 'pending' as const,
+          };
+        }
         
-        // Get surface from caracteristiques
-        const surface = parseFloat(carac?.surfacePPE || carac?.surfaceHabitableMaison || '0') || null;
-        const pieces = parseFloat(carac?.nombrePieces || '0') || null;
-        
-        // Try to get coordinates from identification
-        const storedCoords = ident?.adresse?.coordinates;
+        // External comparable
+        const comp = comparablesMap.get(link.comparable_id!);
+        const hasCoords = comp?.latitude && comp?.longitude;
         
         return {
           linkId: link.id,
-          estimationId: link.estimation_id,
+          estimationId: null,
+          comparableId: link.comparable_id,
+          sourceType: 'external' as const,
           selectedByUser: link.selected_by_user || false,
-          notes: link.notes,
+          notes: link.notes || comp?.notes || null,
           createdAt: link.created_at,
-          adresse: est?.adresse || null,
-          localite: est?.localite || null,
-          codePostal: est?.code_postal || null,
-          prixFinal: est?.prix_final ? Number(est.prix_final) : null,
-          typeBien: est?.type_bien || null,
-          statut: est?.statut || 'brouillon',
-          surface,
-          pieces,
-          updatedAt: est?.updated_at || link.created_at,
-          coordinates: storedCoords || null,
-          geocodingStatus: storedCoords ? 'found' : 'pending',
+          adresse: comp?.adresse || null,
+          localite: comp?.localite || null,
+          codePostal: comp?.code_postal || null,
+          prixFinal: comp?.prix ? Number(comp.prix) : null,
+          typeBien: comp?.type_bien || null,
+          statut: comp?.statut_marche === 'vendu' ? 'mandat_signe' : 'presentee',
+          statutMarche: comp?.statut_marche || 'en_vente',
+          strategieDiffusion: comp?.strategie_diffusion || null,
+          surface: comp?.surface ? Number(comp.surface) : null,
+          pieces: comp?.pieces ? Number(comp.pieces) : null,
+          updatedAt: comp?.updated_at || link.created_at,
+          dateVente: comp?.date_vente || null,
+          urlSource: comp?.url_source || null,
+          source: comp?.source || 'manual',
+          coordinates: hasCoords ? { lat: Number(comp.latitude), lng: Number(comp.longitude) } : null,
+          geocodingStatus: hasCoords ? 'found' as const : 'pending' as const,
         };
       });
 
