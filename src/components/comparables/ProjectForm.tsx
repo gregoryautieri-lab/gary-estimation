@@ -7,13 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Form,
   FormControl,
   FormField,
@@ -21,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useCommunes } from '@/hooks/useCommunes';
+import { MultiSelectCommunes } from '@/components/ui/multi-select-communes';
 import { ProjectStatutFilter } from '@/hooks/useProjectsComparables';
 
 // Types de bien disponibles
@@ -39,7 +32,7 @@ const projectFormSchema = z.object({
   projectName: z.string()
     .min(1, 'Le nom du projet est requis')
     .max(100, 'Le nom ne peut pas dépasser 100 caractères'),
-  commune: z.string().min(1, 'La commune est requise'),
+  communes: z.array(z.string()).min(1, 'Sélectionnez au moins une commune'),
   prixMin: z.number().nullable(),
   prixMax: z.number().nullable(),
   typeBien: z.array(z.string()).min(1, 'Sélectionnez au moins un type de bien'),
@@ -89,13 +82,11 @@ export function ProjectForm({
   isSubmitting,
   defaultValues 
 }: ProjectFormProps) {
-  const { communes, loading: loadingCommunes } = useCommunes();
-
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       projectName: defaultValues?.projectName || '',
-      commune: defaultValues?.commune || '',
+      communes: defaultValues?.communes || [],
       prixMin: defaultValues?.prixMin ?? null,
       prixMax: defaultValues?.prixMax ?? null,
       typeBien: defaultValues?.typeBien || ['appartement', 'maison', 'villa'],
@@ -106,12 +97,6 @@ export function ProjectForm({
       statutFilter: defaultValues?.statutFilter as any || 'tous',
     },
   });
-
-  // Format number with thousands separator
-  const formatNumber = (value: string) => {
-    const num = value.replace(/[^\d]/g, '');
-    return num ? parseInt(num, 10).toLocaleString('fr-CH') : '';
-  };
 
   // Parse formatted number back to number
   const parseNumber = (value: string): number | null => {
@@ -143,31 +128,20 @@ export function ProjectForm({
           )}
         />
 
-        {/* Commune */}
+        {/* Communes (multi-select) */}
         <FormField
           control={form.control}
-          name="commune"
+          name="communes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Commune *</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value}
-                disabled={loadingCommunes}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingCommunes ? "Chargement..." : "Sélectionner une commune"} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="max-h-60">
-                  {communes.map((commune) => (
-                    <SelectItem key={commune} value={commune}>
-                      {commune}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Communes *</FormLabel>
+              <FormControl>
+                <MultiSelectCommunes
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Sélectionner des communes..."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

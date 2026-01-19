@@ -14,7 +14,7 @@ export interface ProjectComparable {
   projectName: string;
   archived: boolean;
   // Critères de recherche
-  commune: string | null;
+  communes: string[] | null;
   prixMin: number | null;
   prixMax: number | null;
   typeBien: string[] | null;
@@ -29,7 +29,7 @@ export interface ProjectComparable {
 }
 
 interface FetchOptions {
-  commune?: string | null;
+  communes?: string[] | null;
   archived?: boolean | null; // null = tous
   sortBy?: 'recent' | 'oldest' | 'nb_comparables';
 }
@@ -44,7 +44,7 @@ function rowToProject(row: any): ProjectComparable {
     courtierName: row.courtier_name,
     projectName: row.project_name,
     archived: row.archived || false,
-    commune: row.commune,
+    communes: row.communes,
     prixMin: row.prix_min,
     prixMax: row.prix_max,
     typeBien: row.type_bien,
@@ -65,7 +65,7 @@ function projectToInsert(data: Partial<ProjectComparable>, userId: string) {
     courtier_name: data.courtierName ?? null,
     project_name: data.projectName || 'Nouveau projet',
     archived: data.archived ?? false,
-    commune: data.commune ?? null,
+    communes: data.communes ?? null,
     prix_min: data.prixMin ?? null,
     prix_max: data.prixMax ?? null,
     type_bien: data.typeBien ?? null,
@@ -95,9 +95,9 @@ export function useProjectsComparables() {
         .select('*')
         .eq('user_id', user.id);
 
-      // Filtre commune
-      if (options.commune) {
-        query = query.eq('commune', options.commune);
+      // Filtre communes (contains any of the specified communes)
+      if (options.communes && options.communes.length > 0) {
+        query = query.overlaps('communes', options.communes);
       }
 
       // Filtre archived
@@ -135,24 +135,25 @@ export function useProjectsComparables() {
     }
   }, [user?.id]);
 
-  // Fetch distinct communes for autocomplete
+  // Fetch distinct communes for autocomplete (from existing projects)
   const fetchDistinctCommunes = useCallback(async (): Promise<string[]> => {
     if (!user?.id) return [];
 
     try {
       const { data, error } = await supabase
         .from('projects_comparables')
-        .select('commune')
+        .select('communes')
         .eq('user_id', user.id)
-        .not('commune', 'is', null);
+        .not('communes', 'is', null);
 
       if (error) {
         console.error('Error fetching communes:', error);
         return [];
       }
 
-      // Extraire valeurs uniques
-      const communes = [...new Set((data || []).map(d => d.commune).filter(Boolean))] as string[];
+      // Extraire et aplatir toutes les communes uniques
+      const allCommunes = (data || []).flatMap(d => d.communes || []);
+      const communes = [...new Set(allCommunes)].filter(Boolean) as string[];
       return communes.sort();
     } catch (err) {
       console.error('Error fetching communes:', err);
@@ -322,7 +323,7 @@ export function useProjectsComparables() {
           courtier_name: profile?.full_name || original.courtier_name,
           project_name: `${original.project_name} (copie)`,
           archived: false,
-          commune: original.commune,
+          communes: original.communes,
           prix_min: original.prix_min,
           prix_max: original.prix_max,
           type_bien: original.type_bien,
