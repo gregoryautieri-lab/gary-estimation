@@ -689,7 +689,7 @@ function generateCaracteristiquesPage(estimation: EstimationData, pageNum: numbe
   html += '</div></div>';
   
   // Proximités
-  const proxFilled = (proximites as any[]).filter(p => p.libelle && p.distance).slice(0, 6);
+  const proxFilled = (proximites as any[]).filter(p => p.libelle && p.distance).slice(0, 9);
   html += '<div style="padding:16px 24px;background:white;border-top:1px solid #e5e7eb;">';
   html += '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;">Proximités & Commodités</div>';
   if (proxFilled.length > 0) {
