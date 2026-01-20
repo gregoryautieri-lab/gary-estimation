@@ -203,16 +203,16 @@ export default function ComparablesProjects() {
           {/* Title & New button */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
+              <h1 className="text-base font-semibold text-foreground flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-primary" />
                 Projets Comparables
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Organisez vos recherches de biens similaires
               </p>
             </div>
-            <Button onClick={handleNewProject} className="shrink-0">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={handleNewProject} size="sm" className="shrink-0">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Nouveau
             </Button>
           </div>
@@ -247,18 +247,18 @@ export default function ComparablesProjects() {
 
           {/* Empty state: no projects - Enhanced */}
           {hasNoProjects && (
-            <div className="text-center py-16 px-6 bg-muted/20 rounded-2xl border border-dashed">
-              <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="h-8 w-8 text-primary" />
+            <div className="text-center py-12 px-4 bg-muted/20 rounded-xl border border-dashed">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground mb-3">
+              <h2 className="text-base font-medium text-foreground mb-2">
                 Aucun projet de comparables
               </h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
-                Créez votre premier projet pour organiser vos recherches de biens similaires et visualiser leur positionnement géographique.
+              <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto leading-relaxed">
+                Créez votre premier projet pour organiser vos recherches de biens similaires.
               </p>
-              <Button onClick={handleNewProject} size="lg" className="gap-2">
-                <Plus className="h-5 w-5" />
+              <Button onClick={handleNewProject} size="sm" className="gap-1.5">
+                <Plus className="h-4 w-4" />
                 Créer mon premier projet
               </Button>
             </div>
@@ -266,12 +266,12 @@ export default function ComparablesProjects() {
 
           {/* Empty state: no filtered results */}
           {hasNoResults && (
-            <div className="text-center py-12">
-              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">
+            <div className="text-center py-10">
+              <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+              <h2 className="text-sm font-medium text-foreground mb-1">
                 Aucun projet ne correspond aux filtres
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Modifiez vos critères de recherche.
               </p>
             </div>
