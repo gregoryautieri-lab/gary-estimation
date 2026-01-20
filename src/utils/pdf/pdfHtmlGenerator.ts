@@ -2469,10 +2469,10 @@ function generatePhotosPages(estimation: EstimationData, startPageNum: number = 
   
   let html = '';
   
-  // Style spécifique pour les grilles photos
+  // Style spécifique pour les grilles photos - sans flex:1 pour éviter les sauts de page
   html += '<style>';
-  html += '.photos-grid-pdf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 24px; flex: 1; }';
-  html += '.photo-cell { aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: #f3f4f6; }';
+  html += '.photos-grid-pdf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 24px; }';
+  html += '.photo-cell { aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: #f3f4f6; page-break-inside: avoid; }';
   html += '.photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }';
   html += '</style>';
   
