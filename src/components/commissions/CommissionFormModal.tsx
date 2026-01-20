@@ -89,7 +89,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const isEditing = !!commission;
 
   // Fetch all users from profiles with their roles
-  const { data: users = [] } = useQuery({
+  const { data: profilesData = { allUsers: [], courtiers: [] } } = useQuery({
     queryKey: ["profiles-for-commissions"],
     queryFn: async () => {
       // Get profiles
@@ -113,26 +113,28 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         roleMap.set(r.user_id, existing);
       });
 
-      // Filter only courtiers (exclude admin, back_office, marketing)
-      const courtierProfiles = (profiles || [])
-        .filter(u => {
-          if (!u.full_name) return false;
-          const userRoles = roleMap.get(u.user_id) || [];
-          // Include only users with 'courtier' role (or no special role = default courtier)
-          return userRoles.includes("courtier") || 
-                 (!userRoles.includes("admin") && !userRoles.includes("back_office") && !userRoles.includes("marketing"));
-        }) as UserProfile[];
+      // All users with names
+      const allUsers = (profiles || []).filter(u => u.full_name) as UserProfile[];
 
-      return courtierProfiles;
+      // Filter only courtiers (exclude admin, back_office, marketing)
+      const courtiers = allUsers.filter(u => {
+        const userRoles = roleMap.get(u.user_id) || [];
+        return userRoles.includes("courtier") || 
+               (!userRoles.includes("admin") && !userRoles.includes("back_office") && !userRoles.includes("marketing"));
+      });
+
+      return { allUsers, courtiers };
     },
   });
 
-  // Get display name list for selects
-  const userNames = users.map(u => u.full_name!).filter(Boolean);
+  // Courtiers only for "Courtier principal"
+  const courtierNames = profilesData.courtiers.map(u => u.full_name!).filter(Boolean);
+  // All users for "Répartition" (non-courtiers can participate in deals)
+  const allUserNames = profilesData.allUsers.map(u => u.full_name!).filter(Boolean);
 
   // Helper to get email by name
   const getEmailByName = (name: string): string | null => {
-    const user = users.find(u => u.full_name === name);
+    const user = profilesData.allUsers.find(u => u.full_name === name);
     return user?.email || null;
   };
 
@@ -344,7 +346,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     
     // Try to match courtier name with users list
     if (estimation.courtier_name) {
-      const matchedUser = userNames.find(name => 
+      const matchedUser = courtierNames.find(name => 
         name.toLowerCase().includes(estimation.courtier_name!.toLowerCase()) ||
         estimation.courtier_name!.toLowerCase().includes(name.toLowerCase())
       );
@@ -637,7 +639,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                     <SelectValue placeholder="Sélectionner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {userNames.map((name) => (
+                    {courtierNames.map((name) => (
                       <SelectItem key={name} value={name}>{name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -782,7 +784,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                         <SelectValue placeholder="Courtier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {userNames.map((name) => (
+                        {allUserNames.map((name) => (
                           <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
                       </SelectContent>
