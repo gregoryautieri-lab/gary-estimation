@@ -1964,6 +1964,8 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
       html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
       html += '</div>';
       
+      html += '</div>'; // Fermer la page supplémentaire
+      
       // Note: Cette page supplémentaire nécessite un ajustement du totalPages dans le générateur principal
       return html; // Retourne ici pour éviter le footer double
     }
