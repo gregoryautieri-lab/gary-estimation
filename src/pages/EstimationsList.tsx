@@ -136,16 +136,16 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
   };
 
   return (
-    <div className="w-full bg-card border border-border rounded-xl p-4 text-left transition-all hover:border-primary/50 flex items-start gap-3">
+    <div className="w-full bg-card border border-border rounded-lg p-3 text-left transition-all hover:border-primary/50 flex items-start gap-2">
       {/* Priority indicator */}
-      <PriorityIndicator priority={priority} className="mt-1.5 shrink-0" />
+      <PriorityIndicator priority={priority} className="mt-1 shrink-0" />
       
       {/* Main content - clickable */}
       <button
         onClick={onClick}
         className="flex-1 min-w-0 text-left"
       >
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           {editingStatus ? (
             <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
               {quickStatusOptions.map((key) => {
@@ -155,7 +155,7 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
                   <button
                     key={key}
                     onClick={() => handleStatusSelect(key)}
-                    className={`text-xs font-medium px-2 py-0.5 rounded transition-all ${clr.bgClass} ${clr.color} ${
+                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded transition-all ${clr.bgClass} ${clr.color} ${
                       estimation.statut === key ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -165,44 +165,44 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
               })}
               <button 
                 onClick={() => setEditingStatus(false)}
-                className="p-1 text-muted-foreground hover:text-foreground"
+                className="p-0.5 text-muted-foreground hover:text-foreground"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2.5 w-2.5" />
               </button>
             </div>
           ) : (
             <button
               onClick={handleStatusClick}
               disabled={isUpdating}
-              className={`text-xs font-medium px-2 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${colorConfig.bgClass} ${colorConfig.color}`}
+              className={`text-[10px] font-medium px-1.5 py-0.5 rounded transition-all hover:ring-2 hover:ring-primary/50 ${colorConfig.bgClass} ${colorConfig.color}`}
             >
               {isUpdating ? '...' : statusConfig.label}
             </button>
           )}
           {estimation.typeBien && (
-            <span className="text-xs text-muted-foreground capitalize">
+            <span className="text-[10px] text-muted-foreground capitalize">
               {estimation.typeBien}
             </span>
           )}
           {/* Priority badge */}
           <PriorityBadge priority={priority} size="sm" />
         </div>
-        <h3 className="font-semibold text-foreground truncate">{vendeur}</h3>
+        <h3 className="font-medium text-sm text-foreground truncate">{vendeur}</h3>
         {(adresse || localite) && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
-            <MapPin className="h-3 w-3 shrink-0" />
+          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+            <MapPin className="h-2.5 w-2.5 shrink-0" />
             {adresse}{adresse && localite ? ', ' : ''}{localite}
           </p>
         )}
-        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
           {date && (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+            <span className="flex items-center gap-0.5">
+              <Calendar className="h-2.5 w-2.5" />
               {date}
             </span>
           )}
           {estimation.prixFinal && (
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-foreground text-xs">
               {formatPriceCHF(estimation.prixFinal)}
             </span>
           )}
@@ -210,15 +210,15 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
       </button>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-0.5 shrink-0">
         {/* Bouton Présentation - disponible dès qu'on a un prix */}
         {estimation.prixFinal && (
           <button
             onClick={e => { e.stopPropagation(); onOpenPresentation(); }}
-            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
             title="Ouvrir la présentation client"
           >
-            <Presentation className="h-4 w-4" />
+            <Presentation className="h-3.5 w-3.5" />
           </button>
         )}
         
@@ -226,10 +226,10 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
         {estimation.prixFinal && (
           <button
             onClick={e => { e.stopPropagation(); onDownloadPDF(); }}
-            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
             title="Télécharger le PDF"
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-3.5 w-3.5" />
           </button>
         )}
         
@@ -239,10 +239,10 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
             <AlertDialogTrigger asChild>
               <button
                 onClick={e => e.stopPropagation()}
-                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
                 title="Supprimer"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -271,10 +271,10 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
             <AlertDialogTrigger asChild>
               <button
                 onClick={e => e.stopPropagation()}
-                className="p-2 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
                 title="Archiver"
               >
-                <Archive className="h-4 w-4" />
+                <Archive className="h-3.5 w-3.5" />
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -297,7 +297,7 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
           </AlertDialog>
         )}
         
-        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </div>
     </div>
   );
@@ -455,80 +455,80 @@ const EstimationsList = () => {
       <main className="flex-1 p-4 pb-24">
         <div className="space-y-4">
           {/* Title & Stats */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-foreground">Mes Estimations</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">
+              <h1 className="text-base font-semibold text-foreground">Mes Estimations</h1>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   {stats.total} total
                 </Badge>
                 {stats.brouillons > 0 && (
-                  <Badge variant="secondary" className="text-xs bg-muted">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted">
                     {stats.brouillons} brouillon{stats.brouillons > 1 ? 's' : ''}
                   </Badge>
                 )}
                 {stats.enCours > 0 && (
-                  <Badge className="text-xs bg-amber-100 text-amber-700 hover:bg-amber-100">
+                  <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 hover:bg-amber-100">
                     {stats.enCours} en cours
                   </Badge>
                 )}
                 {stats.termines > 0 && (
-                  <Badge className="text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                  <Badge className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                     {stats.termines} terminé{stats.termines > 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>
             </div>
-            <Button onClick={handleNewEstimation} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={handleNewEstimation} disabled={loading} size="sm" className="h-8 text-xs">
+              <Plus className="h-3.5 w-3.5 mr-1" />
               Nouvelle
             </Button>
           </div>
 
           {/* Search & Filters */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Rechercher par nom, adresse..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-8 h-8 text-xs"
               />
             </div>
             
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {/* Filtre statut */}
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger className="w-[140px] h-9">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-[120px] h-7 text-xs">
+                  <Filter className="h-3 w-3 mr-1" />
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tous">Tous</SelectItem>
-                  <SelectItem value="brouillon">Brouillons</SelectItem>
-                  <SelectItem value="en_cours">En cours</SelectItem>
-                  <SelectItem value="a_presenter">À présenter</SelectItem>
-                  <SelectItem value="presentee">Présentées</SelectItem>
-                  <SelectItem value="reflexion">En réflexion</SelectItem>
-                  <SelectItem value="negociation">Négociation</SelectItem>
-                  <SelectItem value="accord_oral">Accord oral</SelectItem>
-                  <SelectItem value="en_signature">En signature</SelectItem>
-                  <SelectItem value="mandat_signe">Mandats signés</SelectItem>
-                  <SelectItem value="perdu">Perdues</SelectItem>
-                  <SelectItem value="archive">Archivées</SelectItem>
+                  <SelectItem value="tous" className="text-xs">Tous</SelectItem>
+                  <SelectItem value="brouillon" className="text-xs">Brouillons</SelectItem>
+                  <SelectItem value="en_cours" className="text-xs">En cours</SelectItem>
+                  <SelectItem value="a_presenter" className="text-xs">À présenter</SelectItem>
+                  <SelectItem value="presentee" className="text-xs">Présentées</SelectItem>
+                  <SelectItem value="reflexion" className="text-xs">En réflexion</SelectItem>
+                  <SelectItem value="negociation" className="text-xs">Négociation</SelectItem>
+                  <SelectItem value="accord_oral" className="text-xs">Accord oral</SelectItem>
+                  <SelectItem value="en_signature" className="text-xs">En signature</SelectItem>
+                  <SelectItem value="mandat_signe" className="text-xs">Mandats signés</SelectItem>
+                  <SelectItem value="perdu" className="text-xs">Perdues</SelectItem>
+                  <SelectItem value="archive" className="text-xs">Archivées</SelectItem>
                 </SelectContent>
               </Select>
               
               {/* Tri */}
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-                <SelectTrigger className="w-[120px] h-9">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-[100px] h-7 text-xs">
+                  <ArrowUpDown className="h-3 w-3 mr-1" />
                   <SelectValue placeholder="Trier" />
                 </SelectTrigger>
                 <SelectContent>
                   {sortOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -539,7 +539,7 @@ const EstimationsList = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 px-3"
+                className="h-7 px-2 text-xs"
                 onClick={toggleSortOrder}
               >
                 {sortOrder === 'desc' ? '↓' : '↑'}
@@ -550,13 +550,13 @@ const EstimationsList = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 px-2 text-muted-foreground"
+                  className="h-7 px-1.5 text-muted-foreground"
                   onClick={() => {
                     setStatusFilter('tous');
                     setSearch('');
                   }}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3 w-3" />
                 </Button>
               )}
             </div>
@@ -564,7 +564,7 @@ const EstimationsList = () => {
 
           {/* Results count */}
           {(statusFilter !== 'tous' || search) && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {processedEstimations.length} résultat{processedEstimations.length > 1 ? 's' : ''}
               {statusFilter !== 'tous' && ` • Filtre: ${getStatusLabel(statusFilter).label}`}
             </p>
@@ -572,20 +572,20 @@ const EstimationsList = () => {
 
           {/* List */}
           {loading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-24 rounded-xl" />
+                <Skeleton key={i} className="h-20 rounded-lg" />
               ))}
             </div>
           ) : processedEstimations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-foreground mb-1">
+              <h3 className="font-medium text-sm text-foreground mb-0.5">
                 {search || statusFilter !== 'tous' ? 'Aucun résultat' : 'Aucune estimation'}
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-3">
                 {search || statusFilter !== 'tous' 
                   ? 'Modifiez vos filtres' 
                   : 'Créez votre première estimation'}
