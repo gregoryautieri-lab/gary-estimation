@@ -1273,10 +1273,10 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   
   // === C. CADRE DE PILOTAGE (si projet d'achat détecté) ===
   if (hasProjetAchat && niveauContrainte > 0) {
-    html += '<div style="padding:8px 24px;background:#f8fafc;">';
-    html += '<div style="background:#f8fafc;border-left:3px solid #FF4539;border-radius:4px;padding:10px 14px;">';
-    html += `<div style="font-size:8px;color:#FF4539;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:600;">Cadre de pilotage</div>`;
-    html += '<div style="font-size:8px;color:#4b5563;line-height:1.5;">La stratégie proposée est conçue pour rester <strong>réversible et ajustable</strong> dans le temps. Elle s\'adapte à l\'évolution du marché et de votre situation personnelle, sans jamais exposer vos contraintes.</div>';
+    html += '<div style="padding:4px 24px;background:#f8fafc;">';
+    html += '<div style="background:#f8fafc;border-left:2px solid #FF4539;border-radius:3px;padding:6px 10px;">';
+    html += `<div style="font-size:7px;color:#FF4539;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px;font-weight:600;">Cadre de pilotage</div>`;
+    html += '<div style="font-size:7px;color:#4b5563;line-height:1.4;">La stratégie proposée est conçue pour rester <strong>réversible et ajustable</strong> dans le temps. Elle s\'adapte à l\'évolution du marché et de votre situation personnelle, sans jamais exposer vos contraintes.</div>';
     html += '</div></div>';
   }
   
