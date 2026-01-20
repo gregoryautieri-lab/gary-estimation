@@ -398,7 +398,8 @@ export function generatePDF(
   // === PAGE 2: QUI EST GARY ===
   html += generateGaryPage({
     pageNumber: 2,
-    totalPages: preparedData.totalPages
+    totalPages: preparedData.totalPages,
+    refId: preparedData.refId
   });
   
   // === PAGE 3: CARACTÉRISTIQUES ===

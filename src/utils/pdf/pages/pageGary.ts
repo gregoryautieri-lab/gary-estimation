@@ -8,6 +8,7 @@ import { ico, getLogo } from '../index';
 interface GaryPageData {
   pageNumber: number;
   totalPages: number;
+  refId: string;
 }
 
 export function generateGaryPage(data: GaryPageData): string {
@@ -72,10 +73,11 @@ export function generateGaryPage(data: GaryPageData): string {
 
   html += '</div>';
 
-  // Footer
+  // Footer harmonisé avec les autres pages
   html += '<div class="gary-footer">';
-  html += getLogo('red', 18);
-  html += '<div class="gary-footer-text">gary.ch • +41 22 557 07 00</div>';
+  html += getLogo('white', 18);
+  html += '<div class="gary-footer-text">Page ' + data.pageNumber + '/' + data.totalPages + ' • Réf: ' + data.refId + '</div>';
+  html += '<div style="font-size: 10px; color: white; font-weight: 600; font-style: italic;">On pilote, vous décidez.</div>';
   html += '</div>';
 
   html += '</div>';
