@@ -568,7 +568,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
           {/* Montants */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-muted-foreground">Montants</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="prix">Prix de vente (CHF) *</Label>
                 <Input
@@ -590,6 +590,14 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                   placeholder="45000"
                   required
                 />
+              </div>
+              <div>
+                <Label>Pourcentage</Label>
+                <div className="h-10 flex items-center px-3 rounded-md border bg-muted/50 text-sm font-medium">
+                  {prixVente && commissionTotale && parseFloat(prixVente) > 0
+                    ? `${((parseFloat(commissionTotale) / parseFloat(prixVente)) * 100).toFixed(2)}%`
+                    : "—"}
+                </div>
               </div>
             </div>
           </div>
