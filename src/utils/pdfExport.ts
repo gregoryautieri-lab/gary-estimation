@@ -1611,6 +1611,7 @@ async function renderAnnexeTechnique2(ctx: PDFContext): Promise<void> {
     if (historique.duree) historiqueDetails.push(`Durée: ${historique.duree}`);
     if (historique.prixAffiche) historiqueDetails.push(`Prix affiché: ${historique.prixAffiche} CHF`);
     if (historique.portails?.length) historiqueDetails.push(`Portails: ${historique.portails.join(', ')}`);
+    if (historique.reseauxSociaux?.length) historiqueDetails.push(`Réseaux sociaux: ${historique.reseauxSociaux.join(', ')}`);
     if (historique.raisonEchec?.length) historiqueDetails.push(`Raisons: ${historique.raisonEchec.join(', ')}`);
     
     const historiqueText = historiqueDetails.join(' | ');

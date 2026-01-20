@@ -100,6 +100,17 @@ export const portailsLabels: Record<string, string> = {
 };
 
 /**
+ * Labels pour les réseaux sociaux
+ */
+export const reseauxSociauxLabels: Record<string, string> = {
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  youtube: 'YouTube'
+};
+
+/**
  * Labels pour les durées de diffusion
  */
 export const dureeLabels: Record<string, string> = {

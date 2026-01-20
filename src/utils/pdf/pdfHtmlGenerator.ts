@@ -2280,6 +2280,14 @@ function generateAnnexeTechnique2Page(estimation: EstimationData, pageNum: numbe
       portailsUtilises.forEach((p: string) => { html += `<span class="annexe-chip">${portailsLbl[p] || p}</span> `; });
       html += '</div>';
     }
+    // Réseaux sociaux utilisés
+    const reseauxUtilises = historique.reseauxSociaux || [];
+    if (reseauxUtilises.length > 0) {
+      const reseauxLbl: Record<string, string> = {'instagram': 'Instagram', 'linkedin': 'LinkedIn', 'facebook': 'Facebook', 'tiktok': 'TikTok', 'youtube': 'YouTube'};
+      html += '<div style="margin-top:6px;"><span style="font-size:8px;color:#6b7280;">Réseaux sociaux : </span>';
+      reseauxUtilises.forEach((r: string) => { html += `<span class="annexe-chip">${reseauxLbl[r] || r}</span> `; });
+      html += '</div>';
+    }
     // Raisons échec
     const raisonsEchec = historique.raisonEchec || [];
     if (raisonsEchec.length > 0) {
