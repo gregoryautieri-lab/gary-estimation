@@ -34,6 +34,7 @@ import { LocationPreview } from '@/components/maps/LocationPreview';
 import { CadastreMap } from '@/components/maps/CadastreMap';
 import { ProximitesEditor } from '@/components/gary/ProximitesEditor';
 import { CriteresAchatEditor } from '@/components/gary/CriteresAchatEditor';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { toast } from 'sonner';
 
 // Options pour les selects
@@ -803,42 +804,44 @@ const Module1Identification = () => {
               </div>
 
               {/* Portails utilisés */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Portails utilisés</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PORTAILS_OPTIONS.map(opt => (
-                    <div key={opt.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`portail-${opt.value}`}
-                        checked={identification.historique.portails?.includes(opt.value) || false}
-                        onCheckedChange={() => toggleArrayField('historique', 'portails', opt.value)}
-                      />
-                      <Label htmlFor={`portail-${opt.value}`} className="text-sm cursor-pointer">
-                        {opt.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <FormRow label="Portails utilisés">
+                <MultiSelect
+                  options={PORTAILS_OPTIONS}
+                  value={identification.historique.portails || []}
+                  onChange={(newValue) => {
+                    setIdentification(prev => ({
+                      ...prev,
+                      historique: {
+                        ...prev.historique,
+                        portails: newValue
+                      }
+                    }));
+                    scheduleSave();
+                  }}
+                  placeholder="Sélectionner les portails..."
+                  maxDisplay={3}
+                />
+              </FormRow>
 
               {/* Réseaux sociaux utilisés */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Réseaux sociaux utilisés</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {RESEAUX_SOCIAUX_OPTIONS.map(opt => (
-                    <div key={opt.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`reseau-${opt.value}`}
-                        checked={identification.historique.reseauxSociaux?.includes(opt.value) || false}
-                        onCheckedChange={() => toggleArrayField('historique', 'reseauxSociaux', opt.value)}
-                      />
-                      <Label htmlFor={`reseau-${opt.value}`} className="text-sm cursor-pointer">
-                        {opt.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <FormRow label="Réseaux sociaux utilisés">
+                <MultiSelect
+                  options={RESEAUX_SOCIAUX_OPTIONS}
+                  value={identification.historique.reseauxSociaux || []}
+                  onChange={(newValue) => {
+                    setIdentification(prev => ({
+                      ...prev,
+                      historique: {
+                        ...prev.historique,
+                        reseauxSociaux: newValue
+                      }
+                    }));
+                    scheduleSave();
+                  }}
+                  placeholder="Sélectionner les réseaux..."
+                  maxDisplay={3}
+                />
+              </FormRow>
 
               {/* Raisons d'échec */}
               <div className="space-y-2">
