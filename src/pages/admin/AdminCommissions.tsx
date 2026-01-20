@@ -607,10 +607,10 @@ export default function AdminCommissions() {
           </Card>
         </section>
 
-        {/* Section 4: Liste des commissions */}
+        {/* Section 4: Liste des commissions réalisées */}
         <section>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <h2 className="text-lg font-semibold">Détail des commissions</h2>
+            <h2 className="text-lg font-semibold">Commissions réalisées</h2>
             <div className="flex flex-wrap gap-2">
               <Select value={filterCourtier} onValueChange={setFilterCourtier}>
                 <SelectTrigger className="w-[160px]">
@@ -632,7 +632,6 @@ export default function AdminCommissions() {
                   <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value="Payée">Payée</SelectItem>
                   <SelectItem value="En attente">En attente</SelectItem>
-                  <SelectItem value="Probable">Probable</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -658,46 +657,98 @@ export default function AdminCommissions() {
                         Chargement...
                       </TableCell>
                     </TableRow>
-                  ) : filteredCommissions.length === 0 ? (
+                  ) : filteredCommissions.filter(c => c.statut !== "Probable").length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Aucune commission trouvée
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredCommissions.map((commission) => (
-                      <TableRow
-                        key={commission.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => openEditModal(commission)}
-                      >
-                        <TableCell>
-                          {commission.date_paiement
-                            ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">{commission.adresse}</TableCell>
-                        <TableCell>{commission.courtier_principal}</TableCell>
-                        <TableCell className="text-right">{formatCHF(commission.prix_vente)}</TableCell>
-                        <TableCell className="text-right font-medium text-primary">
-                          {formatCHF(commission.commission_totale)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={commission.statut === "Payée" ? "default" : "secondary"}
-                            className={commission.statut === "Probable" ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700" : ""}
-                          >
-                            {commission.statut}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredCommissions
+                      .filter(c => c.statut !== "Probable")
+                      .map((commission) => (
+                        <TableRow
+                          key={commission.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => openEditModal(commission)}
+                        >
+                          <TableCell>
+                            {commission.date_paiement
+                              ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">{commission.adresse}</TableCell>
+                          <TableCell>{commission.courtier_principal}</TableCell>
+                          <TableCell className="text-right">{formatCHF(commission.prix_vente)}</TableCell>
+                          <TableCell className="text-right font-medium text-primary">
+                            {formatCHF(commission.commission_totale)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={commission.statut === "Payée" ? "default" : "secondary"}>
+                              {commission.statut}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </section>
+
+        {/* Section 5: Commissions probables */}
+        {allCommissionsYear.filter(c => c.statut === "Probable").length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-amber-500"></span>
+              Commissions probables
+              <span className="text-sm font-normal text-muted-foreground">
+                ({allCommissionsYear.filter(c => c.statut === "Probable").length} affaire{allCommissionsYear.filter(c => c.statut === "Probable").length > 1 ? "s" : ""} en discussion)
+              </span>
+            </h2>
+            
+            <Card className="border-amber-200 dark:border-amber-800">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-amber-50/50 dark:bg-amber-950/20">
+                      <TableHead>Date prévue</TableHead>
+                      <TableHead>Adresse</TableHead>
+                      <TableHead>Courtier</TableHead>
+                      <TableHead className="text-right">Prix vente</TableHead>
+                      <TableHead className="text-right">Commission</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allCommissionsYear
+                      .filter(c => c.statut === "Probable")
+                      .filter(c => filterCourtier === "all" || c.courtier_principal === filterCourtier)
+                      .map((commission) => (
+                        <TableRow
+                          key={commission.id}
+                          className="cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                          onClick={() => openEditModal(commission)}
+                        >
+                          <TableCell>
+                            {commission.date_paiement
+                              ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">{commission.adresse}</TableCell>
+                          <TableCell>{commission.courtier_principal}</TableCell>
+                          <TableCell className="text-right">{formatCHF(commission.prix_vente)}</TableCell>
+                          <TableCell className="text-right font-medium text-amber-600">
+                            {formatCHF(commission.commission_totale)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </section>
+        )}
       </div>
 
       {/* Commission Modal */}
