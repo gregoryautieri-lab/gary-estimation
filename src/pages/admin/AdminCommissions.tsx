@@ -193,7 +193,9 @@ export default function AdminCommissions() {
       }
     });
 
+    // Filtrer pour n'afficher que les vrais courtiers (exclure CEO, Marketing, Back-office)
     const stats: CourtierStats[] = Object.entries(courtierMap)
+      .filter(([courtier]) => !NON_COURTIERS.some(nc => courtier.toLowerCase().includes(nc.toLowerCase())))
       .map(([courtier, data]) => ({
         courtier,
         nbVentes: data.count,
