@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, Plus, X, Lightbulb, Link2, Unlink, Home, Ruler, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
-import { COURTIERS_LIST } from "@/pages/admin/AdminCommissions";
+
+interface UserProfile {
+  user_id: string;
+  full_name: string | null;
+}
 
 interface Commission {
   id: string;
@@ -82,6 +86,22 @@ function useDebounce<T>(value: T, delay: number): T {
 export function CommissionFormModal({ open, onOpenChange, commission, onDelete }: CommissionFormModalProps) {
   const queryClient = useQueryClient();
   const isEditing = !!commission;
+
+  // Fetch all users from profiles
+  const { data: users = [] } = useQuery({
+    queryKey: ["profiles-for-commissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name");
+      if (error) throw error;
+      return (data || []).filter(u => u.full_name) as UserProfile[];
+    },
+  });
+
+  // Get display name list for selects
+  const userNames = users.map(u => u.full_name!).filter(Boolean);
 
   // Form state
   const [adresse, setAdresse] = useState("");
@@ -280,14 +300,17 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     if (estimation.adresse) setAdresse(estimation.adresse);
     if (estimation.localite) setCommune(estimation.localite);
     
-    // Try to match courtier name with predefined list
+    // Try to match courtier name with users list
     if (estimation.courtier_name) {
-      const firstName = estimation.courtier_name.split(" ")[0];
-      const matchedCourtier = COURTIERS_LIST.find(c => 
-        c.toLowerCase() === firstName.toLowerCase()
+      const matchedUser = userNames.find(name => 
+        name.toLowerCase().includes(estimation.courtier_name!.toLowerCase()) ||
+        estimation.courtier_name!.toLowerCase().includes(name.toLowerCase())
       );
-      if (matchedCourtier) {
-        setCourtierPrincipal(matchedCourtier);
+      if (matchedUser) {
+        setCourtierPrincipal(matchedUser);
+      } else {
+        // Use the courtier_name directly if no match found
+        setCourtierPrincipal(estimation.courtier_name);
       }
     }
 
@@ -572,8 +595,8 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                     <SelectValue placeholder="Sélectionner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {COURTIERS_LIST.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    {userNames.map((name) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -717,8 +740,8 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                         <SelectValue placeholder="Courtier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {COURTIERS_LIST.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        {userNames.map((name) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
