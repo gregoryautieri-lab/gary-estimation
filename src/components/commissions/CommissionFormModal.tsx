@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trash2, Plus, X, Lightbulb, Link2, Unlink, Home, Ruler, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { COURTIERS_LIST } from "@/pages/admin/AdminCommissions";
 
@@ -30,6 +32,19 @@ interface Commission {
   repartition: Record<string, number>;
 }
 
+interface EstimationSuggestion {
+  id: string;
+  adresse: string | null;
+  localite: string | null;
+  type_bien: string | null;
+  courtier_id: string;
+  courtier_name: string | null;
+  prix_min: number | null;
+  prix_max: number | null;
+  surface: number | null;
+  pieces: number | null;
+}
+
 interface CommissionFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +53,31 @@ interface CommissionFormModalProps {
 }
 
 const ORIGINES = ["Réseau", "Prospection", "Recommandation", "Autre"];
+
+// Normalise text for search (lowercase, remove accents)
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export function CommissionFormModal({ open, onOpenChange, commission, onDelete }: CommissionFormModalProps) {
   const queryClient = useQueryClient();
@@ -57,6 +97,16 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const [notes, setNotes] = useState("");
   const [statut, setStatut] = useState("Payée");
   const [repartition, setRepartition] = useState<{ courtier: string; montant: string }[]>([]);
+
+  // Estimation linking state
+  const [estimationId, setEstimationId] = useState<string | null>(null);
+  const [linkedEstimation, setLinkedEstimation] = useState<EstimationSuggestion | null>(null);
+  const [suggestions, setSuggestions] = useState<EstimationSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Debounced address for search
+  const debouncedAdresse = useDebounce(adresse, 300);
 
   // Reset form when modal opens/closes or commission changes
   useEffect(() => {
@@ -80,6 +130,13 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
             montant: montant.toString(),
           }))
         );
+        setEstimationId(commission.estimation_id);
+        // Load linked estimation details if exists
+        if (commission.estimation_id) {
+          loadLinkedEstimation(commission.estimation_id);
+        } else {
+          setLinkedEstimation(null);
+        }
       } else {
         // Reset for new commission
         setAdresse("");
@@ -95,9 +152,174 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         setNotes("");
         setStatut("Payée");
         setRepartition([]);
+        setEstimationId(null);
+        setLinkedEstimation(null);
       }
+      setSuggestions([]);
+      setShowSuggestions(false);
     }
   }, [open, commission]);
+
+  // Load linked estimation details
+  const loadLinkedEstimation = async (estId: string) => {
+    try {
+      const { data: est, error } = await supabase
+        .from("estimations")
+        .select("id, adresse, localite, type_bien, courtier_id, prix_min, prix_max, caracteristiques")
+        .eq("id", estId)
+        .maybeSingle();
+
+      if (error || !est) return;
+
+      // Get courtier name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", est.courtier_id)
+        .maybeSingle();
+
+      const carac = est.caracteristiques as any || {};
+
+      setLinkedEstimation({
+        id: est.id,
+        adresse: est.adresse,
+        localite: est.localite,
+        type_bien: est.type_bien,
+        courtier_id: est.courtier_id,
+        courtier_name: profile?.full_name || null,
+        prix_min: est.prix_min,
+        prix_max: est.prix_max,
+        surface: carac.surface_habitable || null,
+        pieces: carac.nb_pieces || null,
+      });
+    } catch (err) {
+      console.error("Error loading linked estimation:", err);
+    }
+  };
+
+  // Search estimations when address changes
+  useEffect(() => {
+    if (!open || linkedEstimation) return;
+    
+    const searchEstimations = async () => {
+      if (debouncedAdresse.length < 5) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const searchTerms = normalizeText(debouncedAdresse).split(/\s+/).filter(t => t.length > 2);
+        
+        // Build search query
+        const { data, error } = await supabase
+          .from("estimations")
+          .select("id, adresse, localite, type_bien, courtier_id, prix_min, prix_max, caracteristiques")
+          .neq("statut", "brouillon")
+          .not("adresse", "is", null)
+          .limit(20);
+
+        if (error) throw error;
+
+        // Filter client-side with normalized comparison
+        const filtered = (data || [])
+          .filter(est => {
+            if (!est.adresse) return false;
+            const normalizedAddr = normalizeText(est.adresse);
+            return searchTerms.every(term => normalizedAddr.includes(term));
+          })
+          .slice(0, 5);
+
+        // Get courtier names for filtered results
+        const courtierIds = [...new Set(filtered.map(e => e.courtier_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", courtierIds);
+
+        const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+
+        const suggestionsWithNames: EstimationSuggestion[] = filtered.map(est => {
+          const carac = est.caracteristiques as any || {};
+          return {
+            id: est.id,
+            adresse: est.adresse,
+            localite: est.localite,
+            type_bien: est.type_bien,
+            courtier_id: est.courtier_id,
+            courtier_name: profileMap.get(est.courtier_id) || null,
+            prix_min: est.prix_min,
+            prix_max: est.prix_max,
+            surface: carac.surface_habitable || null,
+            pieces: carac.nb_pieces || null,
+          };
+        });
+
+        setSuggestions(suggestionsWithNames);
+        setShowSuggestions(suggestionsWithNames.length > 0);
+      } catch (err) {
+        console.error("Error searching estimations:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    searchEstimations();
+  }, [debouncedAdresse, open, linkedEstimation]);
+
+  // Link estimation
+  const handleLinkEstimation = (estimation: EstimationSuggestion) => {
+    setEstimationId(estimation.id);
+    setLinkedEstimation(estimation);
+    setShowSuggestions(false);
+    
+    // Pre-fill fields
+    if (estimation.adresse) setAdresse(estimation.adresse);
+    if (estimation.localite) setCommune(estimation.localite);
+    
+    // Try to match courtier name with predefined list
+    if (estimation.courtier_name) {
+      const firstName = estimation.courtier_name.split(" ")[0];
+      const matchedCourtier = COURTIERS_LIST.find(c => 
+        c.toLowerCase() === firstName.toLowerCase()
+      );
+      if (matchedCourtier) {
+        setCourtierPrincipal(matchedCourtier);
+      }
+    }
+
+    toast.success("Estimation liée");
+  };
+
+  // Unlink estimation
+  const handleUnlinkEstimation = () => {
+    setEstimationId(null);
+    setLinkedEstimation(null);
+    toast.info("Estimation déliée");
+  };
+
+  // Format price for display
+  const formatPriceRange = (min: number | null, max: number | null): string => {
+    if (!min && !max) return "-";
+    const formatM = (v: number) => (v / 1000000).toFixed(1) + "M";
+    if (min && max) return `${formatM(min)} - ${formatM(max)}`;
+    if (min) return `≥ ${formatM(min)}`;
+    if (max) return `≤ ${formatM(max)}`;
+    return "-";
+  };
+
+  // Type bien label
+  const getTypeBienLabel = (type: string | null): string => {
+    if (!type) return "-";
+    const labels: Record<string, string> = {
+      appartement: "Appartement",
+      maison: "Villa",
+      terrain: "Terrain",
+      commercial: "Commercial",
+    };
+    return labels[type] || type;
+  };
 
   // Calculate sum of repartition
   const repartitionSum = repartition.reduce((sum, r) => sum + (parseFloat(r.montant) || 0), 0);
@@ -145,6 +367,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         notes: notes || null,
         statut,
         repartition: repartitionObj,
+        estimation_id: estimationId,
       };
 
       if (isEditing) {
@@ -204,16 +427,101 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
           {/* Informations du bien */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-muted-foreground">Informations du bien</h3>
+            
+            {/* Linked estimation badge */}
+            {linkedEstimation && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="h-4 w-4 text-primary shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Liée à l'estimation</p>
+                        <p className="text-xs text-muted-foreground">{linkedEstimation.id.slice(0, 8).toUpperCase()}</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleUnlinkEstimation}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Unlink className="h-4 w-4 mr-1" />
+                      Délier
+                    </Button>
+                  </div>
+                  
+                  {/* Estimation details */}
+                  <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Home className="h-4 w-4 text-muted-foreground" />
+                      <span>{getTypeBienLabel(linkedEstimation.type_bien)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Ruler className="h-4 w-4 text-muted-foreground" />
+                      <span>{linkedEstimation.surface ? `${linkedEstimation.surface}m²` : "-"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <DoorOpen className="h-4 w-4 text-muted-foreground" />
+                      <span>{linkedEstimation.pieces ? `${linkedEstimation.pieces}p` : "-"}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 relative">
                 <Label htmlFor="adresse">Adresse *</Label>
                 <Input
                   id="adresse"
                   value={adresse}
                   onChange={(e) => setAdresse(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                   placeholder="Adresse complète du bien"
                   required
+                  autoComplete="off"
                 />
+                
+                {/* Suggestions dropdown */}
+                {showSuggestions && suggestions.length > 0 && !linkedEstimation && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-[300px] overflow-y-auto">
+                    {suggestions.map((suggestion) => (
+                      <div
+                        key={suggestion.id}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => handleLinkEstimation(suggestion)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {suggestion.adresse}
+                              {suggestion.localite && `, ${suggestion.localite}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {suggestion.courtier_name || "Courtier inconnu"}
+                              {suggestion.type_bien && ` • ${getTypeBienLabel(suggestion.type_bien)}`}
+                              {suggestion.pieces && ` ${suggestion.pieces}p`}
+                              {suggestion.surface && ` • ${suggestion.surface}m²`}
+                              {(suggestion.prix_min || suggestion.prix_max) && 
+                                ` • Est: ${formatPriceRange(suggestion.prix_min, suggestion.prix_max)}`}
+                            </p>
+                            <Badge variant="outline" className="mt-1.5 text-xs">
+                              <Link2 className="h-3 w-3 mr-1" />
+                              Lier cette estimation
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {isSearching && (
+                  <p className="text-xs text-muted-foreground mt-1">Recherche d'estimations...</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="commune">Commune</Label>
