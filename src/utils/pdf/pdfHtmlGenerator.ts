@@ -2271,8 +2271,16 @@ function generateAnnexeTechnique2Page(estimation: EstimationData, pageNum: numbe
   
   // Helper pour dots d'état
   const renderEtatDots = (value: any): string => {
-    const etatMapping: Record<string, number> = { 'neuf': 4, 'bon': 3, 'rafraichir': 2, 'refaire': 1 };
-    const numValue = typeof value === 'string' ? (etatMapping[value] || 0) : (value || 0);
+    // Support both numeric values (1-5) and legacy text labels
+    const etatMapping: Record<string, number> = { 'neuf': 5, 'bon': 4, 'rafraichir': 2, 'refaire': 1 };
+    let numValue = 0;
+    if (typeof value === 'number') {
+      numValue = value;
+    } else if (typeof value === 'string') {
+      // Try parsing as number first, then check mapping for legacy text values
+      const parsed = parseInt(value, 10);
+      numValue = !isNaN(parsed) ? parsed : (etatMapping[value] || 0);
+    }
     let dots = '';
     for (let i = 1; i <= 5; i++) {
       dots += `<div class="etat-dot${i <= numValue ? ' filled' : ''}"></div>`;
