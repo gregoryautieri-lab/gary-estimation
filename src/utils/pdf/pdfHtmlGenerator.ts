@@ -1310,9 +1310,11 @@ function generatePlanActionPage(estimation: EstimationData, pageNum: number = 5,
   
   // === COURTIER ===
   const courtierData = COURTIERS.find(c => c.id === identification.courtier);
-  const courtierNom = courtierData ? courtierData.nom : 'Votre courtier GARY';
+  const courtierNom = (estimation as any).courtierNom || (courtierData ? courtierData.nom : 'Votre courtier GARY');
   const courtierInitiales = courtierData ? courtierData.initiales : 'GA';
-  const courtierEmail = courtierData ? courtierData.email : 'contact@gary.ch';
+  const courtierEmail = courtierData ? courtierData.email : 'gary@gary.ch';
+  // Utiliser le téléphone du profil si disponible
+  const courtierTel = (estimation as any).courtierTelephone || GARY_TEL;
   
   // === GÉNÉRATION HTML ===
   let html = '<div class="page" style="page-break-before:always;">';
