@@ -35,7 +35,8 @@ const trajectoires = [
     typeExposition: 'Confidentielle et sélective',
     typePression: 'Pression créée par la rareté',
     priseEnCharge: 'Sélection manuelle des contacts',
-    conditions: ['Prix cohérent marché', 'Bien attrayant', 'Réseau acheteurs actif']
+    conditions: ['Cercle restreint d\'acheteurs qualifiés', 'Aucune trace publique', 'Retours confidentiels'],
+    conditionPilotage: true
   },
   {
     id: 'comingsoon',
@@ -47,7 +48,8 @@ const trajectoires = [
     typeExposition: 'Teasing maîtrisé',
     typePression: 'Désir par anticipation',
     priseEnCharge: 'Campagne séquencée avant lancement',
-    conditions: ['Photos pro disponibles', 'Délai 2-3 semaines', 'Bien préparé']
+    conditions: ['Communication maîtrisée', 'Liste d\'attente', 'Teasing ciblé'],
+    conditionPilotage: true
   },
   {
     id: 'public',
@@ -59,7 +61,8 @@ const trajectoires = [
     typeExposition: 'Tous canaux activés',
     typePression: 'Concurrence ouverte',
     priseEnCharge: 'Diffusion multi-portails + réseaux',
-    conditions: ['Bien prêt', 'Prix validé', 'Disponibilité visites']
+    conditions: ['Diffusion large', 'Portails immobiliers', 'Visibilité maximale'],
+    conditionPilotage: false
   }
 ];
 
@@ -368,6 +371,10 @@ function generateTrajectoiresSection(
       traj.conditions.forEach((c: string) => {
         html += '<div style="font-size:9px;color:#4b5563;padding:2px 0;display:flex;align-items:center;gap:4px;">' + ico('check', 10, '#9ca3af') + c + '</div>';
       });
+      // Pilotage coordonné requis (Off-Market & Coming Soon)
+      if (traj.conditionPilotage) {
+        html += '<div style="font-size:9px;color:#1a2e35;padding:3px 0;display:flex;align-items:center;gap:4px;font-weight:700;">' + ico('users', 10, '#1a2e35') + 'Pilotage coordonné requis</div>';
+      }
       html += '</div>';
       
       html += '<div style="padding:12px;background:white;text-align:center;">';
