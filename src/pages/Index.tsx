@@ -42,7 +42,7 @@ const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
         </div>
         <ChevronRight className="h-5 w-5 text-muted-foreground" />
       </div>
-      <h3 className="font-semibold text-lg text-foreground mb-3">{title}</h3>
+      <h3 className="font-medium text-base text-foreground mb-2">{title}</h3>
       <div className="space-y-2">
         {stats.map((stat, i) => (
           <div key={i} className="flex items-center justify-between text-sm">
@@ -146,10 +146,10 @@ const Index = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Welcome */}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-lg font-semibold text-foreground">
               {greeting}, {userName} 👋
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-muted-foreground text-xs mt-0.5">
               Votre tableau de bord GARY
             </p>
           </div>
@@ -187,7 +187,7 @@ const Index = () => {
 
           {/* Quick Actions */}
           <div>
-            <h2 className="font-semibold text-foreground mb-3">Actions rapides</h2>
+            <h2 className="font-medium text-sm text-foreground mb-2">Actions rapides</h2>
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 variant="outline" 
@@ -212,9 +212,9 @@ const Index = () => {
           {/* Admin Section - Visible uniquement pour les admins */}
           {isAdmin && (
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="h-4 w-4 text-amber-500" />
-                <h2 className="font-semibold text-foreground">Administration</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-3.5 w-3.5 text-amber-500" />
+                <h2 className="font-medium text-sm text-foreground">Administration</h2>
               </div>
               <Card 
                 className="border-amber-200 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:shadow-md transition-all cursor-pointer"
