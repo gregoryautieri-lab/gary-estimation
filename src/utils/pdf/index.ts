@@ -22,6 +22,7 @@ export {
   addWeeks,
   formatWeekOf,
   portailsLabels,
+  reseauxSociauxLabels,
   dureeLabels,
   typeDiffusionLabels,
   raisonEchecLabels,
