@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useProjectsComparables } from '@/hooks/useProjectsComparables';
 import { GaryLogo } from '@/components/gary/GaryLogo';
@@ -15,7 +16,9 @@ import {
   Map, 
   ChevronRight,
   Zap,
-  Search
+  Search,
+  Wallet,
+  Shield
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,6 +61,7 @@ const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const { fetchEstimations, createEstimation, loading: creatingEstimation } = useEstimationPersistence();
   const { fetchProjects } = useProjectsComparables();
   
@@ -204,6 +208,35 @@ const Index = () => {
               </Button>
             </div>
           </div>
+
+          {/* Admin Section - Visible uniquement pour les admins */}
+          {isAdmin && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="h-4 w-4 text-amber-500" />
+                <h2 className="font-semibold text-foreground">Administration</h2>
+              </div>
+              <Card 
+                className="border-amber-200 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => navigate('/admin/commissions')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                      <Wallet className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground">Commissions</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Suivi des ventes et chiffre d'affaires
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Estimation Express promo */}
           <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-amber-500/5">
