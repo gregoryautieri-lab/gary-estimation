@@ -352,6 +352,10 @@ function generateTrajectoiresSection(
       html += '<div style="padding:6px 10px;background:#fafafa;border-bottom:1px solid #f3f4f6;">';
       html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">GARY pilote</div>';
       html += '<div style="font-size:8px;color:#4b5563;line-height:1.3;">' + traj.priseEnCharge + '</div>';
+      // Pilotage coordonné requis (Off-Market & Coming Soon en mode Luxe)
+      if (traj.conditionPilotage) {
+        html += '<div style="font-size:8px;color:#1a2e35;padding:4px 0 0 0;display:flex;align-items:center;gap:4px;font-weight:700;">' + ico('users', 10, '#1a2e35') + 'Pilotage coordonné requis</div>';
+      }
       html += '</div>';
       
       html += '<div style="padding:8px 10px;background:white;text-align:center;">';
