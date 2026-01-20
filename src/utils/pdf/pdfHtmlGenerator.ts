@@ -934,7 +934,8 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       typeExposition: 'Cercle restreint',
       typePression: 'Aucun signal public',
       priseEnCharge: 'GARY sélectionne et approche les acquéreurs qualifiés',
-      pourc: pre.pourcOffmarket ?? 15
+      pourc: pre.pourcOffmarket ?? 15,
+      conditionPilotage: true
     },
     {
       id: 'comingsoon',
@@ -946,7 +947,8 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       typeExposition: 'Anticipation contrôlée',
       typePression: 'Pression relationnelle ciblée',
       priseEnCharge: 'GARY construit le récit et gère le tempo de révélation',
-      pourc: pre.pourcComingsoon ?? 10
+      pourc: pre.pourcComingsoon ?? 10,
+      conditionPilotage: true
     },
     {
       id: 'public',
@@ -958,7 +960,8 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       typeExposition: 'Amplification assumée',
       typePression: 'Rareté maîtrisée',
       priseEnCharge: 'GARY pilote l\'exposition et filtre les demandes',
-      pourc: pre.pourcPublic ?? 6
+      pourc: pre.pourcPublic ?? 6,
+      conditionPilotage: false
     }
   ];
   
@@ -1140,6 +1143,10 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       html += '<div style="padding:6px 10px;background:#fafafa;border-bottom:1px solid #f3f4f6;">';
       html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:1px;font-weight:600;">GARY pilote</div>';
       html += `<div style="font-size:8px;color:#4b5563;line-height:1.3;">${traj.priseEnCharge}</div>`;
+      // Pilotage coordonné requis (Off-Market & Coming Soon en mode Luxe)
+      if (traj.conditionPilotage) {
+        html += `<div style="font-size:8px;color:#1a2e35;padding:4px 0 0 0;display:flex;align-items:center;gap:4px;font-weight:700;">${ico('users', 10, '#1a2e35')}Pilotage coordonné requis</div>`;
+      }
       html += '</div>';
       
       // 5. Objectif de valeur + condition
@@ -1162,6 +1169,10 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       traj.conditions.forEach((c: string) => {
         html += `<div style="font-size:9px;color:#4b5563;padding:2px 0;display:flex;align-items:center;gap:4px;">${ico('check', 10, '#9ca3af')}${c}</div>`;
       });
+      // Pilotage coordonné requis (Off-Market & Coming Soon en mode Standard)
+      if (traj.conditionPilotage) {
+        html += `<div style="font-size:9px;color:#1a2e35;padding:3px 0;display:flex;align-items:center;gap:4px;font-weight:700;">${ico('users', 10, '#1a2e35')}Pilotage coordonné requis</div>`;
+      }
       html += '</div>';
       
       // Objectif de valeur
