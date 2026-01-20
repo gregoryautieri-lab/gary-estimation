@@ -323,13 +323,25 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     return labels[type] || type;
   };
 
+  // Fixed commissions (CEO & Marketing)
+  const COMM_CEO_PERCENT = 12.5; // Gregory
+  const COMM_MARKETING_PERCENT = 8; // Jared
+  
   // Calculate sum of repartition percentages
   const commissionTotaleNum = parseFloat(commissionTotale) || 0;
+  
+  // Fixed commissions in CHF
+  const commCeoCHF = (COMM_CEO_PERCENT / 100) * commissionTotaleNum;
+  const commMarketingCHF = (COMM_MARKETING_PERCENT / 100) * commissionTotaleNum;
+  const totalFixedCHF = commCeoCHF + commMarketingCHF;
+  const totalFixedPercent = COMM_CEO_PERCENT + COMM_MARKETING_PERCENT;
+  
   const repartitionPourcentageSum = repartition.reduce((sum, r) => sum + (parseFloat(r.pourcentage) || 0), 0);
   const repartitionCHFSum = (repartitionPourcentageSum / 100) * commissionTotaleNum;
-  const partSocietePourcentage = Math.max(0, 100 - repartitionPourcentageSum);
+  const totalDistribuePercent = repartitionPourcentageSum + totalFixedPercent;
+  const partSocietePourcentage = Math.max(0, 100 - totalDistribuePercent);
   const partSocieteCHF = (partSocietePourcentage / 100) * commissionTotaleNum;
-  const isRepartitionValid = repartitionPourcentageSum <= 100 || repartition.length === 0;
+  const isRepartitionValid = totalDistribuePercent <= 100 || repartition.length === 0;
 
   // Calculate CHF amount for a given percentage
   const calculateMontant = (pourcentage: string): number => {
@@ -737,16 +749,47 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                   </div>
                 ))}
 
+                {/* Fixed commissions - CEO & Marketing */}
+                <div className="space-y-1 pt-2 border-t text-sm bg-muted/30 -mx-4 px-4 py-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                    Commissions fixes
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Gregory (CEO) :</span>
+                    <div className="flex gap-4">
+                      <span>{COMM_CEO_PERCENT}%</span>
+                      <span>{Math.round(commCeoCHF).toLocaleString("fr-CH")} CHF</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Jared (Marketing) :</span>
+                    <div className="flex gap-4">
+                      <span>{COMM_MARKETING_PERCENT}%</span>
+                      <span>{Math.round(commMarketingCHF).toLocaleString("fr-CH")} CHF</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Totals */}
                 <div className="space-y-1 pt-2 border-t text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total courtiers :</span>
                     <div className="flex gap-4">
-                      <span className={repartitionPourcentageSum > 100 ? "text-destructive font-medium" : ""}>
-                        {repartitionPourcentageSum.toFixed(2)}%
-                        {repartitionPourcentageSum > 100 && " (max: 100%)"}
-                      </span>
+                      <span>{repartitionPourcentageSum.toFixed(2)}%</span>
                       <span className="font-medium">
-                        {repartitionCHFSum.toLocaleString("fr-CH")} CHF
+                        {Math.round(repartitionCHFSum).toLocaleString("fr-CH")} CHF
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between font-medium">
+                    <span>Total distribué :</span>
+                    <div className="flex gap-4">
+                      <span className={totalDistribuePercent > 100 ? "text-destructive" : ""}>
+                        {totalDistribuePercent.toFixed(2)}%
+                        {totalDistribuePercent > 100 && " (max: 100%)"}
+                      </span>
+                      <span>
+                        {Math.round(repartitionCHFSum + totalFixedCHF).toLocaleString("fr-CH")} CHF
                       </span>
                     </div>
                   </div>
