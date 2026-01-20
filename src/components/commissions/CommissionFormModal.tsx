@@ -96,7 +96,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const [origineDetail, setOrigineDetail] = useState("");
   const [notes, setNotes] = useState("");
   const [statut, setStatut] = useState("Payée");
-  const [repartition, setRepartition] = useState<{ courtier: string; montant: string }[]>([]);
+  const [repartition, setRepartition] = useState<{ courtier: string; pourcentage: string }[]>([]);
 
   // Estimation linking state
   const [estimationId, setEstimationId] = useState<string | null>(null);
@@ -124,10 +124,12 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         setOrigineDetail(commission.origine_detail || "");
         setNotes(commission.notes || "");
         setStatut(commission.statut);
+        // Convert stored CHF amounts to percentages
+        const totalComm = commission.commission_totale || 1;
         setRepartition(
           Object.entries(commission.repartition || {}).map(([courtier, montant]) => ({
             courtier,
-            montant: montant.toString(),
+            pourcentage: totalComm > 0 ? ((montant as number / totalComm) * 100).toFixed(0) : "0",
           }))
         );
         setEstimationId(commission.estimation_id);
@@ -321,14 +323,21 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     return labels[type] || type;
   };
 
-  // Calculate sum of repartition
-  const repartitionSum = repartition.reduce((sum, r) => sum + (parseFloat(r.montant) || 0), 0);
+  // Calculate sum of repartition percentages
   const commissionTotaleNum = parseFloat(commissionTotale) || 0;
-  const isRepartitionValid = Math.abs(repartitionSum - commissionTotaleNum) < 0.01 || repartition.length === 0;
+  const repartitionPourcentageSum = repartition.reduce((sum, r) => sum + (parseFloat(r.pourcentage) || 0), 0);
+  const repartitionCHFSum = (repartitionPourcentageSum / 100) * commissionTotaleNum;
+  const isRepartitionValid = Math.abs(repartitionPourcentageSum - 100) < 0.01 || repartition.length === 0;
+
+  // Calculate CHF amount for a given percentage
+  const calculateMontant = (pourcentage: string): number => {
+    const pct = parseFloat(pourcentage) || 0;
+    return (pct / 100) * commissionTotaleNum;
+  };
 
   // Add repartition row
   const addRepartitionRow = () => {
-    setRepartition([...repartition, { courtier: "", montant: "" }]);
+    setRepartition([...repartition, { courtier: "", pourcentage: "" }]);
   };
 
   // Remove repartition row
@@ -337,7 +346,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   };
 
   // Update repartition row
-  const updateRepartitionRow = (index: number, field: "courtier" | "montant", value: string) => {
+  const updateRepartitionRow = (index: number, field: "courtier" | "pourcentage", value: string) => {
     const updated = [...repartition];
     updated[index][field] = value;
     setRepartition(updated);
@@ -346,10 +355,13 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Convert percentages to CHF amounts for storage
       const repartitionObj: Record<string, number> = {};
+      const totalComm = parseFloat(commissionTotale) || 0;
       repartition.forEach((r) => {
-        if (r.courtier && r.montant) {
-          repartitionObj[r.courtier] = parseFloat(r.montant);
+        if (r.courtier && r.pourcentage) {
+          const pct = parseFloat(r.pourcentage) || 0;
+          repartitionObj[r.courtier] = Math.round((pct / 100) * totalComm);
         }
       });
 
@@ -696,13 +708,21 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input
-                      type="number"
-                      value={r.montant}
-                      onChange={(e) => updateRepartitionRow(index, "montant", e.target.value)}
-                      placeholder="Montant CHF"
-                      className="w-32"
-                    />
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={r.pourcentage}
+                        onChange={(e) => updateRepartitionRow(index, "pourcentage", e.target.value)}
+                        placeholder="50"
+                        className="w-20 text-right"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <div className="w-28 text-right text-sm text-muted-foreground">
+                      {calculateMontant(r.pourcentage).toLocaleString("fr-CH")} CHF
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
@@ -715,11 +735,16 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                 ))}
 
                 <div className="flex justify-between text-sm pt-2 border-t">
-                  <span className="text-muted-foreground">Total répartition :</span>
-                  <span className={!isRepartitionValid ? "text-destructive font-medium" : ""}>
-                    {repartitionSum.toLocaleString("fr-CH")} CHF
-                    {!isRepartitionValid && ` (attendu: ${commissionTotaleNum.toLocaleString("fr-CH")} CHF)`}
-                  </span>
+                  <span className="text-muted-foreground">Total :</span>
+                  <div className="flex gap-4">
+                    <span className={!isRepartitionValid ? "text-destructive font-medium" : ""}>
+                      {repartitionPourcentageSum}%
+                      {!isRepartitionValid && " (attendu: 100%)"}
+                    </span>
+                    <span className="font-medium">
+                      {repartitionCHFSum.toLocaleString("fr-CH")} CHF
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
