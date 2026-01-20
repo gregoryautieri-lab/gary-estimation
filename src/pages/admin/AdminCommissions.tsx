@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Download, TrendingUp, Target, Hash, Wallet, Users, ArrowLeft, Settings } from "lucide-react";
+import { Plus, Download, TrendingUp, Target, Hash, Wallet, Users, ArrowLeft, Settings, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -66,6 +66,7 @@ interface MonthlyData {
   monthIndex: number;
   caReel: number;
   caCumule: number;
+  caProbableCumule: number;
   objectifCumule: number;
 }
 
@@ -129,7 +130,26 @@ export default function AdminCommissions() {
   });
 
   // Commissions filtrées par année (pour stats, graphique, tableau courtiers)
+  // Inclut Payée et En attente (affaires signées)
   const commissionsYear = useMemo(() => {
+    return commissions.filter((c) => {
+      if (!c.date_paiement) return false;
+      if (c.statut === "Probable") return false; // Exclure les probables du CA réel
+      return new Date(c.date_paiement).getFullYear().toString() === filterYear;
+    });
+  }, [commissions, filterYear]);
+
+  // Commissions "Probable" pour l'année (affaires en discussion avancée)
+  const commissionsProbable = useMemo(() => {
+    return commissions.filter((c) => {
+      if (!c.date_paiement) return false;
+      if (c.statut !== "Probable") return false;
+      return new Date(c.date_paiement).getFullYear().toString() === filterYear;
+    });
+  }, [commissions, filterYear]);
+
+  // Toutes les commissions de l'année (incluant Probable) pour la liste détaillée
+  const allCommissionsYear = useMemo(() => {
     return commissions.filter((c) => {
       if (!c.date_paiement) return false;
       return new Date(c.date_paiement).getFullYear().toString() === filterYear;
@@ -138,22 +158,25 @@ export default function AdminCommissions() {
 
   // Commissions filtrées (pour la liste détaillée)
   const filteredCommissions = useMemo(() => {
-    return commissionsYear.filter((c) => {
+    return allCommissionsYear.filter((c) => {
       if (filterCourtier !== "all" && c.courtier_principal !== filterCourtier) return false;
       if (filterStatut !== "all" && c.statut !== filterStatut) return false;
       return true;
     });
-  }, [commissionsYear, filterCourtier, filterStatut]);
+  }, [allCommissionsYear, filterCourtier, filterStatut]);
 
-  // Stats globales
+  // Stats globales (CA réalisé = Payée + En attente)
   const statsGlobal = useMemo(() => {
     const caTotal = commissionsYear.reduce((sum, c) => sum + Number(c.commission_totale), 0);
+    const caProbable = commissionsProbable.reduce((sum, c) => sum + Number(c.commission_totale), 0);
+    const caTotalPlusProbable = caTotal + caProbable;
     const nbVentes = commissionsYear.length;
     const commissionMoyenne = nbVentes > 0 ? caTotal / nbVentes : 0;
     const pourcentageObjectif = (caTotal / OBJECTIF_ANNUEL) * 100;
+    const pourcentageObjectifProbable = (caTotalPlusProbable / OBJECTIF_ANNUEL) * 100;
 
-    return { caTotal, nbVentes, commissionMoyenne, pourcentageObjectif };
-  }, [commissionsYear]);
+    return { caTotal, caProbable, caTotalPlusProbable, nbVentes, commissionMoyenne, pourcentageObjectif, pourcentageObjectifProbable };
+  }, [commissionsYear, commissionsProbable, OBJECTIF_ANNUEL]);
 
   // Stats par courtier - CA divisé équitablement entre les courtiers présents dans la répartition
   // Les non-courtiers (Gregory/CEO, Jared/Marketing, Florie) ne comptent pas dans le partage du CA
@@ -213,8 +236,10 @@ export default function AdminCommissions() {
   // Données pour le graphique mensuel
   const monthlyData = useMemo(() => {
     const monthlyCA: number[] = Array(12).fill(0);
+    const monthlyProbable: number[] = Array(12).fill(0);
     const objectifMensuel = OBJECTIF_ANNUEL / 12;
 
+    // CA réel (Payée + En attente)
     commissionsYear.forEach((c) => {
       if (c.date_paiement) {
         const month = new Date(c.date_paiement).getMonth();
@@ -222,20 +247,31 @@ export default function AdminCommissions() {
       }
     });
 
+    // CA Probable
+    commissionsProbable.forEach((c) => {
+      if (c.date_paiement) {
+        const month = new Date(c.date_paiement).getMonth();
+        monthlyProbable[month] += Number(c.commission_totale);
+      }
+    });
+
     let cumule = 0;
+    let cumuleProbable = 0;
     const data: MonthlyData[] = MOIS_LABELS.map((month, index) => {
       cumule += monthlyCA[index];
+      cumuleProbable = cumule + monthlyProbable.slice(0, index + 1).reduce((a, b) => a + b, 0);
       return {
         month,
         monthIndex: index,
         caReel: monthlyCA[index],
         caCumule: cumule,
+        caProbableCumule: cumuleProbable,
         objectifCumule: objectifMensuel * (index + 1),
       };
     });
 
     return data;
-  }, [commissionsYear]);
+  }, [commissionsYear, commissionsProbable, OBJECTIF_ANNUEL]);
 
   // Liste des années disponibles
   const availableYears = useMemo(() => {
@@ -371,7 +407,7 @@ export default function AdminCommissions() {
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Section 1: Stats Cards */}
         <section>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
@@ -379,8 +415,23 @@ export default function AdminCommissions() {
                     <TrendingUp className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">CA Total {filterYear}</p>
+                    <p className="text-sm text-muted-foreground">CA Réalisé {filterYear}</p>
                     <p className="text-2xl font-bold text-primary">{formatCHF(statsGlobal.caTotal)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                    <TrendingDown className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-amber-700 dark:text-amber-400">CA Probable</p>
+                    <p className="text-2xl font-bold text-amber-600">{formatCHF(statsGlobal.caTotalPlusProbable)}</p>
+                    <p className="text-xs text-amber-600/80">+{formatCHF(statsGlobal.caProbable)} probable</p>
                   </div>
                 </div>
               </CardContent>
@@ -447,14 +498,25 @@ export default function AdminCommissions() {
                       className="text-xs"
                     />
                     <Tooltip 
-                      formatter={(value: number, name: string) => [
-                        formatCHF(value),
-                        name === "caCumule" ? "CA Cumulé" : "Objectif"
-                      ]}
+                      formatter={(value: number, name: string) => {
+                        const labels: Record<string, string> = {
+                          caCumule: "CA Réalisé",
+                          caProbableCumule: "CA + Probable",
+                          objectifCumule: "Objectif"
+                        };
+                        return [formatCHF(value), labels[name] || name];
+                      }}
                       labelFormatter={(label) => `Mois: ${label}`}
                     />
                     <Legend 
-                      formatter={(value) => value === "caCumule" ? "CA Cumulé" : "Objectif linéaire"}
+                      formatter={(value) => {
+                        const labels: Record<string, string> = {
+                          caCumule: "CA Réalisé",
+                          caProbableCumule: "CA + Probable",
+                          objectifCumule: "Objectif linéaire"
+                        };
+                        return labels[value] || value;
+                      }}
                     />
                     <Line 
                       type="monotone" 
@@ -463,6 +525,15 @@ export default function AdminCommissions() {
                       strokeWidth={3}
                       dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
                       activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="caProbableCumule" 
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="8 4"
+                      dot={{ fill: "#f59e0b", strokeWidth: 1, r: 3 }}
+                      activeDot={{ r: 5 }}
                     />
                     <Line 
                       type="monotone" 
@@ -561,6 +632,7 @@ export default function AdminCommissions() {
                   <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value="Payée">Payée</SelectItem>
                   <SelectItem value="En attente">En attente</SelectItem>
+                  <SelectItem value="Probable">Probable</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -611,7 +683,10 @@ export default function AdminCommissions() {
                           {formatCHF(commission.commission_totale)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={commission.statut === "Payée" ? "default" : "secondary"}>
+                          <Badge 
+                            variant={commission.statut === "Payée" ? "default" : "secondary"}
+                            className={commission.statut === "Probable" ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700" : ""}
+                          >
                             {commission.statut}
                           </Badge>
                         </TableCell>

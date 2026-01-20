@@ -761,6 +761,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
               <SelectContent>
                 <SelectItem value="Payée">Payée</SelectItem>
                 <SelectItem value="En attente">En attente</SelectItem>
+                <SelectItem value="Probable">Probable</SelectItem>
               </SelectContent>
             </Select>
           </div>
