@@ -19,11 +19,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Types de bien disponibles
+// Types de bien disponibles (doit correspondre à l'enum type_bien en base)
 const TYPE_BIEN_OPTIONS = [
   { value: 'appartement', label: 'Appartement' },
-  { value: 'maison', label: 'Maison' },
-  { value: 'villa', label: 'Villa' },
+  { value: 'maison', label: 'Maison / Villa' },
   { value: 'terrain', label: 'Terrain' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'immeuble', label: 'Immeuble' },
@@ -41,7 +40,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const TYPE_BIEN_ICONS: Record<string, React.ReactNode> = {
   appartement: <Building2 className="h-4 w-4" />,
   maison: <Home className="h-4 w-4" />,
-  villa: <Home className="h-4 w-4" />,
   terrain: <MapPin className="h-4 w-4" />,
   commercial: <Building2 className="h-4 w-4" />,
   immeuble: <Building2 className="h-4 w-4" />,
@@ -77,7 +75,7 @@ export default function ComparablesExplore() {
       communes: communesParam ? communesParam.split(',') : [],
       prixMin: searchParams.get('prixMin') ? Number(searchParams.get('prixMin')) : null,
       prixMax: searchParams.get('prixMax') ? Number(searchParams.get('prixMax')) : null,
-      typeBien: searchParams.get('types') ? searchParams.get('types')!.split(',') : ['appartement', 'maison', 'villa'],
+      typeBien: searchParams.get('types') ? searchParams.get('types')!.split(',') : ['appartement', 'maison'],
     };
   });
   
