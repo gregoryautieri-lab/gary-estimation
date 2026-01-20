@@ -26,6 +26,7 @@ import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminComparables from "./pages/admin/AdminComparables";
+import AdminCommissions from "./pages/admin/AdminCommissions";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -130,6 +131,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <AdminComparables />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/commissions"
+          element={
+            <ProtectedRoute>
+              <AdminCommissions />
             </ProtectedRoute>
           }
         />

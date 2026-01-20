@@ -56,6 +56,7 @@ import {
   RefreshCw,
   AlertTriangle,
   BarChart3,
+  Wallet,
   MoreVertical,
   UserX,
   UserCheck,
@@ -458,7 +459,7 @@ export default function Admin() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             onClick={() => setShowInviteDialog(true)}
             className="w-full"
@@ -466,6 +467,16 @@ export default function Admin() {
             <UserPlus className="h-4 w-4 mr-2" />
             Inviter
           </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin/commissions')}
+            className="w-full"
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            Commissions
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
             onClick={() => navigate('/admin/analytics')}
