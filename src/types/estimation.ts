@@ -233,11 +233,11 @@ export interface CourtierGARY {
 }
 
 export const COURTIERS_GARY: CourtierGARY[] = [
-  { id: 'gc', nom: 'Courtier', prenom: 'Grégory', email: 'gregory@gary.ch', telephone: '+41 22 700 50 00', initiales: 'GC' },
-  { id: 'ab', nom: 'Broker', prenom: 'Antoine', email: 'antoine@gary.ch', telephone: '+41 22 700 50 01', initiales: 'AB' },
-  { id: 'sb', nom: 'Broker', prenom: 'Sophie', email: 'sophie@gary.ch', telephone: '+41 22 700 50 02', initiales: 'SB' },
-  { id: 'ml', nom: 'Leroy', prenom: 'Marc', email: 'marc@gary.ch', telephone: '+41 22 700 50 03', initiales: 'ML' },
-  { id: 'cp', nom: 'Petit', prenom: 'Claire', email: 'claire@gary.ch', telephone: '+41 22 700 50 04', initiales: 'CP' },
+  { id: 'gc', nom: 'Courtier', prenom: 'Grégory', email: 'gary@gary.ch', telephone: '+41 22 557 07 00', initiales: 'GC' },
+  { id: 'ab', nom: 'Broker', prenom: 'Antoine', email: 'gary@gary.ch', telephone: '+41 22 557 07 00', initiales: 'AB' },
+  { id: 'sb', nom: 'Broker', prenom: 'Sophie', email: 'gary@gary.ch', telephone: '+41 22 557 07 00', initiales: 'SB' },
+  { id: 'ml', nom: 'Leroy', prenom: 'Marc', email: 'gary@gary.ch', telephone: '+41 22 557 07 00', initiales: 'ML' },
+  { id: 'cp', nom: 'Petit', prenom: 'Claire', email: 'gary@gary.ch', telephone: '+41 22 557 07 00', initiales: 'CP' },
 ];
 
 // ============================================

@@ -262,8 +262,8 @@ export function PresentationStrategie({
   const courtierId = identification?.courtierAssigne;
   const courtier = courtierId ? getCourtierById(courtierId) : null;
   const courtierNom = courtier ? `${courtier.prenom} ${courtier.nom}` : 'GARY Immobilier';
-  const courtierEmail = courtier?.email || 'contact@gary-immobilier.ch';
-  const courtierTel = courtier?.telephone || '+41 22 552 22 22';
+  const courtierEmail = courtier?.email || 'gary@gary.ch';
+  const courtierTel = courtier?.telephone || '+41 22 557 07 00';
   
   // Points du pilotage partagé
   const pilotagePoints = [

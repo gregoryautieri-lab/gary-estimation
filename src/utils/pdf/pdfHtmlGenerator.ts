@@ -1258,7 +1258,7 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
 
 // ==================== PAGE 5: PLAN D'ACTION ====================
 // Constantes GARY
-const GARY_TEL = '+41 22 552 00 00';
+const GARY_TEL = '+41 22 557 07 00';
 const COURTIERS = [
   { id: 'david', nom: 'David Fuss', initiales: 'DF', email: 'david@gary.ch' },
   { id: 'maxime', nom: 'Maxime Jaquet', initiales: 'MJ', email: 'maxime@gary.ch' },
