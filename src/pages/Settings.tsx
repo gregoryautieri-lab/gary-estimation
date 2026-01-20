@@ -48,9 +48,10 @@ export default function Settings() {
   const { user, signOut } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { theme, setTheme } = useTheme();
-  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null }>({
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; telephone: string | null }>({
     full_name: null,
     avatar_url: null,
+    telephone: null,
   });
   const [notifications, setNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ export default function Settings() {
   // État pour édition du profil
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editFullName, setEditFullName] = useState("");
+  const [editTelephone, setEditTelephone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
   // État pour changement de mot de passe
@@ -79,7 +81,7 @@ export default function Settings() {
     try {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url")
+        .select("full_name, avatar_url, telephone")
         .eq("user_id", user.id)
         .single();
 
@@ -101,6 +103,7 @@ export default function Settings() {
 
   const handleEditProfile = () => {
     setEditFullName(profile.full_name || "");
+    setEditTelephone(profile.telephone || "");
     setShowEditProfile(true);
   };
 
@@ -111,12 +114,19 @@ export default function Settings() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: editFullName.trim() })
+        .update({ 
+          full_name: editFullName.trim(),
+          telephone: editTelephone.trim() || null
+        })
         .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setProfile(prev => ({ ...prev, full_name: editFullName.trim() }));
+      setProfile(prev => ({ 
+        ...prev, 
+        full_name: editFullName.trim(),
+        telephone: editTelephone.trim() || null
+      }));
       setShowEditProfile(false);
       toast.success("Profil mis à jour");
     } catch (error) {
@@ -415,6 +425,19 @@ export default function Settings() {
                 value={editFullName}
                 onChange={(e) => setEditFullName(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-telephone">Téléphone professionnel</Label>
+              <Input
+                id="edit-telephone"
+                type="tel"
+                placeholder="+41 22 557 07 00"
+                value={editTelephone}
+                onChange={(e) => setEditTelephone(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ce numéro sera affiché dans vos présentations et PDFs
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Email</Label>

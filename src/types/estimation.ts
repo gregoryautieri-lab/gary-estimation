@@ -1038,6 +1038,7 @@ export interface EstimationData {
   id?: string;
   courtierId?: string;
   courtierNom?: string;
+  courtierTelephone?: string; // Téléphone du courtier depuis son profil
   statut: EstimationStatus;
   
   // Champs clés

@@ -82,6 +82,7 @@ export default function PresentationPage() {
   const [loading, setLoading] = useState(true);
   const [currentSection, setCurrentSection] = useState<Section>('cover');
   const [copied, setCopied] = useState(false);
+  const [courtierTelephone, setCourtierTelephone] = useState<string | null>(null);
   
   // Touch handling pour swipe
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -148,6 +149,19 @@ export default function PresentationPage() {
           };
           
           setEstimation(mapped);
+          
+          // Récupérer le téléphone du courtier depuis son profil
+          if (data.courtier_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('telephone')
+              .eq('user_id', data.courtier_id)
+              .single();
+            
+            if (profileData?.telephone) {
+              setCourtierTelephone(profileData.telephone);
+            }
+          }
         }
       } catch (error) {
         console.error('Erreur chargement estimation:', error);
@@ -464,6 +478,7 @@ export default function PresentationPage() {
               preEstimation={estimation.preEstimation}
               strategie={estimation.strategiePitch}
               totalVenale={prixFinal}
+              courtierTelephone={courtierTelephone || undefined}
             />
           )}
           {currentSection === 'prix' && (

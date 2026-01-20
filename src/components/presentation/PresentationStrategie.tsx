@@ -31,6 +31,7 @@ interface PresentationStrategieProps {
   preEstimation: PreEstimation;
   strategie: StrategiePitch;
   totalVenale: number;
+  courtierTelephone?: string; // Téléphone du courtier depuis son profil
 }
 
 // Icônes des phases
@@ -101,6 +102,7 @@ export function PresentationStrategie({
   preEstimation,
   strategie,
   totalVenale,
+  courtierTelephone,
 }: PresentationStrategieProps) {
   // Calcul luxMode
   const carac = caracteristiques || {} as Caracteristiques;
@@ -263,7 +265,8 @@ export function PresentationStrategie({
   const courtier = courtierId ? getCourtierById(courtierId) : null;
   const courtierNom = courtier ? `${courtier.prenom} ${courtier.nom}` : 'GARY Immobilier';
   const courtierEmail = courtier?.email || 'gary@gary.ch';
-  const courtierTel = courtier?.telephone || '+41 22 557 07 00';
+  // Utiliser le téléphone du profil si fourni, sinon fallback sur le courtier statique puis GARY
+  const courtierTel = courtierTelephone || courtier?.telephone || '+41 22 557 07 00';
   
   // Points du pilotage partagé
   const pilotagePoints = [
