@@ -125,7 +125,8 @@ export function ObjectivesModal({ open, onOpenChange, year }: ObjectivesModalPro
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["commission-objectives"] });
+      // Invalidate all commission-objectives queries (with any year)
+      queryClient.invalidateQueries({ queryKey: ["commission-objectives"], exact: false });
       toast.success("Objectifs enregistrés");
       onOpenChange(false);
     },
