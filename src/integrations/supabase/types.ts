@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      commissions: {
+        Row: {
+          adresse: string
+          commission_totale: number
+          commune: string | null
+          courtier_principal: string
+          courtier_principal_email: string | null
+          created_at: string
+          date_paiement: string | null
+          date_signature: string | null
+          deleted_at: string | null
+          estimation_id: string | null
+          id: string
+          notes: string | null
+          origine: string | null
+          origine_detail: string | null
+          prix_vente: number
+          repartition: Json | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          adresse: string
+          commission_totale: number
+          commune?: string | null
+          courtier_principal: string
+          courtier_principal_email?: string | null
+          created_at?: string
+          date_paiement?: string | null
+          date_signature?: string | null
+          deleted_at?: string | null
+          estimation_id?: string | null
+          id?: string
+          notes?: string | null
+          origine?: string | null
+          origine_detail?: string | null
+          prix_vente: number
+          repartition?: Json | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string
+          commission_totale?: number
+          commune?: string | null
+          courtier_principal?: string
+          courtier_principal_email?: string | null
+          created_at?: string
+          date_paiement?: string | null
+          date_signature?: string | null
+          deleted_at?: string | null
+          estimation_id?: string | null
+          id?: string
+          notes?: string | null
+          origine?: string | null
+          origine_detail?: string | null
+          prix_vente?: number
+          repartition?: Json | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comparables: {
         Row: {
           acheteurs: string | null
