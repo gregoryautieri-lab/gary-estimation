@@ -16,8 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 // CONSTANTES GARY
 // ============================================
 
-const GARY_TEL = '+41 22 700 50 00';
-const GARY_ADDRESS = 'Rue du Rhône 14, 1204 Genève';
+const GARY_TEL = '+41 22 557 07 00';
+const GARY_ADDRESS = '1 Carrefour de Rive, 1207 Genève';
 
 const STATS_MARKETING = {
   vues: '6.6M+',
@@ -1073,8 +1073,8 @@ function generatePage2Gary(
   html += '<div style="padding:16px 24px;background:#1a2e35;">';
   html += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">';
   html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('phone', 16, '#ffffff') + '<span style="font-size:10px;color:white;">' + GARY_TEL + '</span></div>';
-  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('mail', 16, '#ffffff') + '<span style="font-size:10px;color:white;">contact@gary.ch</span></div>';
-  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('globe', 16, '#ffffff') + '<span style="font-size:10px;color:white;">www.gary.ch</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('mail', 16, '#ffffff') + '<span style="font-size:10px;color:white;">gary@gary.ch</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('globe', 16, '#ffffff') + '<span style="font-size:10px;color:white;">gary.ch</span></div>';
   html += '<div style="display:flex;align-items:center;gap:6px;">' + ico('mapPin', 16, '#ffffff') + '<span style="font-size:10px;color:white;">' + GARY_ADDRESS + '</span></div>';
   html += '</div>';
   html += '</div>';

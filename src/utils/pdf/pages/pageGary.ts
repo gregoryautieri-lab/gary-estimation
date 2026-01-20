@@ -75,7 +75,7 @@ export function generateGaryPage(data: GaryPageData): string {
   // Footer
   html += '<div class="gary-footer">';
   html += getLogo('red', 18);
-  html += '<div class="gary-footer-text">gary.immo • +41 22 518 77 77</div>';
+  html += '<div class="gary-footer-text">gary.ch • +41 22 557 07 00</div>';
   html += '</div>';
 
   html += '</div>';

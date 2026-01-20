@@ -16,8 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 // Adresse et téléphone GARY
-const GARY_ADRESSE = "Rue du Rhône 14, 1204 Genève";
-const GARY_TEL = "+41 22 700 50 00";
+const GARY_ADRESSE = "1 Carrefour de Rive, 1207 Genève";
+const GARY_TEL = "+41 22 557 07 00";
 
 interface CourtierProfile {
   id: string;

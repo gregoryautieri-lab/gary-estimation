@@ -3265,8 +3265,8 @@ export async function generateEstimationPDF({
   const courtierNomComplet = courtier 
     ? `${courtier.prenom || ''} ${courtier.nom || ''}`.trim()
     : "GARY Immobilier";
-  const emailCourtier = courtier?.email || "contact@gary-immobilier.ch";
-  const telephoneCourtier = courtier?.telephone || "+41 22 552 22 22";
+  const emailCourtier = courtier?.email || "gary@gary.ch";
+  const telephoneCourtier = courtier?.telephone || "+41 22 557 07 00";
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -3281,7 +3281,7 @@ export async function generateEstimationPDF({
   contactY += 6;
   safeText(doc, emailCourtier, marginLeft + 10, contactY);
   contactY += 6;
-  safeText(doc, "www.gary-immobilier.ch", marginLeft + 10, contactY);
+  safeText(doc, "gary.ch", marginLeft + 10, contactY);
 
   // Encadre disponibilite
   const encadreX = marginLeft + encadreWidth + 10;
