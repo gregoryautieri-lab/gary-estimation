@@ -361,23 +361,30 @@ export default function AdminCommissions() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-8">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
+      {/* Header - Style Private Banking */}
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate("/admin")}
-                className="h-8 w-8"
+                className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-2xl font-bold">Commissions</h1>
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  Suivi des Commissions
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Exercice {filterYear}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <Select value={filterYear} onValueChange={setFilterYear}>
-                <SelectTrigger className="w-[100px]">
+                <SelectTrigger className="w-[100px] h-9 text-sm border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -386,256 +393,318 @@ export default function AdminCommissions() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" onClick={() => setIsObjectivesModalOpen(true)} title="Modifier les objectifs">
-                <Target className="h-4 w-4" />
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsObjectivesModalOpen(true)} 
+                title="Modifier les objectifs"
+                className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Settings className="h-4 w-4 text-slate-500" />
               </Button>
-              <Button variant="outline" onClick={exportCSV}>
+              <Button 
+                variant="ghost" 
+                onClick={exportCSV}
+                className="h-9 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
                 <Download className="h-4 w-4 mr-2" />
-                Exporter CSV
+                Export
               </Button>
-              <Button onClick={openNewModal} className="bg-primary hover:bg-primary/90">
+              <Button 
+                onClick={openNewModal} 
+                className="h-9 text-sm bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900"
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Nouvelle commission
+                Nouvelle
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
-        {/* Section 1: Stats Cards */}
-        <section>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">CA Réalisé {filterYear}</p>
-                    <p className="text-2xl font-bold text-primary">{formatCHF(statsGlobal.caTotal)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-10">
+        {/* Section 1: KPI Cards - Style épuré */}
+        <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* CA Réalisé */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">CA Réalisé</span>
+              <div className="h-8 w-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+              {formatCHF(statsGlobal.caTotal)}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">{statsGlobal.nbVentes} transaction{statsGlobal.nbVentes > 1 ? 's' : ''}</p>
+          </div>
 
-            <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-500/10 rounded-lg">
-                    <TrendingDown className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-amber-700 dark:text-amber-400">CA Probable</p>
-                    <p className="text-2xl font-bold text-amber-600">{formatCHF(statsGlobal.caTotalPlusProbable)}</p>
-                    <p className="text-xs text-amber-600/80">+{formatCHF(statsGlobal.caProbable)} probable</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* CA Probable */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-5 border border-amber-100 dark:border-amber-900/50 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">CA Probable</span>
+              <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                <TrendingDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold text-amber-700 dark:text-amber-300 tracking-tight">
+              {formatCHF(statsGlobal.caTotalPlusProbable)}
+            </p>
+            <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">
+              +{formatCHF(statsGlobal.caProbable)} en discussion
+            </p>
+          </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Hash className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Nombre de ventes</p>
-                    <p className="text-2xl font-bold">{statsGlobal.nbVentes}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Ventes */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Transactions</span>
+              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <Hash className="h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+              {statsGlobal.nbVentes}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">clôturées</p>
+          </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Wallet className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Commission moyenne</p>
-                    <p className="text-2xl font-bold">{formatCHF(statsGlobal.commissionMoyenne)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Commission moyenne */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Moyenne</span>
+              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <Wallet className="h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+              {formatCHF(statsGlobal.commissionMoyenne)}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">par transaction</p>
+          </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Target className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Objectif {filterYear}</p>
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl font-bold">{statsGlobal.pourcentageObjectif.toFixed(1)}%</p>
-                      {statsGlobal.caProbable > 0 && (
-                        <p className="text-sm text-amber-600 font-medium">
-                          → {statsGlobal.pourcentageObjectifProbable.toFixed(1)}% probable
-                        </p>
-                      )}
-                    </div>
-                    <div className="relative mt-2">
-                      <Progress value={Math.min(statsGlobal.pourcentageObjectif, 100)} className="h-2" />
-                      {statsGlobal.caProbable > 0 && (
-                        <div 
-                          className="absolute top-0 h-2 bg-amber-400/50 rounded-r-full"
-                          style={{ 
-                            left: `${Math.min(statsGlobal.pourcentageObjectif, 100)}%`,
-                            width: `${Math.min(statsGlobal.pourcentageObjectifProbable - statsGlobal.pourcentageObjectif, 100 - statsGlobal.pourcentageObjectif)}%`
-                          }}
-                        />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{formatCHF(statsGlobal.caTotal)} / {formatCHF(OBJECTIF_ANNUEL)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Objectif */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Objectif</span>
+              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <Target className="h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+                {statsGlobal.pourcentageObjectif.toFixed(1)}%
+              </p>
+              {statsGlobal.caProbable > 0 && (
+                <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                  → {statsGlobal.pourcentageObjectifProbable.toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <div className="relative mt-3">
+              <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-slate-900 dark:bg-slate-100 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(statsGlobal.pourcentageObjectif, 100)}%` }}
+                />
+              </div>
+              {statsGlobal.caProbable > 0 && (
+                <div 
+                  className="absolute top-0 h-1.5 bg-amber-400/60 rounded-r-full"
+                  style={{ 
+                    left: `${Math.min(statsGlobal.pourcentageObjectif, 100)}%`,
+                    width: `${Math.min(statsGlobal.pourcentageObjectifProbable - statsGlobal.pourcentageObjectif, 100 - statsGlobal.pourcentageObjectif)}%`
+                  }}
+                />
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">{formatCHF(statsGlobal.caTotal)} / {formatCHF(OBJECTIF_ANNUEL)}</p>
           </div>
         </section>
 
         {/* Section 2: Graphique évolution mensuelle */}
         <section>
-          <h2 className="text-lg font-semibold mb-4">Évolution mensuelle</h2>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis 
-                      tickFormatter={(value) => formatCHFShort(value)} 
-                      className="text-xs"
-                    />
-                    <Tooltip 
-                      formatter={(value: number, name: string) => {
-                        const labels: Record<string, string> = {
-                          caCumule: "CA Réalisé",
-                          caProbableCumule: "CA + Probable",
-                          objectifCumule: "Objectif"
-                        };
-                        return [formatCHF(value), labels[name] || name];
-                      }}
-                      labelFormatter={(label) => `Mois: ${label}`}
-                    />
-                    <Legend 
-                      formatter={(value) => {
-                        const labels: Record<string, string> = {
-                          caCumule: "CA Réalisé",
-                          caProbableCumule: "CA + Probable",
-                          objectifCumule: "Objectif linéaire"
-                        };
-                        return labels[value] || value;
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="caCumule" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={3}
-                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="caProbableCumule" 
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      strokeDasharray="8 4"
-                      dot={{ fill: "#f59e0b", strokeWidth: 1, r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="objectifCumule" 
-                      stroke="hsl(var(--muted-foreground))" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Évolution du chiffre d'affaires
+            </h2>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => formatCHFShort(value)} 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      padding: '12px 16px'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const labels: Record<string, string> = {
+                        caCumule: "CA Réalisé",
+                        caProbableCumule: "CA + Probable",
+                        objectifCumule: "Objectif"
+                      };
+                      return [formatCHF(value), labels[name] || name];
+                    }}
+                    labelFormatter={(label) => label}
+                  />
+                  <Legend 
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    formatter={(value) => {
+                      const labels: Record<string, string> = {
+                        caCumule: "CA Réalisé",
+                        caProbableCumule: "CA + Probable",
+                        objectifCumule: "Objectif"
+                      };
+                      return <span className="text-sm text-slate-600">{labels[value] || value}</span>;
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="caCumule" 
+                    stroke="#0f172a"
+                    strokeWidth={2.5}
+                    dot={{ fill: "#0f172a", strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, fill: "#0f172a" }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="caProbableCumule" 
+                    stroke="#d97706"
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                    dot={{ fill: "#d97706", strokeWidth: 0, r: 3 }}
+                    activeDot={{ r: 5, fill: "#d97706" }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="objectifCumule" 
+                    stroke="#cbd5e1"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </section>
 
-        {/* Section 3: Tableau par courtier */}
+        {/* Section 3: Performance par courtier */}
         <section>
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Performance par courtier
-          </h2>
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Performance par courtier
+            </h2>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4">Courtier</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-center">Ventes</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-right">CA Total</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-right">Moyenne</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-right">Part</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 w-[180px]">Progression</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {statsCourtiers.length === 0 ? (
                   <TableRow>
-                    <TableHead>Courtier</TableHead>
-                    <TableHead className="text-center">Nb ventes</TableHead>
-                    <TableHead className="text-right">CA Total</TableHead>
-                    <TableHead className="text-right">Commission moy.</TableHead>
-                    <TableHead className="text-right">% du total</TableHead>
-                    <TableHead className="w-[200px]">Objectif</TableHead>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      Aucune donnée pour {filterYear}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {statsCourtiers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Aucune donnée pour {filterYear}
+                ) : (
+                  statsCourtiers.map((stat, index) => (
+                    <TableRow 
+                      key={stat.courtier} 
+                      className={`border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors ${index === 0 ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : ''}`}
+                    >
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                          {index === 0 && (
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">1</span>
+                          )}
+                          {index === 1 && (
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold">2</span>
+                          )}
+                          {index === 2 && (
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-semibold">3</span>
+                          )}
+                          {index > 2 && (
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-xs">{index + 1}</span>
+                          )}
+                          <span className="font-medium text-slate-900 dark:text-slate-100">{stat.courtier}</span>
+                        </div>
                       </TableCell>
-                    </TableRow>
-                  ) : (
-                    statsCourtiers.map((stat) => (
-                      <TableRow key={stat.courtier}>
-                        <TableCell className="font-medium">{stat.courtier}</TableCell>
-                        <TableCell className="text-center">{stat.nbVentes}</TableCell>
-                        <TableCell className="text-right font-medium text-primary">
-                          {formatCHF(stat.caTotal)}
-                        </TableCell>
-                        <TableCell className="text-right">{formatCHF(stat.commissionMoyenne)}</TableCell>
-                        <TableCell className="text-right">{stat.pourcentageTotal.toFixed(1)}%</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span>{stat.pourcentageObjectif.toFixed(0)}%</span>
-                              <span className="text-muted-foreground">{formatCHF(stat.objectif)}</span>
-                            </div>
-                            <Progress 
-                              value={Math.min(stat.pourcentageObjectif, 100)} 
-                              className="h-2"
+                      <TableCell className="text-center py-4 text-slate-600 dark:text-slate-400">{stat.nbVentes}</TableCell>
+                      <TableCell className="text-right py-4 font-semibold text-slate-900 dark:text-slate-100">
+                        {formatCHF(stat.caTotal)}
+                      </TableCell>
+                      <TableCell className="text-right py-4 text-slate-600 dark:text-slate-400">{formatCHF(stat.commissionMoyenne)}</TableCell>
+                      <TableCell className="text-right py-4 text-slate-600 dark:text-slate-400">{stat.pourcentageTotal.toFixed(1)}%</TableCell>
+                      <TableCell className="py-4">
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{stat.pourcentageObjectif.toFixed(0)}%</span>
+                            <span className="text-slate-400">{formatCHF(stat.objectif)}</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                stat.pourcentageObjectif >= 100 
+                                  ? 'bg-emerald-500' 
+                                  : stat.pourcentageObjectif >= 75 
+                                    ? 'bg-slate-700 dark:bg-slate-300' 
+                                    : 'bg-slate-400'
+                              }`}
+                              style={{ width: `${Math.min(stat.pourcentageObjectif, 100)}%` }}
                             />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </section>
 
         {/* Section 4: Liste des commissions réalisées */}
         <section>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <h2 className="text-lg font-semibold">Commissions réalisées</h2>
-            <div className="flex flex-wrap gap-2">
+            <h2 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Transactions clôturées
+            </h2>
+            <div className="flex items-center gap-2">
               <Select value={filterCourtier} onValueChange={setFilterCourtier}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 w-[150px]">
                   <SelectValue placeholder="Courtier" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les courtiers</SelectItem>
+                  <SelectItem value="all">Tous</SelectItem>
                   {COURTIERS_LIST.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
@@ -643,7 +712,7 @@ export default function AdminCommissions() {
               </Select>
 
               <Select value={filterStatut} onValueChange={setFilterStatut}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 w-[130px]">
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
@@ -655,117 +724,123 @@ export default function AdminCommissions() {
             </div>
           </div>
           
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4">Date</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4">Bien</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4">Courtier</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-right">Prix</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4 text-right">Commission</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-slate-500 py-4">Statut</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
                   <TableRow>
-                    <TableHead>Date paiement</TableHead>
-                    <TableHead>Adresse</TableHead>
-                    <TableHead>Courtier</TableHead>
-                    <TableHead className="text-right">Prix vente</TableHead>
-                    <TableHead className="text-right">Commission</TableHead>
-                    <TableHead>Statut</TableHead>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      Chargement...
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Chargement...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredCommissions.filter(c => c.statut !== "Probable").length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Aucune commission trouvée
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredCommissions
-                      .filter(c => c.statut !== "Probable")
-                      .map((commission) => (
-                        <TableRow
-                          key={commission.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => openEditModal(commission)}
-                        >
-                          <TableCell>
-                            {commission.date_paiement
-                              ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate">{commission.adresse}</TableCell>
-                          <TableCell>{commission.courtier_principal}</TableCell>
-                          <TableCell className="text-right">{formatCHF(commission.prix_vente)}</TableCell>
-                          <TableCell className="text-right font-medium text-primary">
-                            {formatCHF(commission.commission_totale)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={commission.statut === "Payée" ? "default" : "secondary"}>
-                              {commission.statut}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                ) : filteredCommissions.filter(c => c.statut !== "Probable").length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      Aucune transaction
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCommissions
+                    .filter(c => c.statut !== "Probable")
+                    .map((commission) => (
+                      <TableRow
+                        key={commission.id}
+                        className="border-b border-slate-50 dark:border-slate-800 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                        onClick={() => openEditModal(commission)}
+                      >
+                        <TableCell className="py-4 text-slate-600 dark:text-slate-400">
+                          {commission.date_paiement
+                            ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-4 max-w-[200px] truncate text-slate-900 dark:text-slate-100 font-medium">
+                          {commission.adresse}
+                        </TableCell>
+                        <TableCell className="py-4 text-slate-600 dark:text-slate-400">{commission.courtier_principal}</TableCell>
+                        <TableCell className="py-4 text-right text-slate-600 dark:text-slate-400">{formatCHF(commission.prix_vente)}</TableCell>
+                        <TableCell className="py-4 text-right font-semibold text-slate-900 dark:text-slate-100">
+                          {formatCHF(commission.commission_totale)}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            commission.statut === "Payée" 
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" 
+                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                          }`}>
+                            {commission.statut === "Payée" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" />}
+                            {commission.statut}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </section>
 
         {/* Section 5: Commissions probables */}
         {allCommissionsYear.filter(c => c.statut === "Probable").length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-amber-500"></span>
-              Commissions probables
-              <span className="text-sm font-normal text-muted-foreground">
-                ({allCommissionsYear.filter(c => c.statut === "Probable").length} affaire{allCommissionsYear.filter(c => c.statut === "Probable").length > 1 ? "s" : ""} en discussion)
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-sm font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                En discussion
+              </h2>
+              <span className="text-xs text-slate-400">
+                {allCommissionsYear.filter(c => c.statut === "Probable").length} affaire{allCommissionsYear.filter(c => c.statut === "Probable").length > 1 ? "s" : ""}
               </span>
-            </h2>
+            </div>
             
-            <Card className="border-amber-200 dark:border-amber-800">
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-amber-50/50 dark:bg-amber-950/20">
-                      <TableHead>Date prévue</TableHead>
-                      <TableHead>Adresse</TableHead>
-                      <TableHead>Courtier</TableHead>
-                      <TableHead className="text-right">Prix vente</TableHead>
-                      <TableHead className="text-right">Commission</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allCommissionsYear
-                      .filter(c => c.statut === "Probable")
-                      .filter(c => filterCourtier === "all" || c.courtier_principal === filterCourtier)
-                      .map((commission) => (
-                        <TableRow
-                          key={commission.id}
-                          className="cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
-                          onClick={() => openEditModal(commission)}
-                        >
-                          <TableCell>
-                            {commission.date_paiement
-                              ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate">{commission.adresse}</TableCell>
-                          <TableCell>{commission.courtier_principal}</TableCell>
-                          <TableCell className="text-right">{formatCHF(commission.prix_vente)}</TableCell>
-                          <TableCell className="text-right font-medium text-amber-600">
-                            {formatCHF(commission.commission_totale)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+            <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50 shadow-sm overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-amber-50/80 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-900/50">
+                    <TableHead className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400 py-4">Date prévue</TableHead>
+                    <TableHead className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400 py-4">Bien</TableHead>
+                    <TableHead className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400 py-4">Courtier</TableHead>
+                    <TableHead className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400 py-4 text-right">Prix</TableHead>
+                    <TableHead className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400 py-4 text-right">Commission</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allCommissionsYear
+                    .filter(c => c.statut === "Probable")
+                    .filter(c => filterCourtier === "all" || c.courtier_principal === filterCourtier)
+                    .map((commission) => (
+                      <TableRow
+                        key={commission.id}
+                        className="border-b border-amber-100/50 dark:border-amber-900/30 cursor-pointer hover:bg-amber-100/30 dark:hover:bg-amber-900/20 transition-colors"
+                        onClick={() => openEditModal(commission)}
+                      >
+                        <TableCell className="py-4 text-amber-700 dark:text-amber-400">
+                          {commission.date_paiement
+                            ? format(new Date(commission.date_paiement), "dd MMM yyyy", { locale: fr })
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-4 max-w-[200px] truncate text-amber-900 dark:text-amber-200 font-medium">
+                          {commission.adresse}
+                        </TableCell>
+                        <TableCell className="py-4 text-amber-700 dark:text-amber-400">{commission.courtier_principal}</TableCell>
+                        <TableCell className="py-4 text-right text-amber-700 dark:text-amber-400">{formatCHF(commission.prix_vente)}</TableCell>
+                        <TableCell className="py-4 text-right font-semibold text-amber-800 dark:text-amber-300">
+                          {formatCHF(commission.commission_totale)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </section>
+              </div>
+            </section>
         )}
       </div>
 
