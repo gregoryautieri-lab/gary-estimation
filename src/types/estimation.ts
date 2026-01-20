@@ -317,6 +317,7 @@ export interface Historique {
   prixInitial?: string;
   typeDiffusion: string; // 'discrete' | 'moderee' | 'massive'
   portails: string[]; // 'immoscout' | 'homegate' | 'acheterlouer' | 'anibis' | 'immostreet' | 'autres'
+  reseauxSociaux: string[]; // 'instagram' | 'linkedin' | 'facebook' | 'tiktok' | 'youtube'
   raisonEchec: string[];
   raisonEchecDetail?: string;
   agencePrecedente?: string;
@@ -1127,6 +1128,7 @@ export const defaultHistorique: Historique = {
   prixInitial: '',
   typeDiffusion: '',
   portails: [],
+  reseauxSociaux: [],
   raisonEchec: [],
   raisonEchecDetail: '',
   agencePrecedente: '',

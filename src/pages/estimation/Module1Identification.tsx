@@ -123,6 +123,14 @@ const RAISONS_ECHEC = [
   { value: 'autre', label: 'Autre raison' }
 ];
 
+const RESEAUX_SOCIAUX_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' }
+];
+
 // Projet Post-Vente options
 const NATURES_PROJET = [
   { value: 'achat', label: 'Achat d\'un nouveau bien' },
@@ -352,10 +360,10 @@ const Module1Identification = () => {
     scheduleSave();
   };
 
-  // Toggle pour les tableaux (portails, raisons échec, etc.)
+  // Toggle pour les tableaux (portails, raisons échec, réseaux sociaux, etc.)
   const toggleArrayField = (
     section: 'historique',
-    field: 'portails' | 'raisonEchec',
+    field: 'portails' | 'raisonEchec' | 'reseauxSociaux',
     value: string
   ) => {
     setIdentification(prev => {
@@ -806,6 +814,25 @@ const Module1Identification = () => {
                         onCheckedChange={() => toggleArrayField('historique', 'portails', opt.value)}
                       />
                       <Label htmlFor={`portail-${opt.value}`} className="text-sm cursor-pointer">
+                        {opt.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Réseaux sociaux utilisés */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Réseaux sociaux utilisés</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {RESEAUX_SOCIAUX_OPTIONS.map(opt => (
+                    <div key={opt.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`reseau-${opt.value}`}
+                        checked={identification.historique.reseauxSociaux?.includes(opt.value) || false}
+                        onCheckedChange={() => toggleArrayField('historique', 'reseauxSociaux', opt.value)}
+                      />
+                      <Label htmlFor={`reseau-${opt.value}`} className="text-sm cursor-pointer">
                         {opt.label}
                       </Label>
                     </div>
