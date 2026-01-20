@@ -717,6 +717,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                         className="w-20 text-right"
                         min="0"
                         max="100"
+                        step="any"
                       />
                       <span className="text-sm text-muted-foreground">%</span>
                     </div>
