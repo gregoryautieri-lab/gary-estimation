@@ -152,21 +152,20 @@ export default function AdminCommissions() {
     return { caTotal, nbVentes, commissionMoyenne, pourcentageObjectif };
   }, [commissionsYear]);
 
-  // Stats par courtier (basé sur répartition)
+  // Stats par courtier (basé sur courtier_principal)
   const statsCourtiers = useMemo(() => {
     const courtierMap: Record<string, { total: number; count: number }> = {};
     let grandTotal = 0;
 
     commissionsYear.forEach((c) => {
-      const repartition = c.repartition || {};
-      Object.entries(repartition).forEach(([courtier, montant]) => {
-        if (!courtierMap[courtier]) {
-          courtierMap[courtier] = { total: 0, count: 0 };
-        }
-        courtierMap[courtier].total += Number(montant);
-        courtierMap[courtier].count += 1;
-        grandTotal += Number(montant);
-      });
+      const courtier = c.courtier_principal;
+      if (!courtierMap[courtier]) {
+        courtierMap[courtier] = { total: 0, count: 0 };
+      }
+      // CA Total = somme des commissions totales des ventes où ce courtier est principal
+      courtierMap[courtier].total += Number(c.commission_totale);
+      courtierMap[courtier].count += 1;
+      grandTotal += Number(c.commission_totale);
     });
 
     const stats: CourtierStats[] = Object.entries(courtierMap)
@@ -182,7 +181,7 @@ export default function AdminCommissions() {
       .sort((a, b) => b.caTotal - a.caTotal);
 
     return stats;
-  }, [commissionsYear]);
+  }, [commissionsYear, OBJECTIFS_COURTIERS]);
 
   // Données pour le graphique mensuel
   const monthlyData = useMemo(() => {
