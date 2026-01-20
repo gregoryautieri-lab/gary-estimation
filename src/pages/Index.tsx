@@ -35,23 +35,23 @@ const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
     className="border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
     onClick={onClick}
   >
-    <CardContent className="p-4">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
+    <CardContent className="p-3">
+      <div className="flex items-start justify-between mb-2">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
           {icon}
         </div>
-        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </div>
-      <h3 className="font-medium text-base text-foreground mb-2">{title}</h3>
-      <div className="space-y-2">
+      <h3 className="font-medium text-sm text-foreground mb-1.5">{title}</h3>
+      <div className="space-y-1">
         {stats.map((stat, i) => (
-          <div key={i} className="flex items-center justify-between text-sm">
+          <div key={i} className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">{stat.label}</span>
             <span className="font-medium text-foreground">{stat.value}</span>
           </div>
         ))}
       </div>
-      <Button className="w-full mt-4" variant="outline">
+      <Button className="w-full mt-3 h-7 text-xs" variant="outline">
         Ouvrir
       </Button>
     </CardContent>
@@ -156,14 +156,14 @@ const Index = () => {
 
           {/* Tool Cards Grid */}
           {loadingData ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Skeleton className="h-48 rounded-xl" />
-              <Skeleton className="h-48 rounded-xl" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-36 rounded-lg" />
+              <Skeleton className="h-36 rounded-lg" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <ToolCard
-                icon={<FileText className="h-6 w-6 text-primary" />}
+                icon={<FileText className="h-4 w-4 text-primary" />}
                 title="Estimations"
                 stats={[
                   { label: 'Total estimations', value: estimationsStats.total },
@@ -173,7 +173,7 @@ const Index = () => {
                 color="bg-primary/10"
               />
               <ToolCard
-                icon={<Map className="h-6 w-6 text-emerald-600" />}
+                icon={<Map className="h-4 w-4 text-emerald-600" />}
                 title="Comparables"
                 stats={[
                   { label: 'Projets', value: comparablesStats.projects },
@@ -187,24 +187,24 @@ const Index = () => {
 
           {/* Quick Actions */}
           <div>
-            <h2 className="font-medium text-sm text-foreground mb-2">Actions rapides</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <h2 className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-2">Actions rapides</h2>
+            <div className="grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
-                className="h-auto py-4 flex-col gap-2"
+                className="h-auto py-3 flex-col gap-1.5 text-xs"
                 onClick={handleNewEstimation}
                 disabled={creatingEstimation}
               >
-                <Plus className="h-5 w-5" />
-                <span className="text-sm">Nouvelle estimation</span>
+                <Plus className="h-4 w-4" />
+                <span>Nouvelle estimation</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-auto py-4 flex-col gap-2"
+                className="h-auto py-3 flex-col gap-1.5 text-xs"
                 onClick={() => navigate('/comparables/explore')}
               >
-                <Search className="h-5 w-5" />
-                <span className="text-sm">Explorer comparables</span>
+                <Search className="h-4 w-4" />
+                <span>Explorer comparables</span>
               </Button>
             </div>
           </div>
@@ -212,26 +212,26 @@ const Index = () => {
           {/* Admin Section - Visible uniquement pour les admins */}
           {isAdmin && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-3.5 w-3.5 text-amber-500" />
-                <h2 className="font-medium text-sm text-foreground">Administration</h2>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Shield className="h-3 w-3 text-amber-500" />
+                <h2 className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Administration</h2>
               </div>
               <Card 
-                className="border-amber-200 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:shadow-md transition-all cursor-pointer"
+                className="border-amber-200/50 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => navigate('/admin/commissions')}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <Wallet className="h-6 w-6 text-amber-600" />
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                      <Wallet className="h-4 w-4 text-amber-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground">Commissions</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Suivi des ventes et chiffre d'affaires
+                      <h3 className="font-medium text-sm text-foreground">Commissions</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Suivi des ventes et CA
                       </p>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                 </CardContent>
               </Card>
@@ -240,21 +240,21 @@ const Index = () => {
 
           {/* Estimation Express promo */}
           <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-amber-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Zap className="h-6 w-6 text-amber-600" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Zap className="h-4 w-4 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground">Estimation Express</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Calculez rapidement une estimation simplifiée
+                  <h3 className="font-medium text-sm text-foreground">Estimation Express</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Calcul rapide simplifié
                   </p>
                 </div>
                 <Button 
                   size="sm"
                   variant="default"
-                  className="bg-amber-500 hover:bg-amber-600 shrink-0"
+                  className="bg-amber-500 hover:bg-amber-600 shrink-0 h-7 text-xs px-3"
                   onClick={() => navigate('/estimation-express')}
                 >
                   Lancer
