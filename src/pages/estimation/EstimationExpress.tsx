@@ -227,6 +227,7 @@ const EstimationExpress = () => {
           prixAffiche: '',
           typeDiffusion: '',
           portails: [],
+          reseauxSociaux: [],
           raisonEchec: []
         },
         proximites: [],
