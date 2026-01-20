@@ -149,9 +149,13 @@ export default function ComparablesExplore() {
                 address: `${item.adresse}, ${item.localite}, Suisse`,
               },
             });
-            
-            if (data?.lat && data?.lng) {
-              return { ...item, coordinates: { lat: data.lat, lng: data.lng } };
+
+            // Réponse attendue: { success: true, location: { lat, lng }, formattedAddress }
+            const lat = data?.location?.lat ?? data?.lat;
+            const lng = data?.location?.lng ?? data?.lng;
+
+            if (typeof lat === 'number' && typeof lng === 'number') {
+              return { ...item, coordinates: { lat, lng } };
             }
           } catch (err) {
             // Fallback silencieux
