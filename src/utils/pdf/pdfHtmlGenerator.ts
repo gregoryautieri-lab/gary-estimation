@@ -1819,77 +1819,154 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
     }
     
     // Détails comparables OU message annexe
+    const MAX_COMPARABLES_PAR_COLONNE = 3;
+    const needsSecondPage = comparablesVendus.length > MAX_COMPARABLES_PAR_COLONNE || comparablesEnVente.length > MAX_COMPARABLES_PAR_COLONNE;
+    
+    // Fonction helper pour générer une carte de comparable
+    const generateComparableCard = (c: any, type: 'vendu' | 'envente'): string => {
+      const garyBadge = c.isGary ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FA4238;color:white;border-radius:50%;font-size:8px;font-weight:700;margin-left:4px;">G</span>' : '';
+      const typeMaisonLabels: Record<string, string> = {'individuelle': 'Maison individuelle', 'jumelee': 'Maison jumelée', 'mitoyenne': 'Maison mitoyenne', 'contigue': 'Maison contiguë'};
+      const typeMaisonLabel = typeMaisonLabels[c.typeMaison] || '';
+      const bgColor = type === 'vendu' ? (c.isGary ? '#fff5f4' : '#f0fdf4') : (c.isGary ? '#fff5f4' : '#f9fafb');
+      const borderColor = type === 'vendu' ? (c.isGary ? '#FA4538' : '#10b981') : (c.isGary ? '#FA4538' : '#9ca3af');
+      const priceColor = type === 'vendu' ? (c.isGary ? '#FA4539' : '#10b981') : (c.isGary ? '#FA4539' : '#6b7280');
+      
+      let cardHtml = `<div style="background:${bgColor};border-radius:4px;padding:6px 8px;margin-bottom:4px;border-left:2px solid ${borderColor};">`;
+      cardHtml += `<div style="font-size:8px;font-weight:600;color:#1a2e35;display:flex;align-items:center;">${c.adresse || '-'}${garyBadge}</div>`;
+      const prixNum = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
+      cardHtml += `<div style="font-size:9px;color:${priceColor};font-weight:600;">${prixNum > 0 ? formatPriceLocal(prixNum) : c.prix || '-'}</div>`;
+      const details: string[] = [];
+      if (c.surface) details.push(c.surface);
+      if (c.surfaceParcelle) details.push('Parcelle ' + c.surfaceParcelle);
+      if (typeMaisonLabel) details.push(typeMaisonLabel);
+      if (type === 'vendu' && c.dateVente) details.push(c.dateVente);
+      if (type === 'envente' && c.dureeEnVente) details.push('Depuis ' + c.dureeEnVente);
+      if (c.commentaire) details.push(c.commentaire);
+      if (details.length > 0) {
+        cardHtml += `<div style="font-size:7px;color:#6b7280;margin-top:1px;">${details.join(' • ')}</div>`;
+      }
+      cardHtml += '</div>';
+      return cardHtml;
+    };
+    
     if (comparablesEnAnnexe) {
       html += '<div style="background:#f8fafc;border-radius:6px;padding:12px 16px;text-align:center;margin-top:8px;">';
       html += `<div style="font-size:9px;color:#6b7280;">Détail des ${totalComparables} comparables en annexe</div>`;
       html += '</div>';
     } else {
-      // Mode normal - afficher les détails
+      // Première page de comparables (max 3 par colonne)
+      const vendusPage1 = comparablesVendus.slice(0, MAX_COMPARABLES_PAR_COLONNE);
+      const enVentePage1 = comparablesEnVente.slice(0, MAX_COMPARABLES_PAR_COLONNE);
+      
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
       
       // Colonne vendus
-      if (comparablesVendus.length > 0) {
+      if (vendusPage1.length > 0) {
         html += '<div>';
         html += '<div style="font-size:8px;font-weight:600;color:#10b981;margin-bottom:6px;display:flex;align-items:center;gap:3px;">✓ Transactions récentes</div>';
-        comparablesVendus.forEach((c: any) => {
-          const garyBadge = c.isGary ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FA4238;color:white;border-radius:50%;font-size:8px;font-weight:700;margin-left:4px;">G</span>' : '';
-          const typeMaisonLabels: Record<string, string> = {'individuelle': 'Maison individuelle', 'jumelee': 'Maison jumelée', 'mitoyenne': 'Maison mitoyenne', 'contigue': 'Maison contiguë'};
-          const typeMaisonLabel = typeMaisonLabels[c.typeMaison] || '';
-          html += `<div style="background:${c.isGary ? '#fff5f4' : '#f0fdf4'};border-radius:4px;padding:6px 8px;margin-bottom:4px;border-left:2px solid ${c.isGary ? '#FA4538' : '#10b981'};">`;
-          html += `<div style="font-size:8px;font-weight:600;color:#1a2e35;display:flex;align-items:center;">${c.adresse || '-'}${garyBadge}</div>`;
-          const prixNum = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
-          html += `<div style="font-size:9px;color:${c.isGary ? '#FA4539' : '#10b981'};font-weight:600;">${prixNum > 0 ? formatPriceLocal(prixNum) : c.prix || '-'}</div>`;
-          const details: string[] = [];
-          if (c.surface) details.push(c.surface);
-          if (c.surfaceParcelle) details.push('Parcelle ' + c.surfaceParcelle);
-          if (typeMaisonLabel) details.push(typeMaisonLabel);
-          if (c.dateVente) details.push(c.dateVente);
-          if (c.commentaire) details.push(c.commentaire);
-          if (details.length > 0) {
-            html += `<div style="font-size:7px;color:#6b7280;margin-top:1px;">${details.join(' • ')}</div>`;
-          }
-          html += '</div>';
+        vendusPage1.forEach((c: any) => {
+          html += generateComparableCard(c, 'vendu');
         });
         html += '</div>';
       }
       
       // Colonne en vente
-      if (comparablesEnVente.length > 0) {
+      if (enVentePage1.length > 0) {
         html += '<div>';
         html += '<div style="font-size:8px;font-weight:600;color:#6b7280;margin-bottom:6px;display:flex;align-items:center;gap:3px;">○ Actuellement en vente</div>';
-        comparablesEnVente.forEach((c: any) => {
-          const garyBadge = c.isGary ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FA4238;color:white;border-radius:50%;font-size:8px;font-weight:700;margin-left:4px;">G</span>' : '';
-          const typeMaisonLabels: Record<string, string> = {'individuelle': 'Maison individuelle', 'jumelee': 'Maison jumelée', 'mitoyenne': 'Maison mitoyenne', 'contigue': 'Maison contiguë'};
-          const typeMaisonLabel = typeMaisonLabels[c.typeMaison] || '';
-          html += `<div style="background:${c.isGary ? '#fff5f4' : '#f9fafb'};border-radius:4px;padding:6px 8px;margin-bottom:4px;border-left:2px solid ${c.isGary ? '#FA4538' : '#9ca3af'};">`;
-          html += `<div style="font-size:8px;font-weight:600;color:#1a2e35;display:flex;align-items:center;">${c.adresse || '-'}${garyBadge}</div>`;
-          const prixNum = parseFloat((c.prix || '').toString().replace(/[^\d]/g, ''));
-          html += `<div style="font-size:9px;color:${c.isGary ? '#FA4539' : '#6b7280'};font-weight:600;">${prixNum > 0 ? formatPriceLocal(prixNum) : c.prix || '-'}</div>`;
-          const details: string[] = [];
-          if (c.surface) details.push(c.surface);
-          if (c.surfaceParcelle) details.push('Parcelle ' + c.surfaceParcelle);
-          if (typeMaisonLabel) details.push(typeMaisonLabel);
-          if (c.dureeEnVente) details.push('Depuis ' + c.dureeEnVente);
-          if (c.commentaire) details.push(c.commentaire);
-          if (details.length > 0) {
-            html += `<div style="font-size:7px;color:#6b7280;margin-top:1px;">${details.join(' • ')}</div>`;
-          }
-          html += '</div>';
+        enVentePage1.forEach((c: any) => {
+          html += generateComparableCard(c, 'envente');
         });
         html += '</div>';
       }
       
       html += '</div>';
+      
+      // Si PAS besoin de 2ème page, afficher "Votre bien" ici
+      if (!needsSecondPage) {
+        html += '<div style="margin-top:8px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border:1px solid #FF4539;border-radius:6px;padding:8px 10px;text-align:center;">';
+        html += '<div style="font-size:7px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Votre bien</div>';
+        html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${val(bien.adresse)}</div>`;
+        html += `<div style="font-size:12px;font-weight:700;color:#FF4539;margin-top:2px;">${formatPriceLocal(totalVenaleArrondi)}</div>`;
+        html += '</div>';
+      }
     }
     
-    // Positionnement du bien
-    html += '<div style="margin-top:8px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border:1px solid #FF4539;border-radius:6px;padding:8px 10px;text-align:center;">';
-    html += '<div style="font-size:7px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Votre bien</div>';
-    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${val(bien.adresse)}</div>`;
-    html += `<div style="font-size:12px;font-weight:700;color:#FF4539;margin-top:2px;">${formatPriceLocal(totalVenaleArrondi)}</div>`;
-    html += '</div>';
-    
     html += '</div>'; // section comparables
+    
+    // === PAGE SUPPLÉMENTAIRE SI PLUS DE 3 COMPARABLES PAR COLONNE ===
+    if (hasComparables && needsSecondPage && !comparablesEnAnnexe) {
+      const vendusPage2 = comparablesVendus.slice(MAX_COMPARABLES_PAR_COLONNE);
+      const enVentePage2 = comparablesEnVente.slice(MAX_COMPARABLES_PAR_COLONNE);
+      const refIdSuite = 'EST-' + (estimation.id || '').slice(-8);
+      
+      // Footer de la première page (avant page-break)
+      html += '<div class="footer">';
+      html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+      html += `<div class="footer-ref">Page ${pageNum}/${totalPages} • Réf: ${refIdSuite}</div>`;
+      html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+      html += '</div>';
+      html += '</div>'; // Fermer la page
+      
+      // Nouvelle page pour la suite des comparables
+      html += '<div class="page" style="page-break-before:always;">';
+      
+      // Header
+      html += '<div class="header">';
+      html += `<div>${logoWhite.replace('viewBox', 'style="height:28px;width:auto;" viewBox')}</div>`;
+      html += '<div class="header-date">Annexe : Méthodologie (suite)</div>';
+      html += '</div>';
+      
+      html += '<div style="padding:16px 24px;background:white;">';
+      html += `<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:5px;">${ico('trendingUp', 12, '#9ca3af')}Positionnement marché (suite)</div>`;
+      
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      
+      // Suite colonne vendus
+      if (vendusPage2.length > 0) {
+        html += '<div>';
+        html += '<div style="font-size:8px;font-weight:600;color:#10b981;margin-bottom:6px;display:flex;align-items:center;gap:3px;">✓ Transactions récentes (suite)</div>';
+        vendusPage2.forEach((c: any) => {
+          html += generateComparableCard(c, 'vendu');
+        });
+        html += '</div>';
+      } else {
+        html += '<div></div>';
+      }
+      
+      // Suite colonne en vente
+      if (enVentePage2.length > 0) {
+        html += '<div>';
+        html += '<div style="font-size:8px;font-weight:600;color:#6b7280;margin-bottom:6px;display:flex;align-items:center;gap:3px;">○ Actuellement en vente (suite)</div>';
+        enVentePage2.forEach((c: any) => {
+          html += generateComparableCard(c, 'envente');
+        });
+        html += '</div>';
+      } else {
+        html += '<div></div>';
+      }
+      
+      html += '</div>';
+      
+      // Votre bien - à la fin de la 2ème page
+      html += '<div style="margin-top:8px;background:linear-gradient(135deg,#fff5f4 0%,#ffffff 100%);border:1px solid #FF4539;border-radius:6px;padding:8px 10px;text-align:center;">';
+      html += '<div style="font-size:7px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Votre bien</div>';
+      html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${val(bien.adresse)}</div>`;
+      html += `<div style="font-size:12px;font-weight:700;color:#FF4539;margin-top:2px;">${formatPriceLocal(totalVenaleArrondi)}</div>`;
+      html += '</div>';
+      
+      html += '</div>'; // section
+      
+      // Footer de la page supplémentaire
+      html += '<div class="footer">';
+      html += `<div>${logoWhite.replace('viewBox', 'style="height:18px;width:auto;" viewBox')}</div>`;
+      html += `<div class="footer-ref">Page ${pageNum + 1}/${totalPages + 1} • Réf: ${refIdSuite}</div>`;
+      html += '<div class="footer-slogan">On pilote, vous décidez.</div>';
+      html += '</div>';
+      
+      // Note: Cette page supplémentaire nécessite un ajustement du totalPages dans le générateur principal
+      return html; // Retourne ici pour éviter le footer double
+    }
   }
   
   // Footer
