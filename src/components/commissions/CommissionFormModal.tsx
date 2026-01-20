@@ -88,16 +88,42 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const queryClient = useQueryClient();
   const isEditing = !!commission;
 
-  // Fetch all users from profiles
+  // Fetch all users from profiles with their roles
   const { data: users = [] } = useQuery({
     queryKey: ["profiles-for-commissions"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
         .order("full_name");
-      if (error) throw error;
-      return (data || []).filter(u => u.full_name) as UserProfile[];
+      if (profilesError) throw profilesError;
+
+      // Get user roles
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+      if (rolesError) throw rolesError;
+
+      // Map roles by user_id
+      const roleMap = new Map<string, string[]>();
+      roles?.forEach(r => {
+        const existing = roleMap.get(r.user_id) || [];
+        existing.push(r.role);
+        roleMap.set(r.user_id, existing);
+      });
+
+      // Filter only courtiers (exclude admin, back_office, marketing)
+      const courtierProfiles = (profiles || [])
+        .filter(u => {
+          if (!u.full_name) return false;
+          const userRoles = roleMap.get(u.user_id) || [];
+          // Include only users with 'courtier' role (or no special role = default courtier)
+          return userRoles.includes("courtier") || 
+                 (!userRoles.includes("admin") && !userRoles.includes("back_office") && !userRoles.includes("marketing"));
+        }) as UserProfile[];
+
+      return courtierProfiles;
     },
   });
 
