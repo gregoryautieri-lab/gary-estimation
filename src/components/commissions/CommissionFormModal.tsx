@@ -327,7 +327,9 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const commissionTotaleNum = parseFloat(commissionTotale) || 0;
   const repartitionPourcentageSum = repartition.reduce((sum, r) => sum + (parseFloat(r.pourcentage) || 0), 0);
   const repartitionCHFSum = (repartitionPourcentageSum / 100) * commissionTotaleNum;
-  const isRepartitionValid = Math.abs(repartitionPourcentageSum - 100) < 0.01 || repartition.length === 0;
+  const partSocietePourcentage = Math.max(0, 100 - repartitionPourcentageSum);
+  const partSocieteCHF = (partSocietePourcentage / 100) * commissionTotaleNum;
+  const isRepartitionValid = repartitionPourcentageSum <= 100 || repartition.length === 0;
 
   // Calculate CHF amount for a given percentage
   const calculateMontant = (pourcentage: string): number => {
@@ -735,17 +737,28 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
                   </div>
                 ))}
 
-                <div className="flex justify-between text-sm pt-2 border-t">
-                  <span className="text-muted-foreground">Total :</span>
-                  <div className="flex gap-4">
-                    <span className={!isRepartitionValid ? "text-destructive font-medium" : ""}>
-                      {repartitionPourcentageSum}%
-                      {!isRepartitionValid && " (attendu: 100%)"}
-                    </span>
-                    <span className="font-medium">
-                      {repartitionCHFSum.toLocaleString("fr-CH")} CHF
-                    </span>
+                <div className="space-y-1 pt-2 border-t text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total courtiers :</span>
+                    <div className="flex gap-4">
+                      <span className={repartitionPourcentageSum > 100 ? "text-destructive font-medium" : ""}>
+                        {repartitionPourcentageSum.toFixed(2)}%
+                        {repartitionPourcentageSum > 100 && " (max: 100%)"}
+                      </span>
+                      <span className="font-medium">
+                        {repartitionCHFSum.toLocaleString("fr-CH")} CHF
+                      </span>
+                    </div>
                   </div>
+                  {partSocietePourcentage > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Part société :</span>
+                      <div className="flex gap-4">
+                        <span>{partSocietePourcentage.toFixed(2)}%</span>
+                        <span>{Math.round(partSocieteCHF).toLocaleString("fr-CH")} CHF</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
