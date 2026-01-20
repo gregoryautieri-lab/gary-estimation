@@ -19,6 +19,26 @@ interface CoverPageData {
   nbEtages?: number | string;
 }
 
+// Mapping des sous-types pour un affichage propre
+const SOUS_TYPE_LABELS: Record<string, string> = {
+  standard: 'Standard',
+  duplex: 'Duplex',
+  attique: 'Attique',
+  loft: 'Loft',
+  studio: 'Studio',
+  villa: 'Villa',
+  villa_individuelle: 'Villa Individuelle',
+  villa_mitoyenne: 'Villa Mitoyenne',
+  villa_jumelle: 'Villa Jumelle',
+  ferme: 'Ferme',
+  chalet: 'Chalet'
+};
+
+function formatSousType(sousType?: string): string {
+  if (!sousType) return '';
+  return SOUS_TYPE_LABELS[sousType] || sousType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 export function generateCoverPage(data: CoverPageData): string {
   let html = '';
 
@@ -50,8 +70,9 @@ export function generateCoverPage(data: CoverPageData): string {
   // Section bien - design unifié sombre
   html += '<div class="cover-bien">';
 
-  // Type de bien
-  html += '<div class="cover-bien-type">' + ico(data.isAppartement ? 'building' : 'home', 16, 'rgba(255,255,255,0.6)') + ' ' + data.typeBien + (data.sousType ? ' • ' + data.sousType : '') + '</div>';
+  // Type de bien avec sous-type formaté
+  const sousTypeLabel = formatSousType(data.sousType);
+  html += '<div class="cover-bien-type">' + ico(data.isAppartement ? 'building' : 'home', 16, 'rgba(255,255,255,0.6)') + ' ' + data.typeBien + (sousTypeLabel ? ' • ' + sousTypeLabel : '') + '</div>';
 
   // Adresse
   html += '<div class="cover-address">';
