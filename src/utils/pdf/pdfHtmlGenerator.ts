@@ -643,9 +643,36 @@ function generateCaracteristiquesPage(estimation: EstimationData, pageNum: numbe
     {l:'Électricité',v:analyse.etatElectricite}
   ];
   etats.forEach(e => {
-    const icoName = e.v === 'neuf' ? 'sparkles' : (e.v === 'bon' ? 'checkCircle' : (e.v === 'rafraichir' ? 'refresh' : (e.v === 'refaire' ? 'xCircle' : 'minus')));
-    const icoColor = e.v === 'neuf' ? '#3b82f6' : (e.v === 'bon' ? '#10b981' : (e.v === 'rafraichir' ? '#f59e0b' : (e.v === 'refaire' ? '#ef4444' : '#d1d5db')));
-    html += `<div style="flex:1;text-align:center;padding:10px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;"><div style="margin-bottom:4px;">${ico(icoName, 18, icoColor)}</div><div style="font-size:8px;color:#6b7280;font-weight:500;">${e.l}</div></div>`;
+    // Support both numeric (1-5) and text values
+    const numVal = parseInt(String(e.v)) || 0;
+    const hasValue = numVal > 0 || ['neuf', 'bon', 'rafraichir', 'refaire'].includes(String(e.v));
+    
+    // Determine display value and color based on numeric or text value
+    let displayVal = '—';
+    let bgColor = '#f9fafb';
+    let textColor = '#9ca3af';
+    
+    if (numVal > 0) {
+      displayVal = numVal + '/5';
+      // Color based on score: 5=green, 4=light green, 3=yellow, 2=orange, 1=red
+      if (numVal >= 5) { bgColor = '#ecfdf5'; textColor = '#10b981'; }
+      else if (numVal >= 4) { bgColor = '#f0fdf4'; textColor = '#22c55e'; }
+      else if (numVal >= 3) { bgColor = '#fefce8'; textColor = '#eab308'; }
+      else if (numVal >= 2) { bgColor = '#fff7ed'; textColor = '#f59e0b'; }
+      else { bgColor = '#fef2f2'; textColor = '#ef4444'; }
+    } else if (e.v === 'neuf') {
+      displayVal = '5/5'; bgColor = '#eff6ff'; textColor = '#3b82f6';
+    } else if (e.v === 'bon') {
+      displayVal = '4/5'; bgColor = '#ecfdf5'; textColor = '#10b981';
+    } else if (e.v === 'rafraichir') {
+      displayVal = '2/5'; bgColor = '#fff7ed'; textColor = '#f59e0b';
+    } else if (e.v === 'refaire') {
+      displayVal = '1/5'; bgColor = '#fef2f2'; textColor = '#ef4444';
+    }
+    
+    html += `<div style="flex:1;text-align:center;padding:10px 4px;background:${bgColor};border-radius:6px;border:1px solid #e5e7eb;">`;
+    html += `<div style="font-size:14px;font-weight:700;color:${textColor};margin-bottom:2px;">${displayVal}</div>`;
+    html += `<div style="font-size:8px;color:#6b7280;font-weight:500;">${e.l}</div></div>`;
   });
   html += '</div>';
   
