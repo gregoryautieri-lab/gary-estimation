@@ -7,30 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Download, TrendingUp, Target, Hash, Wallet, Users, ArrowLeft } from "lucide-react";
+import { Plus, Download, TrendingUp, Target, Hash, Wallet, Users, ArrowLeft, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { CommissionFormModal } from "@/components/commissions/CommissionFormModal";
+import { ObjectivesModal } from "@/components/commissions/ObjectivesModal";
 
-// Liste des courtiers prédéfinis
+// Liste des courtiers prédéfinis (fallback)
 export const COURTIERS_LIST = ["Steven", "Fred", "Guive", "Michel", "Véronique", "Greg", "Jared"];
 
-// Objectif annuel hardcodé
-const OBJECTIF_ANNUEL = 1850000;
-
-// Objectifs par courtier (hardcodés pour v1)
-const OBJECTIFS_COURTIERS: Record<string, number> = {
-  "Steven": 300000,
-  "Fred": 250000,
-  "Guive": 350000,
-  "Michel": 200000,
-  "Véronique": 250000,
-  "Greg": 300000,
-  "Jared": 200000,
-};
+interface Objective {
+  id: string;
+  year: number;
+  type: "societe" | "courtier";
+  courtier_name: string | null;
+  amount: number;
+}
 
 interface Commission {
   id: string;
@@ -77,6 +72,7 @@ export default function AdminCommissions() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isObjectivesModalOpen, setIsObjectivesModalOpen] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null);
   
   // Filtres
@@ -84,6 +80,35 @@ export default function AdminCommissions() {
   const [filterYear, setFilterYear] = useState<string>(currentYear.toString());
   const [filterCourtier, setFilterCourtier] = useState<string>("all");
   const [filterStatut, setFilterStatut] = useState<string>("all");
+
+  // Fetch objectives for the selected year
+  const { data: objectives = [] } = useQuery({
+    queryKey: ["commission-objectives", parseInt(filterYear)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("commission_objectives")
+        .select("*")
+        .eq("year", parseInt(filterYear));
+      if (error) throw error;
+      return data as Objective[];
+    },
+  });
+
+  // Derive objective values from database
+  const OBJECTIF_ANNUEL = useMemo(() => {
+    const societe = objectives.find(o => o.type === "societe");
+    return societe?.amount || 1850000;
+  }, [objectives]);
+
+  const OBJECTIFS_COURTIERS = useMemo(() => {
+    const result: Record<string, number> = {};
+    objectives
+      .filter(o => o.type === "courtier" && o.courtier_name)
+      .forEach(o => {
+        result[o.courtier_name!] = o.amount;
+      });
+    return result;
+  }, [objectives]);
 
   // Fetch commissions (non supprimées)
   const { data: commissions = [], isLoading } = useQuery({
@@ -301,6 +326,9 @@ export default function AdminCommissions() {
               </Select>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={() => setIsObjectivesModalOpen(true)} title="Modifier les objectifs">
+                <Target className="h-4 w-4" />
+              </Button>
               <Button variant="outline" onClick={exportCSV}>
                 <Download className="h-4 w-4 mr-2" />
                 Exporter CSV
@@ -571,12 +599,19 @@ export default function AdminCommissions() {
         </section>
       </div>
 
-      {/* Modal */}
+      {/* Commission Modal */}
       <CommissionFormModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         commission={selectedCommission}
         onDelete={(id) => deleteMutation.mutate(id)}
+      />
+
+      {/* Objectives Modal */}
+      <ObjectivesModal
+        open={isObjectivesModalOpen}
+        onOpenChange={setIsObjectivesModalOpen}
+        year={parseInt(filterYear)}
       />
     </div>
   );
