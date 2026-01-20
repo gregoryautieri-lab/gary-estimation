@@ -2602,25 +2602,25 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(adresse.rue)} ${val(adresse.numero)}, ${val(adresse.codePostal)} ${val(adresse.localite)}</p>`;
   html += '</div>';
   
-  // Cartes en vertical
-  html += '<div style="padding:0 24px;display:flex;flex-direction:column;gap:8px;">';
+  // Cartes côte à côte pour économiser l'espace vertical
+  html += '<div style="padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
   
   // Carte Google Maps
-  html += '<div style="background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;max-width:450px;margin:0 auto;">';
-  html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGlobe} Vue satellite</div>`;
-  html += '<div style="width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
+  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+  html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGlobe} Vue satellite</div>`;
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
   if (googleMapImage) {
     html += `<img src="${googleMapImage}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   } else {
-    html += '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;">Image satellite non disponible</div>';
+    html += '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:9px;">Image non disponible</div>';
   }
   html += '</div>';
   html += '</div>';
   
   // Carte Swisstopo
-  html += '<div style="background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;max-width:450px;margin:0 auto;">';
-  html += `<div style="font-size:9px;font-weight:600;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconGrid} Plan cadastral officiel</div>`;
-  html += '<div style="width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;">';
+  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+  html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGrid} Plan cadastral officiel</div>`;
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
   html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   html += '</div>';
   html += '</div>';
