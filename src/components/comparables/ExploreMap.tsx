@@ -103,7 +103,17 @@ function MapContent({
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-    setTimeout(fitBounds, 100);
+
+    // Google Maps peut rester "blanc" si le conteneur était à 0px au moment du mount.
+    // On force un resize + fitBounds juste après le rendu.
+    setTimeout(() => {
+      try {
+        google.maps.event.trigger(map, 'resize');
+      } catch {
+        // no-op
+      }
+      fitBounds();
+    }, 150);
   }, [fitBounds]);
 
   // Re-fit bounds when comparables change
@@ -127,7 +137,7 @@ function MapContent({
 
   if (loadError) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+      <div className={cn("flex items-center justify-center bg-muted", className)} style={{ height: 'calc(100vh - 80px)' }}>
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
           <p className="text-sm text-destructive">Impossible de charger Google Maps</p>
@@ -139,7 +149,7 @@ function MapContent({
 
   if (!isLoaded) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+      <div className={cn("flex items-center justify-center bg-muted", className)} style={{ height: 'calc(100vh - 80px)' }}>
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -147,7 +157,7 @@ function MapContent({
 
   if (geolocatedComparables.length === 0) {
     return (
-      <div className={cn("flex flex-col items-center justify-center bg-muted h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+      <div className={cn("flex flex-col items-center justify-center bg-muted", className)} style={{ height: 'calc(100vh - 80px)' }}>
         <MapPin className="h-12 w-12 text-muted-foreground mb-3" />
         <p className="text-muted-foreground font-medium">Aucun bien géolocalisé</p>
         <p className="text-sm text-muted-foreground mt-1 text-center px-4">
@@ -160,9 +170,9 @@ function MapContent({
   const center = geolocatedComparables[0]?.coordinates || DEFAULT_CENTER;
 
   return (
-    <div className={cn("relative h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+    <div className={cn("relative", className)} style={{ height: 'calc(100vh - 80px)', overflow: 'hidden' }}>
       <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '100%' }}
+        mapContainerStyle={{ width: '100%', height: 'calc(100vh - 80px)' }}
         center={center}
         zoom={12}
         onLoad={onMapLoad}
@@ -296,7 +306,7 @@ export function ExploreMap({
   // Loading state - waiting for API key
   if (loadingKey) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+      <div className={cn("flex items-center justify-center bg-muted", className)} style={{ height: 'calc(100vh - 80px)' }}>
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Chargement de la carte...</p>
@@ -308,7 +318,7 @@ export function ExploreMap({
   // Error state - API key fetch failed
   if (keyError || !apiKey) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted h-full", className)} style={{ minHeight: 'calc(100vh - 80px)' }}>
+      <div className={cn("flex items-center justify-center bg-muted", className)} style={{ height: 'calc(100vh - 80px)' }}>
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
           <p className="text-sm text-destructive">Impossible de charger Google Maps</p>
