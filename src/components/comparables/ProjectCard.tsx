@@ -63,19 +63,19 @@ export function ProjectCard({
 
   return (
     <div 
-      className={`bg-card border rounded-xl p-4 transition-all hover:border-primary/50 ${
+      className={`bg-card border rounded-lg p-3 transition-all hover:border-primary/50 ${
         project.archived ? 'opacity-60' : ''
       }`}
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <button onClick={onOpen} className="flex-1 text-left min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-foreground truncate">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="font-medium text-sm text-foreground truncate">
               📍 {project.projectName}
             </h3>
             {project.archived && (
-              <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground">
                 Archivé
               </Badge>
             )}
@@ -133,36 +133,36 @@ export function ProjectCard({
 
       {/* Critères */}
       <button onClick={onOpen} className="w-full text-left">
-        <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
+        <div className="space-y-1 text-xs text-muted-foreground mb-2">
           {project.communes && project.communes.length > 0 && (
-            <p className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <p className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 shrink-0" />
               <span>Commune{project.communes.length > 1 ? 's' : ''}: {project.communes.join(', ')}</span>
             </p>
           )}
           {priceRange && (
-            <p className="flex items-center gap-1.5">
-              <span className="text-foreground font-medium">{priceRange}</span>
+            <p className="flex items-center gap-1">
+              <span className="text-foreground font-medium text-xs">{priceRange}</span>
             </p>
           )}
           {typeBienStr && (
-            <p className="flex items-center gap-1.5">
-              <Home className="h-3.5 w-3.5 shrink-0" />
+            <p className="flex items-center gap-1">
+              <Home className="h-3 w-3 shrink-0" />
               <span>{typeBienStr}</span>
             </p>
           )}
         </div>
 
         {/* Stats */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className="text-lg">🏠</span>
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-sm">🏠</span>
             <span className="font-medium text-foreground">{project.nbComparables}</span>
             <span className="text-muted-foreground">comparable{project.nbComparables !== 1 ? 's' : ''}</span>
           </div>
           
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Calendar className="h-2.5 w-2.5" />
             <span>
               {lastSearchRelative 
                 ? `Recherche ${lastSearchRelative}` 
