@@ -16,8 +16,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CommissionFormModal } from "@/components/commissions/CommissionFormModal";
 import { ObjectivesModal } from "@/components/commissions/ObjectivesModal";
 
-// Liste des courtiers prédéfinis (fallback)
-export const COURTIERS_LIST = ["Steven", "Fred", "Guive", "Michel", "Véronique", "Greg", "Jared"];
+// Liste des courtiers (agents commerciaux)
+export const COURTIERS_LIST = ["Steven", "Fred", "Guive", "Michel", "Véronique", "Greg"];
+
+// Personnes qui reçoivent une part mais ne sont PAS des courtiers (leur part ne "consomme" pas de CA)
+const NON_COURTIERS = ["Gregory", "Jared", "Florie"];
 
 interface Objective {
   id: string;
@@ -152,20 +155,42 @@ export default function AdminCommissions() {
     return { caTotal, nbVentes, commissionMoyenne, pourcentageObjectif };
   }, [commissionsYear]);
 
-  // Stats par courtier (basé sur courtier_principal)
+  // Stats par courtier - CA divisé équitablement entre les courtiers présents dans la répartition
+  // Les non-courtiers (Gregory/CEO, Jared/Marketing, Florie) ne comptent pas dans le partage du CA
   const statsCourtiers = useMemo(() => {
     const courtierMap: Record<string, { total: number; count: number }> = {};
     let grandTotal = 0;
 
     commissionsYear.forEach((c) => {
-      const courtier = c.courtier_principal;
-      if (!courtierMap[courtier]) {
-        courtierMap[courtier] = { total: 0, count: 0 };
+      const repartition = c.repartition || {};
+      
+      // Trouver les vrais courtiers dans cette répartition (exclure CEO, Marketing, etc.)
+      const courtiersInDeal = Object.keys(repartition).filter(
+        name => !NON_COURTIERS.some(nc => name.toLowerCase().includes(nc.toLowerCase()))
+      );
+      
+      if (courtiersInDeal.length === 0) {
+        // Si aucun courtier identifié dans la répartition, attribuer au courtier_principal
+        const courtier = c.courtier_principal;
+        if (!courtierMap[courtier]) {
+          courtierMap[courtier] = { total: 0, count: 0 };
+        }
+        courtierMap[courtier].total += Number(c.commission_totale);
+        courtierMap[courtier].count += 1;
+        grandTotal += Number(c.commission_totale);
+      } else {
+        // Diviser le CA équitablement entre les courtiers présents
+        const sharePerCourtier = Number(c.commission_totale) / courtiersInDeal.length;
+        
+        courtiersInDeal.forEach(courtier => {
+          if (!courtierMap[courtier]) {
+            courtierMap[courtier] = { total: 0, count: 0 };
+          }
+          courtierMap[courtier].total += sharePerCourtier;
+          courtierMap[courtier].count += 1;
+        });
+        grandTotal += Number(c.commission_totale);
       }
-      // CA Total = somme des commissions totales des ventes où ce courtier est principal
-      courtierMap[courtier].total += Number(c.commission_totale);
-      courtierMap[courtier].count += 1;
-      grandTotal += Number(c.commission_totale);
     });
 
     const stats: CourtierStats[] = Object.entries(courtierMap)
