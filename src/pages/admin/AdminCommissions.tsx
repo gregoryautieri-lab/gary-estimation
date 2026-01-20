@@ -473,8 +473,26 @@ export default function AdminCommissions() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">Objectif {filterYear}</p>
-                    <p className="text-2xl font-bold">{statsGlobal.pourcentageObjectif.toFixed(1)}%</p>
-                    <Progress value={Math.min(statsGlobal.pourcentageObjectif, 100)} className="h-2 mt-2" />
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl font-bold">{statsGlobal.pourcentageObjectif.toFixed(1)}%</p>
+                      {statsGlobal.caProbable > 0 && (
+                        <p className="text-sm text-amber-600 font-medium">
+                          → {statsGlobal.pourcentageObjectifProbable.toFixed(1)}% probable
+                        </p>
+                      )}
+                    </div>
+                    <div className="relative mt-2">
+                      <Progress value={Math.min(statsGlobal.pourcentageObjectif, 100)} className="h-2" />
+                      {statsGlobal.caProbable > 0 && (
+                        <div 
+                          className="absolute top-0 h-2 bg-amber-400/50 rounded-r-full"
+                          style={{ 
+                            left: `${Math.min(statsGlobal.pourcentageObjectif, 100)}%`,
+                            width: `${Math.min(statsGlobal.pourcentageObjectifProbable - statsGlobal.pourcentageObjectif, 100 - statsGlobal.pourcentageObjectif)}%`
+                          }}
+                        />
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">{formatCHF(statsGlobal.caTotal)} / {formatCHF(OBJECTIF_ANNUEL)}</p>
                   </div>
                 </div>
