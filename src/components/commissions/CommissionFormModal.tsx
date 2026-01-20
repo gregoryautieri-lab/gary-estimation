@@ -16,6 +16,7 @@ import { toast } from "sonner";
 interface UserProfile {
   user_id: string;
   full_name: string | null;
+  email: string | null;
 }
 
 interface Commission {
@@ -93,7 +94,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, email")
         .order("full_name");
       if (error) throw error;
       return (data || []).filter(u => u.full_name) as UserProfile[];
@@ -102,6 +103,21 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
 
   // Get display name list for selects
   const userNames = users.map(u => u.full_name!).filter(Boolean);
+
+  // Helper to get email by name
+  const getEmailByName = (name: string): string | null => {
+    const user = users.find(u => u.full_name === name);
+    return user?.email || null;
+  };
+
+  // Auto-fill email when courtier principal changes
+  const handleCourtierPrincipalChange = (name: string) => {
+    setCourtierPrincipal(name);
+    const email = getEmailByName(name);
+    if (email) {
+      setCourtierPrincipalEmail(email);
+    }
+  };
 
   // Form state
   const [adresse, setAdresse] = useState("");
@@ -590,7 +606,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="courtier">Nom *</Label>
-                <Select value={courtierPrincipal} onValueChange={setCourtierPrincipal}>
+                <Select value={courtierPrincipal} onValueChange={handleCourtierPrincipalChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner" />
                   </SelectTrigger>
