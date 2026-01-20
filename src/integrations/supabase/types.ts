@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      commission_objectives: {
+        Row: {
+          amount: number
+          courtier_name: string | null
+          created_at: string
+          id: string
+          type: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount?: number
+          courtier_name?: string | null
+          created_at?: string
+          id?: string
+          type: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          courtier_name?: string | null
+          created_at?: string
+          id?: string
+          type?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           adresse: string
