@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleBasedRoute } from "@/components/RoleBasedRoute";
 import { useBeforeUnloadWarning } from "@/hooks/useBeforeUnloadWarning";
 import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
@@ -148,47 +149,47 @@ function AppWithWarning() {
           }
         />
         
-        {/* Prospection */}
+        {/* Prospection - accessible aux courtiers, admins, back_office, responsable_prospection */}
         <Route
           path="/campagnes"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
               <Campagnes />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/campagnes/:id"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
               <CampagneDetail />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         
-        {/* Espace Étudiant */}
+        {/* Espace Étudiant - accessible uniquement aux étudiants */}
         <Route
           path="/etudiant/missions"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
               <EtudiantMissions />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/etudiant/profil"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
               <EtudiantProfil />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/etudiant/mission/:id"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
               <MissionValidation />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route

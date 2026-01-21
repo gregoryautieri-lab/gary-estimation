@@ -22,12 +22,26 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
       if (error) throw error;
-      navigate("/");
+
+      // Fetch user roles to determine redirect
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id);
+
+      const roles = rolesData?.map(r => r.role) || [];
+      
+      // Redirect based on role
+      if (roles.includes("etudiant")) {
+        navigate("/etudiant/missions");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
