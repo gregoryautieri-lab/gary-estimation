@@ -223,6 +223,29 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
     );
   }
 
+  // Helper function to sync scans to database
+  async function syncScansToDb(scans: number) {
+    try {
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      
+      const { error } = await supabaseAdmin
+        .from('campagnes')
+        .update({ scans_count: scans })
+        .eq('uniqode_id', uniqodeId);
+      
+      if (error) {
+        console.error('Failed to sync scans to DB:', error);
+      } else {
+        console.log('Synced scans_count to DB:', scans, 'for uniqode_id:', uniqodeId);
+      }
+    } catch (e) {
+      console.error('Error syncing scans:', e);
+    }
+  }
+
   try {
     console.log('Fetching stats for QR ID:', uniqodeId);
     
@@ -270,12 +293,14 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
       // Extract scan count from various possible fields
       const totalScans = qrInfo.total_scans ?? qrInfo.scan_count ?? qrInfo.scans ?? qrInfo.total_scan_count ?? 0;
       
+      // Sync to database
+      await syncScansToDb(totalScans);
+      
       return new Response(
         JSON.stringify({
           success: true,
           totalScans,
           scansByDay: [],
-          debug: { source: 'qr-detail', rawResponse: qrInfo }
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -287,6 +312,9 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
     // Parse analytics data - check multiple possible field names
     const totalScans = analyticsData.total_scans ?? analyticsData.scan_count ?? analyticsData.total ?? analyticsData.scans ?? 0;
     const scansByDay = analyticsData.scans_by_date || analyticsData.daily_scans || analyticsData.data || [];
+
+    // Sync to database
+    await syncScansToDb(totalScans);
 
     return new Response(
       JSON.stringify({
