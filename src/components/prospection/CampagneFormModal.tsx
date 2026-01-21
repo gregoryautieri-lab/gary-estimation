@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSupportsProspection } from '@/hooks/useSupportsProspection';
+import { useUniqode } from '@/hooks/useUniqode';
 import { toast } from 'sonner';
 
 import {
@@ -73,6 +74,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
   const { user } = useAuth();
   const { isAdmin, isResponsableProspection, isBackOffice } = useUserRole();
   const { supports, isLoading: supportsLoading } = useSupportsProspection();
+  const { createQRCode, isCreating: isCreatingQR } = useUniqode();
   const queryClient = useQueryClient();
 
   const isEditMode = !!campagne;
@@ -205,6 +207,32 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
         .single();
 
       if (error) throw error;
+      
+      // Generate QR code if destination URL is provided
+      if (data.qr_destination_url && result.code) {
+        try {
+          const qrResult = await createQRCode(result.code, data.qr_destination_url);
+          
+          if (qrResult.success && qrResult.uniqodeId) {
+            // Update campagne with QR data
+            await supabase
+              .from('campagnes')
+              .update({
+                uniqode_id: qrResult.uniqodeId,
+                qr_image_url: qrResult.qrImageUrl,
+              })
+              .eq('id', result.id);
+            
+            toast.success('QR code généré avec succès');
+          } else {
+            toast.warning('Campagne créée mais QR non généré: ' + (qrResult.error || 'Erreur inconnue'));
+          }
+        } catch (qrError) {
+          console.error('Error generating QR:', qrError);
+          toast.warning('Campagne créée mais erreur lors de la génération du QR');
+        }
+      }
+      
       return result;
     },
     onSuccess: () => {
@@ -269,7 +297,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
     }
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending || isCreatingQR;
   const isLoading = supportsLoading || courtiersLoading;
 
   // Si pas les permissions en édition
