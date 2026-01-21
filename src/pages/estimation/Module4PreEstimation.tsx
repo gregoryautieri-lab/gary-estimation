@@ -925,31 +925,71 @@ export default function Module4PreEstimation() {
               </div>
 
               {/* 3. AMÉNAGEMENTS EXTÉRIEURS */}
-              {calcul.surfaceAmenagement > 0 && (
+              {(calcul.surfaceAmenagementExtAuto > 0 || parseFloat(preEst.surfaceAmenagementManuel || '0') > 0) && (
                 <div className="bg-card border border-border rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span>🌳</span>
-                    <h4 className="font-medium">Aménagements extérieurs</h4>
+                    <h4 className="font-medium">Aménagements extérieurs (jardin)</h4>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">
-                      {calcul.surfaceAmenagement.toFixed(0)} m²
-                    </span>
-                    <span className="text-muted-foreground">×</span>
-                    <Input
-                      type="number"
-                      value={preEst.prixM2Amenagement}
-                      onChange={(e) => updateField('prixM2Amenagement', e.target.value)}
-                      placeholder="200"
-                      className="w-28 text-center"
-                      min={0}
-                      max={1000}
-                      step={10}
-                    />
-                    <span className="text-muted-foreground">=</span>
-                    <span className="font-medium whitespace-nowrap">
-                      {formatPriceCHF(calcul.valeurAmenagement)}
-                    </span>
+                  
+                  <div className="space-y-3">
+                    {/* Calcul auto expliqué */}
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Parcelle</span>
+                        <span>{parseFloat(carac?.surfaceTerrain || '0').toLocaleString('fr-CH')} m²</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>− Emprise au sol estimée</span>
+                        <span>≈ {calcul.empriseAuSolEstimee.toFixed(0)} m²</span>
+                      </div>
+                      <div className="flex justify-between font-medium">
+                        <span>= Surface jardin théorique</span>
+                        <span>{calcul.surfaceAmenagementExtAuto.toFixed(0)} m²</span>
+                      </div>
+                    </div>
+                    
+                    {/* Surcharge manuelle */}
+                    <div className="flex items-center gap-3">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Surface manuelle</Label>
+                      <Input
+                        type="number"
+                        value={preEst.surfaceAmenagementManuel}
+                        onChange={(e) => updateField('surfaceAmenagementManuel', e.target.value)}
+                        onKeyDown={preventEnterSubmit}
+                        placeholder={`Auto: ${calcul.surfaceAmenagementExtAuto.toFixed(0)}`}
+                        className="w-32 text-center"
+                        min={0}
+                        max={10000}
+                        step={10}
+                      />
+                      <span className="text-xs text-muted-foreground">m²</span>
+                    </div>
+                    
+                    {/* Calcul final */}
+                    <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                      <span className="text-muted-foreground font-medium">
+                        {calcul.surfaceAmenagementExt.toFixed(0)} m²
+                        {parseFloat(preEst.surfaceAmenagementManuel || '0') > 0 && (
+                          <span className="text-xs text-primary ml-1">(manuel)</span>
+                        )}
+                      </span>
+                      <span className="text-muted-foreground">×</span>
+                      <Input
+                        type="number"
+                        value={preEst.prixM2Amenagement}
+                        onChange={(e) => updateField('prixM2Amenagement', e.target.value)}
+                        placeholder="200"
+                        className="w-28 text-center"
+                        min={0}
+                        max={1000}
+                        step={10}
+                      />
+                      <span className="text-muted-foreground">=</span>
+                      <span className="font-medium whitespace-nowrap">
+                        {formatPriceCHF(calcul.valeurAmenagement)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1048,7 +1088,9 @@ export default function Module4PreEstimation() {
                 </div>
                 {calcul.valeurAmenagement > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Aménagements</span>
+                    <span className="text-muted-foreground">
+                      Aménagements ext. ({calcul.surfaceAmenagementExt.toFixed(0)} m²)
+                    </span>
                     <span>{formatPriceCHF(calcul.valeurAmenagement)}</span>
                   </div>
                 )}
