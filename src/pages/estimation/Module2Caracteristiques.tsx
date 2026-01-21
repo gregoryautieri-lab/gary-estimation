@@ -1028,7 +1028,7 @@ export default function Module2Caracteristiques() {
               )}
 
               {isMaison && (
-                <FormRow label="Nombre de niveaux">
+                <FormRow label="Nombre de niveaux (hors sous-sol)">
                   <Select 
                     value={carac.nombreNiveaux} 
                     onValueChange={(v) => updateField('nombreNiveaux', v)}
