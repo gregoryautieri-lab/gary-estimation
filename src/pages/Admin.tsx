@@ -307,56 +307,31 @@ export default function Admin() {
 
     setInviting(true);
     try {
-      const { data: currentSession } = await supabase.auth.getSession();
-      const adminSession = currentSession?.session;
-      
-      if (!adminSession) {
+      if (!session?.access_token) {
         throw new Error("Session admin non trouvée");
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: inviteEmail,
-        password: invitePassword,
-        options: {
-          data: {
-            full_name: inviteFullName,
-          },
+      // Use Edge Function to create user (doesn't switch session)
+      const response = await supabase.functions.invoke("admin-users", {
+        body: { 
+          action: "create", 
+          email: inviteEmail,
+          new_password: invitePassword,
+          full_name: inviteFullName,
+          role: inviteRole,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (authError) throw authError;
-      
-      if (!authData.user) {
-        throw new Error("Erreur lors de la création de l'utilisateur");
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
-      const newUserId = authData.user.id;
-
-      await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      if (inviteRole !== "courtier") {
-        await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", newUserId);
-        
-        await supabase
-          .from("user_roles")
-          .insert({
-            user_id: newUserId,
-            role: inviteRole,
-          });
+      if (response.data?.error) {
+        throw new Error(response.data.error);
       }
-
-      await supabase
-        .from("profiles")
-        .update({ full_name: inviteFullName })
-        .eq("user_id", newUserId);
 
       toast.success(`Utilisateur ${inviteFullName} créé avec succès`);
       setShowInviteDialog(false);
