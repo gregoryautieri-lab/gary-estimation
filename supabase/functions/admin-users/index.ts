@@ -73,8 +73,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Prevent admin from modifying themselves
-    if (target_user_id === callingUser.id) {
+    // Prevent admin from modifying themselves (except password reset)
+    if (target_user_id === callingUser.id && action !== "reset_password") {
       return new Response(
         JSON.stringify({ error: "Cannot modify your own account" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

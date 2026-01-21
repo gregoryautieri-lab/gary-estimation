@@ -207,6 +207,9 @@ export default function Admin() {
 
     const response = await supabase.functions.invoke("admin-users", {
       body: { action, target_user_id: targetUserId, new_password: newPassword },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
     });
 
     if (response.error) {
