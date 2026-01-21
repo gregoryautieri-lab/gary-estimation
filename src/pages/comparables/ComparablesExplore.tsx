@@ -55,6 +55,7 @@ interface ComparableResult {
   surface: number | null;
   pieces: number | null;
   coordinates?: { lat: number; lng: number } | null;
+  sourceType: 'gary' | 'external';
 }
 
 // Coordonnées NPA pour fallback géocodage
@@ -175,9 +176,9 @@ export default function ComparablesExplore() {
     return geocoded;
   };
 
-  // Rechercher les estimations quand les filtres changent
+  // Rechercher les estimations ET les comparables quand les filtres changent
   useEffect(() => {
-    const searchEstimations = async () => {
+    const searchData = async () => {
       if (filters.communes.length === 0) {
         setResults([]);
         return;
@@ -185,38 +186,56 @@ export default function ComparablesExplore() {
 
       setLoading(true);
       try {
-        let query = supabase
+        // === REQUÊTE 1: Estimations GARY ===
+        let estQuery = supabase
           .from('estimations')
           .select('id, adresse, localite, prix_final, type_bien, statut, caracteristiques');
 
-        // Filtre communes
-        query = query.in('localite', filters.communes);
+        estQuery = estQuery.in('localite', filters.communes);
 
-        // Filtre prix
         if (filters.prixMin) {
-          query = query.gte('prix_final', filters.prixMin);
+          estQuery = estQuery.gte('prix_final', filters.prixMin);
         }
         if (filters.prixMax) {
-          query = query.lte('prix_final', filters.prixMax);
+          estQuery = estQuery.lte('prix_final', filters.prixMax);
         }
-
-        // Filtre type de bien
         if (filters.typeBien.length > 0) {
-          query = query.in('type_bien', filters.typeBien as any);
+          estQuery = estQuery.in('type_bien', filters.typeBien as any);
         }
 
-        const { data, error } = await query;
+        // === REQUÊTE 2: Comparables externes ===
+        let compQuery = supabase
+          .from('comparables')
+          .select('id, adresse, localite, prix, type_bien, statut_marche, surface, pieces, latitude, longitude');
 
-        if (error) {
-          console.error('Search error:', error);
-          toast.error('Erreur lors de la recherche');
-          return;
+        compQuery = compQuery.in('localite', filters.communes);
+
+        if (filters.prixMin) {
+          compQuery = compQuery.gte('prix', filters.prixMin);
+        }
+        if (filters.prixMax) {
+          compQuery = compQuery.lte('prix', filters.prixMax);
+        }
+        if (filters.typeBien.length > 0) {
+          compQuery = compQuery.in('type_bien', filters.typeBien as any);
         }
 
-        // Transformer les résultats
-        const transformed: ComparableResult[] = (data || []).map((est) => {
+        // Exécuter les deux requêtes en parallèle
+        const [estResult, compResult] = await Promise.all([
+          estQuery,
+          compQuery,
+        ]);
+
+        if (estResult.error) {
+          console.error('Estimations search error:', estResult.error);
+        }
+        if (compResult.error) {
+          console.error('Comparables search error:', compResult.error);
+        }
+
+        // Transformer les estimations GARY
+        const estTransformed: ComparableResult[] = (estResult.data || []).map((est) => {
           const carac = est.caracteristiques as any;
-          
           return {
             id: est.id,
             adresse: est.adresse || 'Adresse inconnue',
@@ -227,11 +246,41 @@ export default function ComparablesExplore() {
             surface: parseFloat(carac?.surfacePPE || carac?.surfaceHabitableMaison || '0') || null,
             pieces: parseFloat(carac?.nombrePieces || '0') || null,
             coordinates: null,
+            sourceType: 'gary' as const,
           };
         });
 
-        // Géocoder les résultats
-        const geocodedResults = await geocodeResults(transformed);
+        // Transformer les comparables externes
+        const compTransformed: ComparableResult[] = (compResult.data || []).map((comp) => {
+          // Mapper statut_marche vers un statut compatible
+          let mappedStatut = 'brouillon';
+          if (comp.statut_marche === 'vendu') {
+            mappedStatut = 'mandat_signe';
+          } else if (comp.statut_marche === 'en_vente') {
+            mappedStatut = 'presentee';
+          }
+          
+          return {
+            id: comp.id,
+            adresse: comp.adresse || 'Adresse inconnue',
+            localite: comp.localite || 'Commune inconnue',
+            prixFinal: comp.prix,
+            typeBien: comp.type_bien || 'inconnu',
+            statut: mappedStatut,
+            surface: comp.surface,
+            pieces: comp.pieces,
+            coordinates: comp.latitude && comp.longitude 
+              ? { lat: Number(comp.latitude), lng: Number(comp.longitude) }
+              : null,
+            sourceType: 'external' as const,
+          };
+        });
+
+        // Fusionner les résultats
+        const allResults = [...estTransformed, ...compTransformed];
+
+        // Géocoder les résultats qui n'ont pas encore de coordonnées
+        const geocodedResults = await geocodeResults(allResults);
         setResults(geocodedResults);
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -242,7 +291,7 @@ export default function ComparablesExplore() {
     };
 
     // Debounce la recherche
-    const timer = setTimeout(searchEstimations, 300);
+    const timer = setTimeout(searchData, 300);
     return () => clearTimeout(timer);
   }, [filters]);
 
