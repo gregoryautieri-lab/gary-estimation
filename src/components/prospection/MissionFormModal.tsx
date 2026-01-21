@@ -11,7 +11,6 @@ import {
   Users,
   AlertTriangle,
   Trash2,
-  MapPin,
   Clock,
   Route,
   Gauge,
@@ -71,6 +70,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ZoneDrawer } from '@/components/prospection/ZoneDrawer';
+import type { GeoJsonPolygon } from '@/hooks/useZoneCapture';
 import type { Mission, MissionStatut } from '@/types/prospection';
 
 const missionSchema = z.object({
@@ -91,6 +92,7 @@ interface MissionFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campagneId: string;
+  commune: string;
   secteurs?: string[] | null;
   mission?: Mission | null;
   courriersRestants?: number;
@@ -101,6 +103,7 @@ export function MissionFormModal({
   open,
   onOpenChange,
   campagneId,
+  commune,
   secteurs,
   mission,
   courriersRestants = 0,
@@ -112,6 +115,15 @@ export function MissionFormModal({
   const { etudiants } = useEtudiants({ actif_only: true });
 
   const isEditMode = !!mission;
+
+  // State pour stocker les données de zone capturée
+  const [zoneData, setZoneData] = useState<{
+    imageUrl: string | null;
+    geoJson: GeoJsonPolygon | null;
+  }>({
+    imageUrl: null,
+    geoJson: null,
+  });
 
   // Récupérer les courtiers (profiles)
   const { data: courtiers = [] } = useQuery({
@@ -156,6 +168,8 @@ export function MissionFormModal({
         statut: mission.statut,
         notes: mission.notes || null,
       });
+      // Réinitialiser les données de zone
+      setZoneData({ imageUrl: null, geoJson: null });
     } else if (!mission && open) {
       form.reset({
         date: new Date(),
@@ -168,6 +182,8 @@ export function MissionFormModal({
         statut: 'prevue',
         notes: null,
       });
+      // Réinitialiser les données de zone
+      setZoneData({ imageUrl: null, geoJson: null });
     }
   }, [mission, open, form, secteurs, courriersRestants]);
 
@@ -193,6 +209,9 @@ export function MissionFormModal({
         courriers_distribues: values.courriers_distribues,
         statut: values.statut as MissionStatut,
         notes: values.notes || null,
+        // Données de zone
+        zone_image_url: zoneData.imageUrl || mission?.zone_image_url || null,
+        zone_geojson: zoneData.geoJson || mission?.zone_geojson || null,
       };
 
       if (isEditMode && mission) {
@@ -407,20 +426,28 @@ export function MissionFormModal({
               )}
             />
 
-            {/* Placeholder Zone à couvrir */}
+            {/* Zone à couvrir - ZoneDrawer */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Zone à couvrir</Label>
-              <Card className="border-dashed">
-                <CardContent className="p-4 text-center">
-                  <MapPin className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Dessin de zone à venir (prompt 9)
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Vous pourrez dessiner la zone directement sur une carte
-                  </p>
-                </CardContent>
-              </Card>
+              <ZoneDrawer
+                commune={commune}
+                initialZone={mission?.zone_geojson as GeoJsonPolygon | null}
+                missionId={mission?.id}
+                readOnly={false}
+                onZoneCaptured={(imageUrl, geoJson) => {
+                  setZoneData({ imageUrl, geoJson });
+                }}
+              />
+              {mission?.zone_image_url && (
+                <div className="mt-2">
+                  <p className="text-xs text-muted-foreground mb-1">Image de zone actuelle :</p>
+                  <img 
+                    src={mission.zone_image_url} 
+                    alt="Zone de la mission" 
+                    className="w-full h-32 object-cover rounded-lg border"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Courriers prévus avec avertissement */}
