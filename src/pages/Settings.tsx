@@ -45,7 +45,7 @@ import { useTheme } from "next-themes";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; telephone: string | null }>({
