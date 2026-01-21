@@ -84,7 +84,19 @@ const missionSchema = z.object({
   courriers_distribues: z.number().min(0).nullable(),
   statut: z.enum(['prevue', 'en_cours', 'terminee', 'annulee']),
   notes: z.string().nullable(),
-});
+}).refine(
+  (data) => {
+    if (data.assignee_type === 'etudiant') {
+      return !!data.etudiant_id;
+    } else {
+      return !!data.courtier_id;
+    }
+  },
+  {
+    message: 'Veuillez sélectionner un assigné',
+    path: ['etudiant_id'], // Will show on the relevant field
+  }
+);
 
 type MissionFormValues = z.infer<typeof missionSchema>;
 
