@@ -23,9 +23,12 @@ export function useStravaParser(): UseStravaParserResult {
       // Convertir le fichier en base64
       const base64 = await fileToBase64(file);
 
-      // Appeler l'Edge Function (sera créée au prompt 4)
+      // Déterminer le mimeType
+      const mimeType = file.type || 'image/jpeg';
+
+      // Appeler l'Edge Function
       const { data, error: fnError } = await supabase.functions.invoke('parse-strava-screenshot', {
-        body: { image_base64: base64 },
+        body: { imageBase64: base64, mimeType },
       });
 
       if (fnError) {
