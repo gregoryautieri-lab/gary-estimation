@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import QRCode from "https://esm.sh/qrcode@1.5.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,49 +132,24 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
     const qrData = await createResponse.json();
     const qrId = qrData.id;
 
-    // Build a browser-safe image source (data URL), to avoid private S3 URLs (AccessDenied).
-    let qrImageUrl: string | null = null;
-    if (qrId) {
-      const downloadEndpoint = `${UNIQODE_API_BASE}/qrcodes/${qrId}/download/?size=512&format=png`;
-      const downloadResponse = await fetch(downloadEndpoint, {
-        method: 'GET',
-        redirect: 'manual',
-        headers: {
-          'Authorization': `Token ${apiKey}`,
-        },
-      });
-
-      let finalImageResponse: Response | null = null;
-
-      // If Uniqode responds with a redirect, fetch that URL to get bytes.
-      if ([301, 302, 303, 307, 308].includes(downloadResponse.status)) {
-        const location = downloadResponse.headers.get('location');
-        if (location) {
-          finalImageResponse = await fetch(location);
-        }
-      } else if (downloadResponse.ok) {
-        const contentType = downloadResponse.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const downloadData = await downloadResponse.json();
-          const url = downloadData.url || downloadData.download_url || downloadData.location || null;
-          if (url) finalImageResponse = await fetch(url);
-        } else if (contentType.startsWith('image/')) {
-          finalImageResponse = downloadResponse;
-        }
-      } else {
-        const errorText = await downloadResponse.text();
-        console.error('Uniqode download error:', downloadResponse.status, errorText);
-      }
-
-      if (finalImageResponse?.ok) {
-        const contentType = finalImageResponse.headers.get('content-type') || 'image/png';
-        const arrayBuffer = await finalImageResponse.arrayBuffer();
-        const base64 = encodeBase64(arrayBuffer);
-        qrImageUrl = `data:${contentType};base64,${base64}`;
-      }
-    }
-
     const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
+
+    // The Uniqode "download" endpoint we tried returns 404 in this account/config.
+    // To always display a working QR inside the app, we generate a PNG data URL from the tracking URL.
+    // Scanning it redirects to the configured destination URL (as Uniqode manages the redirect).
+    let qrImageUrl: string | null = null;
+    try {
+      const textToEncode = trackingUrl || destinationUrl;
+      qrImageUrl = await QRCode.toDataURL(textToEncode, {
+        width: 512,
+        margin: 1,
+        errorCorrectionLevel: 'H',
+        type: 'image/png',
+      });
+    } catch (e) {
+      console.error('Failed to generate QR data URL:', e);
+      qrImageUrl = null;
+    }
 
     return new Response(
       JSON.stringify({
