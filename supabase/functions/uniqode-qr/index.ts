@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -168,8 +168,8 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
 
       if (finalImageResponse?.ok) {
         const contentType = finalImageResponse.headers.get('content-type') || 'image/png';
-        const bytes = new Uint8Array(await finalImageResponse.arrayBuffer());
-        const base64 = encodeBase64(bytes);
+        const arrayBuffer = await finalImageResponse.arrayBuffer();
+        const base64 = encodeBase64(arrayBuffer);
         qrImageUrl = `data:${contentType};base64,${base64}`;
       }
     }
