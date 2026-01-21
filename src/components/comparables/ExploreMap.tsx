@@ -16,6 +16,7 @@ interface ComparableResult {
   surface: number | null;
   pieces: number | null;
   coordinates?: { lat: number; lng: number } | null;
+  sourceType?: 'gary' | 'external';
 }
 
 interface ExploreMapProps {
@@ -215,12 +216,28 @@ function MapContent({
           >
             <div 
               className="p-1 min-w-[200px] max-w-[280px] cursor-pointer"
-              onClick={() => navigate(`/estimation/${selectedMarker.id}/overview`)}
+              onClick={() => {
+                if (selectedMarker.sourceType === 'external') {
+                  // Pas de page détail pour les comparables externes
+                  setSelectedMarker(null);
+                } else {
+                  navigate(`/estimation/${selectedMarker.id}/overview`);
+                }
+              }}
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge variant={getStatusColor(selectedMarker.statut)}>
                   {getStatusLabel(selectedMarker.statut)}
                 </Badge>
+                {selectedMarker.sourceType === 'external' ? (
+                  <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">
+                    Externe
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs border-primary text-primary">
+                    GARY
+                  </Badge>
+                )}
                 {selectedMarker.typeBien && (
                   <span className="text-xs text-muted-foreground capitalize flex items-center gap-1">
                     {TYPE_BIEN_ICONS[selectedMarker.typeBien]}
@@ -251,9 +268,11 @@ function MapContent({
               <p className="text-xs text-muted-foreground">
                 {selectedMarker.localite}
               </p>
-              <p className="text-xs text-primary mt-2 hover:underline">
-                Voir le détail →
-              </p>
+              {selectedMarker.sourceType !== 'external' && (
+                <p className="text-xs text-primary mt-2 hover:underline">
+                  Voir le détail →
+                </p>
+              )}
             </div>
           </InfoWindow>
         )}
