@@ -42,6 +42,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
   Shield,
   Users,
@@ -200,6 +201,26 @@ export default function Admin() {
     }
   };
 
+  const readInvokeErrorMessage = async (err: unknown): Promise<string | null> => {
+    const ctx = (err as any)?.context;
+    const res = ctx as Response | undefined;
+    if (!res || typeof (res as any).json !== "function") return null;
+
+    try {
+      const toRead: Response = typeof res.clone === "function" ? res.clone() : res;
+      const body = (await toRead.json()) as { error?: string; message?: string; code?: string };
+      return body?.error || body?.message || null;
+    } catch {
+      try {
+        const toRead: Response = typeof res.clone === "function" ? res.clone() : res;
+        const text = await toRead.text();
+        return text || null;
+      } catch {
+        return null;
+      }
+    }
+  };
+
   const callAdminApi = async (action: string, targetUserId: string, newPassword?: string) => {
     if (!session?.access_token) {
       throw new Error("Session invalide");
@@ -213,7 +234,8 @@ export default function Admin() {
     });
 
     if (response.error) {
-      throw new Error(response.error.message);
+      const detailed = await readInvokeErrorMessage(response.error);
+      throw new Error(detailed || response.error.message);
     }
 
     return response.data;
@@ -299,6 +321,12 @@ export default function Admin() {
       toast.error("Veuillez remplir tous les champs");
       return;
     }
+
+    const emailTrimmed = inviteEmail.trim();
+    if (!z.string().email().safeParse(emailTrimmed).success) {
+      toast.error("Email invalide");
+      return;
+    }
     
     if (invitePassword.length < 6) {
       toast.error("Le mot de passe doit contenir au moins 6 caractères");
@@ -315,9 +343,9 @@ export default function Admin() {
       const response = await supabase.functions.invoke("admin-users", {
         body: { 
           action: "create", 
-          email: inviteEmail,
+          email: emailTrimmed,
           new_password: invitePassword,
-          full_name: inviteFullName,
+          full_name: inviteFullName.trim(),
           role: inviteRole,
         },
         headers: {
@@ -326,7 +354,8 @@ export default function Admin() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        const detailed = await readInvokeErrorMessage(response.error);
+        throw new Error(detailed || response.error.message);
       }
 
       if (response.data?.error) {
