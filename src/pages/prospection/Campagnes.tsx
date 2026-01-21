@@ -31,6 +31,7 @@ import {
   ChevronRight,
   RefreshCw,
   Megaphone,
+  Settings2,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
@@ -151,11 +152,11 @@ function CampagneSkeleton() {
 export default function Campagnes() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { roles, isAdmin, isBackOffice, isLoading: rolesLoading } = useUserRole();
+  const { roles, isAdmin, isBackOffice, isResponsableProspection, isLoading: rolesLoading } = useUserRole();
   
-  const isResponsableProspection = roles.includes('responsable_prospection');
   const canViewAll = isAdmin || isBackOffice || isResponsableProspection;
   const canCreate = !isBackOffice; // back_office = lecture seule
+  const canAccessAdmin = isAdmin || isResponsableProspection;
 
   // États des filtres
   const [statusFilter, setStatusFilter] = useState<CampagneStatut | 'tous'>('tous');
@@ -248,7 +249,7 @@ export default function Campagnes() {
 
       {/* Main content */}
       <main className="flex-1 p-4 pb-24 space-y-4">
-        {/* Titre et bouton */}
+        {/* Titre et boutons */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold text-foreground">Prospection</h1>
@@ -256,12 +257,24 @@ export default function Campagnes() {
               {filteredCampagnes.length} campagne{filteredCampagnes.length !== 1 ? 's' : ''}
             </p>
           </div>
-          {canCreate && (
-            <Button onClick={() => setModalOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Nouvelle
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {canAccessAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/admin/prospection')}
+              >
+                <Settings2 className="h-4 w-4 mr-1" />
+                Admin
+              </Button>
+            )}
+            {canCreate && (
+              <Button onClick={() => setModalOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Nouvelle
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filtres */}

@@ -1,4 +1,4 @@
-import { Home, FileText, Map, User, Wallet } from 'lucide-react';
+import { Home, FileText, Map, User, Wallet, Megaphone } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -28,8 +28,10 @@ const NavItem = ({ icon, label, active, onClick }: NavItemProps) => (
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isCourtier, isBackOffice, isResponsableProspection } = useUserRole();
   const currentPath = location.pathname;
+
+  const canAccessProspection = isAdmin || isCourtier || isBackOffice || isResponsableProspection;
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -60,6 +62,15 @@ export const BottomNav = () => {
           active={isActive('/comparables')}
           onClick={() => navigate('/comparables')}
         />
+        {canAccessProspection && (
+          <NavItem
+            icon={<Megaphone className="h-5 w-5" />}
+            label="Prospection"
+            path="/campagnes"
+            active={isActive('/campagnes')}
+            onClick={() => navigate('/campagnes')}
+          />
+        )}
         {isAdmin && (
           <NavItem
             icon={<Wallet className="h-5 w-5" />}
