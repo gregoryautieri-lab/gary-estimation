@@ -263,7 +263,10 @@ export default function Admin() {
       loadUsers();
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      toast.error(error.message || "Erreur lors de la suppression");
+      const errorMsg = error.message || "Erreur lors de la suppression";
+      toast.error(errorMsg.includes("non-2xx") 
+        ? "Erreur serveur lors de la suppression. Vérifiez les logs." 
+        : errorMsg);
     } finally {
       setActionLoading(null);
     }
