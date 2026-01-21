@@ -254,13 +254,17 @@ export default function CampagneDetail() {
       
       if (result.success && result.uniqodeId && result.qrImageUrl) {
         // Update campagne with QR data
-        await supabase
+        const { error: updateError } = await supabase
           .from('campagnes')
           .update({
             uniqode_id: result.uniqodeId,
             qr_image_url: result.qrImageUrl,
           })
           .eq('id', campagne.id);
+
+        if (updateError) {
+          throw updateError;
+        }
         
         toast.success('QR code généré avec succès');
         refetch();
