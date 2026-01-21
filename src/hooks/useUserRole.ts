@@ -10,6 +10,8 @@ interface UserRoleState {
   isAdmin: boolean;
   isBackOffice: boolean;
   isCourtier: boolean;
+  isResponsableProspection: boolean;
+  isEtudiant: boolean;
   isLoading: boolean;
 }
 
@@ -56,6 +58,8 @@ export const useUserRole = (): UserRoleState => {
     isAdmin: roles.includes("admin"),
     isBackOffice: roles.includes("back_office"),
     isCourtier: roles.includes("courtier"),
+    isResponsableProspection: roles.includes("responsable_prospection"),
+    isEtudiant: roles.includes("etudiant"),
     isLoading: isLoading || authLoading,
   };
 };
