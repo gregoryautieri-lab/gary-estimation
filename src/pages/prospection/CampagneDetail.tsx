@@ -252,7 +252,7 @@ export default function CampagneDetail() {
     try {
       const result = await createQRCode(campagne.code, campagne.qr_destination_url);
       
-      if (result.success && result.uniqodeId) {
+      if (result.success && result.uniqodeId && result.qrImageUrl) {
         // Update campagne with QR data
         await supabase
           .from('campagnes')
@@ -265,7 +265,7 @@ export default function CampagneDetail() {
         toast.success('QR code généré avec succès');
         refetch();
       } else {
-        toast.error('Erreur: ' + (result.error || 'Génération échouée'));
+        toast.error('Erreur: ' + (result.error || "Impossible de récupérer l'image du QR"));
       }
     } catch (err: any) {
       toast.error('Erreur: ' + err.message);
