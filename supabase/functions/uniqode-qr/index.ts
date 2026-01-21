@@ -129,20 +129,44 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
     }
 
     const qrData = await createResponse.json();
+    const qrId = qrData.id;
 
-    // Get the QR code image URL from various possible locations
-    const qrImageUrl = 
-      qrData.attributes?.thumbnail_url_png ||
-      qrData.attributes?.thumbnail_url ||
-      qrData.qr_image || 
-      qrData.image_url || 
-      null;
+    // Fetch the actual QR code image by downloading it
+    let qrImageUrl = null;
+    if (qrId) {
+      // Try to get the download URL for the QR code
+      const downloadResponse = await fetch(
+        `${UNIQODE_API_BASE}/qrcodes/${qrId}/download/?size=512&format=png`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Token ${apiKey}`,
+          },
+        }
+      );
+      
+      if (downloadResponse.ok) {
+        // The download endpoint returns the image directly or a redirect URL
+        const contentType = downloadResponse.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const downloadData = await downloadResponse.json();
+          qrImageUrl = downloadData.url || downloadData.download_url || null;
+        } else {
+          // If it's not JSON, try the direct S3 URL pattern
+          qrImageUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
+        }
+      } else {
+        // Fallback to constructed URL pattern
+        qrImageUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
+      }
+    }
+
     const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
 
     return new Response(
       JSON.stringify({
         success: true,
-        uniqodeId: qrData.id?.toString(),
+        uniqodeId: qrId?.toString(),
         trackingUrl,
         qrImageUrl,
         rawResponse: qrData, // For debugging
