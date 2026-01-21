@@ -4,7 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarIcon, Loader2, User, Users } from 'lucide-react';
+import {
+  CalendarIcon,
+  Loader2,
+  User,
+  Users,
+  AlertTriangle,
+  Trash2,
+  MapPin,
+  Clock,
+  Route,
+  Gauge,
+  CheckCircle2,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,12 +24,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -37,6 +61,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useMissions } from '@/hooks/useMissions';
 import { useEtudiants } from '@/hooks/useEtudiants';
@@ -44,7 +71,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Mission, MissionStatut, MISSION_STATUT_LABELS } from '@/types/prospection';
+import type { Mission, MissionStatut } from '@/types/prospection';
 
 const missionSchema = z.object({
   date: z.date({ required_error: 'La date est requise' }),
@@ -52,7 +79,7 @@ const missionSchema = z.object({
   etudiant_id: z.string().nullable(),
   courtier_id: z.string().nullable(),
   secteur_nom: z.string().nullable(),
-  courriers_prevu: z.number().min(0),
+  courriers_prevu: z.number().min(1, 'Minimum 1 courrier'),
   courriers_distribues: z.number().min(0).nullable(),
   statut: z.enum(['prevue', 'en_cours', 'terminee', 'annulee']),
   notes: z.string().nullable(),
@@ -66,6 +93,7 @@ interface MissionFormModalProps {
   campagneId: string;
   secteurs?: string[] | null;
   mission?: Mission | null;
+  courriersRestants?: number;
   onSuccess?: () => void;
 }
 
@@ -75,11 +103,12 @@ export function MissionFormModal({
   campagneId,
   secteurs,
   mission,
+  courriersRestants = 0,
   onSuccess,
 }: MissionFormModalProps) {
   const { user } = useAuth();
   const { isAdmin, isResponsableProspection } = useUserRole();
-  const { create, update, isCreating, isUpdating } = useMissions();
+  const { create, update, delete: deleteMission, isCreating, isUpdating, isDeleting } = useMissions();
   const { etudiants } = useEtudiants({ actif_only: true });
 
   const isEditMode = !!mission;
@@ -105,7 +134,7 @@ export function MissionFormModal({
       etudiant_id: null,
       courtier_id: null,
       secteur_nom: null,
-      courriers_prevu: 0,
+      courriers_prevu: 1,
       courriers_distribues: null,
       statut: 'prevue',
       notes: null,
@@ -122,7 +151,7 @@ export function MissionFormModal({
         etudiant_id: mission.etudiant_id || null,
         courtier_id: mission.courtier_id || null,
         secteur_nom: mission.secteur_nom || null,
-        courriers_prevu: mission.courriers_prevu || 0,
+        courriers_prevu: mission.courriers_prevu || 1,
         courriers_distribues: mission.courriers_distribues || null,
         statut: mission.statut,
         notes: mission.notes || null,
@@ -134,15 +163,23 @@ export function MissionFormModal({
         etudiant_id: null,
         courtier_id: null,
         secteur_nom: secteurs?.[0] || null,
-        courriers_prevu: 0,
+        courriers_prevu: Math.min(courriersRestants, 100) || 1,
         courriers_distribues: null,
         statut: 'prevue',
         notes: null,
       });
     }
-  }, [mission, open, form, secteurs]);
+  }, [mission, open, form, secteurs, courriersRestants]);
 
   const assigneeType = form.watch('assignee_type');
+  const courriersPrevu = form.watch('courriers_prevu');
+
+  // Calculer les courriers restants disponibles (en mode édition, on rajoute ceux de la mission en cours)
+  const courriersDisponibles = isEditMode
+    ? courriersRestants + (mission?.courriers_prevu || 0)
+    : courriersRestants;
+
+  const isOverLimit = courriersPrevu > courriersDisponibles;
 
   const onSubmit = async (values: MissionFormValues) => {
     try {
@@ -171,7 +208,18 @@ export function MissionFormModal({
     }
   };
 
+  const handleDelete = () => {
+    if (mission) {
+      deleteMission(mission.id);
+      onOpenChange(false);
+      onSuccess?.();
+    }
+  };
+
   const isPending = isCreating || isUpdating;
+
+  // Section Strava lecture seule (mode édition uniquement)
+  const hasStravaData = mission && (mission.strava_temps || mission.strava_distance_km || mission.strava_vitesse_moy);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -231,7 +279,7 @@ export function MissionFormModal({
               name="assignee_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assigné à</FormLabel>
+                  <FormLabel>Assigné à *</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -321,13 +369,13 @@ export function MissionFormModal({
             )}
 
             {/* Secteur */}
-            {secteurs && secteurs.length > 0 && (
-              <FormField
-                control={form.control}
-                name="secteur_nom"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Secteur</FormLabel>
+            <FormField
+              control={form.control}
+              name="secteur_nom"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Secteur / Zone</FormLabel>
+                  {secteurs && secteurs.length > 0 ? (
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || ''}
@@ -345,27 +393,60 @@ export function MissionFormModal({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+                  ) : (
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Quartier des Eaux-Vives"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            {/* Courriers prévus */}
+            {/* Placeholder Zone à couvrir */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Zone à couvrir</Label>
+              <Card className="border-dashed">
+                <CardContent className="p-4 text-center">
+                  <MapPin className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Dessin de zone à venir (prompt 9)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vous pourrez dessiner la zone directement sur une carte
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Courriers prévus avec avertissement */}
             <FormField
               control={form.control}
               name="courriers_prevu"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Courriers prévus</FormLabel>
+                  <FormLabel>Courriers prévus *</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      min={0}
+                      min={1}
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Courriers restants à assigner : {courriersDisponibles}
+                  </FormDescription>
+                  {isOverLimit && (
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Dépasse les courriers restants de la campagne</span>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -418,6 +499,77 @@ export function MissionFormModal({
               )}
             />
 
+            {/* Section Strava lecture seule (mode édition uniquement) */}
+            {isEditMode && hasStravaData && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Route className="h-4 w-4" />
+                      Données Strava
+                    </Label>
+                    {mission.strava_validated ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Validé
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-amber-600">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Non validé
+                      </Badge>
+                    )}
+                  </div>
+                  <Card>
+                    <CardContent className="p-3 grid grid-cols-3 gap-3 text-center">
+                      {mission.strava_temps && (
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-xs">Temps</span>
+                          </div>
+                          <p className="font-medium">{mission.strava_temps}</p>
+                        </div>
+                      )}
+                      {mission.strava_distance_km && (
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+                            <Route className="h-3 w-3" />
+                            <span className="text-xs">Distance</span>
+                          </div>
+                          <p className="font-medium">{mission.strava_distance_km} km</p>
+                        </div>
+                      )}
+                      {mission.strava_vitesse_moy && (
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+                            <Gauge className="h-3 w-3" />
+                            <span className="text-xs">Vitesse</span>
+                          </div>
+                          <p className="font-medium">{mission.strava_vitesse_moy} km/h</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  {mission.strava_screenshot_url && (
+                    <a
+                      href={mission.strava_screenshot_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src={mission.strava_screenshot_url}
+                        alt="Screenshot Strava"
+                        className="w-full rounded-lg border"
+                      />
+                    </a>
+                  )}
+                </div>
+              </>
+            )}
+
             {/* Notes */}
             <FormField
               control={form.control}
@@ -439,18 +591,54 @@ export function MissionFormModal({
             />
 
             {/* Boutons */}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditMode ? 'Enregistrer' : 'Créer'}
-              </Button>
+            <div className="flex justify-between pt-4">
+              {/* Bouton Supprimer (mode édition) */}
+              {isEditMode && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action est irréversible. La mission sera définitivement supprimée.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditMode ? 'Enregistrer' : 'Créer'}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>

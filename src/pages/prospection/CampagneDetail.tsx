@@ -188,12 +188,14 @@ export default function CampagneDetail() {
     .filter((m) => m.statut === 'terminee')
     .reduce((sum, m) => sum + (m.courriers_distribues || 0), 0);
 
-  const courriersPrevu = missions.reduce((sum, m) => sum + (m.courriers_prevu || 0), 0);
+  const courriersAssignes = missions.reduce((sum, m) => sum + (m.courriers_prevu || 0), 0);
+  const courriersRestants = (campagne?.nb_courriers || 0) - courriersAssignes;
 
   const stats = {
     scans: campagne?.scans_count || 0,
     courriersDistribues,
-    courriersPrevu,
+    courriersAssignes,
+    courriersRestants,
     prospects: campagne?.nb_prospects || 0,
     estimations: campagne?.nb_estimations || 0,
     mandats: campagne?.nb_mandats || 0,
@@ -470,7 +472,8 @@ export default function CampagneDetail() {
             <StatCard
               icon={Mail}
               label="Courriers"
-              value={`${stats.courriersDistribues}/${stats.courriersPrevu}`}
+              value={`${stats.courriersDistribues}/${stats.courriersAssignes}`}
+              subValue={stats.courriersRestants > 0 ? `${stats.courriersRestants} restants` : undefined}
             />
             <StatCard
               icon={Users}
@@ -610,6 +613,7 @@ export default function CampagneDetail() {
         campagneId={campagne.id}
         secteurs={campagne.secteurs}
         mission={selectedMission}
+        courriersRestants={stats.courriersRestants}
         onSuccess={refetch}
       />
 
