@@ -19,7 +19,13 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
     queryFn: async (): Promise<Campagne[]> => {
       let queryBuilder = supabase
         .from('campagnes')
-        .select('*')
+        .select(`
+          *,
+          profiles:courtier_id (
+            full_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (options.courtier_id) {
@@ -41,7 +47,14 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
       const { data, error } = await queryBuilder;
 
       if (error) throw error;
-      return (data || []) as Campagne[];
+      
+      // Map profiles data to courtier_name and courtier_email
+      return (data || []).map((campagne: any) => ({
+        ...campagne,
+        courtier_name: campagne.profiles?.full_name || null,
+        courtier_email: campagne.profiles?.email || null,
+        profiles: undefined, // Remove the nested profiles object
+      })) as Campagne[];
     },
   });
 
