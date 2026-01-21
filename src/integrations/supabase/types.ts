@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      campagnes: {
+        Row: {
+          code: string | null
+          commune: string
+          courtier_id: string
+          cout_total: number
+          cout_unitaire_courrier: number | null
+          cout_unitaire_flyer: number
+          created_at: string
+          date_debut: string | null
+          date_fin: string | null
+          id: string
+          nb_courriers: number
+          nb_estimations: number
+          nb_flyers: number
+          nb_mandats: number
+          nb_prospects: number
+          notes: string | null
+          qr_destination_url: string | null
+          qr_image_url: string | null
+          scans_count: number
+          secteurs: string[] | null
+          statut: Database["public"]["Enums"]["campagne_statut"]
+          support_id: string
+          type_bien: Database["public"]["Enums"]["type_bien_prospection"]
+          uniqode_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          commune: string
+          courtier_id: string
+          cout_total?: number
+          cout_unitaire_courrier?: number | null
+          cout_unitaire_flyer?: number
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          id?: string
+          nb_courriers?: number
+          nb_estimations?: number
+          nb_flyers?: number
+          nb_mandats?: number
+          nb_prospects?: number
+          notes?: string | null
+          qr_destination_url?: string | null
+          qr_image_url?: string | null
+          scans_count?: number
+          secteurs?: string[] | null
+          statut?: Database["public"]["Enums"]["campagne_statut"]
+          support_id: string
+          type_bien?: Database["public"]["Enums"]["type_bien_prospection"]
+          uniqode_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          commune?: string
+          courtier_id?: string
+          cout_total?: number
+          cout_unitaire_courrier?: number | null
+          cout_unitaire_flyer?: number
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          id?: string
+          nb_courriers?: number
+          nb_estimations?: number
+          nb_flyers?: number
+          nb_mandats?: number
+          nb_prospects?: number
+          notes?: string | null
+          qr_destination_url?: string | null
+          qr_image_url?: string | null
+          scans_count?: number
+          secteurs?: string[] | null
+          statut?: Database["public"]["Enums"]["campagne_statut"]
+          support_id?: string
+          type_bien?: Database["public"]["Enums"]["type_bien_prospection"]
+          uniqode_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campagnes_support_id_fkey"
+            columns: ["support_id"]
+            isOneToOne: false
+            referencedRelation: "supports_prospection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_objectives: {
         Row: {
           amount: number
@@ -329,6 +421,7 @@ export type Database = {
         Row: {
           adresse: string | null
           analyse_terrain: Json | null
+          campagne_origin_code: string | null
           caracteristiques: Json | null
           code_postal: string | null
           comparables: Json | null
@@ -357,6 +450,7 @@ export type Database = {
         Insert: {
           adresse?: string | null
           analyse_terrain?: Json | null
+          campagne_origin_code?: string | null
           caracteristiques?: Json | null
           code_postal?: string | null
           comparables?: Json | null
@@ -385,6 +479,7 @@ export type Database = {
         Update: {
           adresse?: string | null
           analyse_terrain?: Json | null
+          campagne_origin_code?: string | null
           caracteristiques?: Json | null
           code_postal?: string | null
           comparables?: Json | null
@@ -411,6 +506,126 @@ export type Database = {
           vendeur_telephone?: string | null
         }
         Relationships: []
+      }
+      etudiants: {
+        Row: {
+          actif: boolean
+          created_at: string
+          email: string | null
+          id: string
+          nom: string | null
+          prenom: string
+          salaire_horaire: number
+          tel: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string | null
+          prenom: string
+          salaire_horaire?: number
+          tel?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string | null
+          prenom?: string
+          salaire_horaire?: number
+          tel?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      missions: {
+        Row: {
+          campagne_id: string
+          courriers_distribues: number | null
+          courriers_prevu: number
+          courtier_id: string | null
+          created_at: string
+          date: string
+          etudiant_id: string | null
+          id: string
+          notes: string | null
+          secteur_nom: string | null
+          statut: Database["public"]["Enums"]["mission_statut"]
+          strava_distance_km: number | null
+          strava_screenshot_url: string | null
+          strava_temps: string | null
+          strava_validated: boolean
+          strava_vitesse_moy: number | null
+          updated_at: string
+          zone_geojson: Json | null
+          zone_image_url: string | null
+        }
+        Insert: {
+          campagne_id: string
+          courriers_distribues?: number | null
+          courriers_prevu?: number
+          courtier_id?: string | null
+          created_at?: string
+          date: string
+          etudiant_id?: string | null
+          id?: string
+          notes?: string | null
+          secteur_nom?: string | null
+          statut?: Database["public"]["Enums"]["mission_statut"]
+          strava_distance_km?: number | null
+          strava_screenshot_url?: string | null
+          strava_temps?: string | null
+          strava_validated?: boolean
+          strava_vitesse_moy?: number | null
+          updated_at?: string
+          zone_geojson?: Json | null
+          zone_image_url?: string | null
+        }
+        Update: {
+          campagne_id?: string
+          courriers_distribues?: number | null
+          courriers_prevu?: number
+          courtier_id?: string | null
+          created_at?: string
+          date?: string
+          etudiant_id?: string | null
+          id?: string
+          notes?: string | null
+          secteur_nom?: string | null
+          statut?: Database["public"]["Enums"]["mission_statut"]
+          strava_distance_km?: number | null
+          strava_screenshot_url?: string | null
+          strava_temps?: string | null
+          strava_validated?: boolean
+          strava_vitesse_moy?: number | null
+          updated_at?: string
+          zone_geojson?: Json | null
+          zone_image_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missions_campagne_id_fkey"
+            columns: ["campagne_id"]
+            isOneToOne: false
+            referencedRelation: "campagnes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_etudiant_id_fkey"
+            columns: ["etudiant_id"]
+            isOneToOne: false
+            referencedRelation: "etudiants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -566,6 +781,39 @@ export type Database = {
         }
         Relationships: []
       }
+      supports_prospection: {
+        Row: {
+          actif: boolean
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          ordre: number
+          tarif_unitaire: number
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          ordre?: number
+          tarif_unitaire: number
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          ordre?: number
+          tarif_unitaire?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -612,6 +860,7 @@ export type Database = {
         | "marketing"
         | "etudiant"
         | "responsable_prospection"
+      campagne_statut: "brouillon" | "planifiee" | "en_cours" | "terminee"
       estimation_status:
         | "brouillon"
         | "en_cours"
@@ -625,6 +874,7 @@ export type Database = {
         | "en_signature"
         | "mandat_signe"
         | "perdu"
+      mission_statut: "prevue" | "en_cours" | "terminee" | "annulee"
       project_statut_filter: "vendus" | "en_vente" | "tous"
       type_bien:
         | "appartement"
@@ -632,6 +882,7 @@ export type Database = {
         | "terrain"
         | "immeuble"
         | "commercial"
+      type_bien_prospection: "PPE" | "Villa" | "Mixte"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -767,6 +1018,7 @@ export const Constants = {
         "etudiant",
         "responsable_prospection",
       ],
+      campagne_statut: ["brouillon", "planifiee", "en_cours", "terminee"],
       estimation_status: [
         "brouillon",
         "en_cours",
@@ -781,8 +1033,10 @@ export const Constants = {
         "mandat_signe",
         "perdu",
       ],
+      mission_statut: ["prevue", "en_cours", "terminee", "annulee"],
       project_statut_filter: ["vendus", "en_vente", "tous"],
       type_bien: ["appartement", "maison", "terrain", "immeuble", "commercial"],
+      type_bien_prospection: ["PPE", "Villa", "Mixte"],
     },
   },
 } as const
