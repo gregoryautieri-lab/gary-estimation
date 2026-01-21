@@ -224,7 +224,9 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
   }
 
   try {
-    // Get QR code analytics
+    console.log('Fetching stats for QR ID:', uniqodeId);
+    
+    // First try the analytics endpoint
     const analyticsResponse = await fetch(
       `${UNIQODE_API_BASE}/qrcodes/${uniqodeId}/analytics/`,
       {
@@ -236,8 +238,12 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
       }
     );
 
+    console.log('Analytics endpoint status:', analyticsResponse.status);
+
     if (!analyticsResponse.ok) {
-      // Try alternative endpoint
+      console.log('Analytics endpoint failed, trying QR detail endpoint...');
+      
+      // Try alternative endpoint - get QR code details which includes scan count
       const altResponse = await fetch(
         `${UNIQODE_API_BASE}/qrcodes/${uniqodeId}/`,
         {
@@ -259,21 +265,28 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
       }
 
       const qrInfo = await altResponse.json();
+      console.log('QR detail response:', JSON.stringify(qrInfo));
+      
+      // Extract scan count from various possible fields
+      const totalScans = qrInfo.total_scans ?? qrInfo.scan_count ?? qrInfo.scans ?? qrInfo.total_scan_count ?? 0;
+      
       return new Response(
         JSON.stringify({
           success: true,
-          totalScans: qrInfo.total_scans || qrInfo.scan_count || qrInfo.scans || 0,
+          totalScans,
           scansByDay: [],
+          debug: { source: 'qr-detail', rawResponse: qrInfo }
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const analyticsData = await analyticsResponse.json();
+    console.log('Analytics response:', JSON.stringify(analyticsData));
 
-    // Parse analytics data
-    const totalScans = analyticsData.total_scans || analyticsData.scan_count || 0;
-    const scansByDay = analyticsData.scans_by_date || analyticsData.daily_scans || [];
+    // Parse analytics data - check multiple possible field names
+    const totalScans = analyticsData.total_scans ?? analyticsData.scan_count ?? analyticsData.total ?? analyticsData.scans ?? 0;
+    const scansByDay = analyticsData.scans_by_date || analyticsData.daily_scans || analyticsData.data || [];
 
     return new Response(
       JSON.stringify({
