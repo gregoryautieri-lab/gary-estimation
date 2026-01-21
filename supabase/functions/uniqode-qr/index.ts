@@ -130,9 +130,14 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
 
     const qrData = await createResponse.json();
 
-    // Get the QR code image URL
-    const qrImageUrl = qrData.qr_image || qrData.image_url || null;
-    const trackingUrl = qrData.short_url || qrData.tracking_link || null;
+    // Get the QR code image URL from various possible locations
+    const qrImageUrl = 
+      qrData.attributes?.thumbnail_url_png ||
+      qrData.attributes?.thumbnail_url ||
+      qrData.qr_image || 
+      qrData.image_url || 
+      null;
+    const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
 
     return new Response(
       JSON.stringify({
