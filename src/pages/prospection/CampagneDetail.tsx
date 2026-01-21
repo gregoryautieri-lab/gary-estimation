@@ -23,6 +23,9 @@ import {
   BarChart3,
   Target,
   DollarSign,
+  Copy,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,9 +42,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCampagneDetail } from '@/hooks/useCampagneDetail';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useUniqode, useQRStats } from '@/hooks/useUniqode';
 import { CampagneFormModal } from '@/components/prospection/CampagneFormModal';
 import { MissionFormModal } from '@/components/prospection/MissionFormModal';
 import { BottomNav } from '@/components/gary/BottomNav';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   CAMPAGNE_STATUT_LABELS,
   CAMPAGNE_STATUT_COLORS,
@@ -169,13 +175,18 @@ export default function CampagneDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, isResponsableProspection, isBackOffice } = useUserRole();
+  const { createQRCode, isCreating: isCreatingQR } = useUniqode();
 
   const { campagne, missions, support, isLoading, error, refetch, updateStatut } =
     useCampagneDetail(id);
 
+  // Fetch QR stats from Uniqode
+  const { data: qrStats, isLoading: qrStatsLoading, refetch: refetchQRStats } = useQRStats(campagne?.uniqode_id);
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Vérifier les permissions
   const canEdit =
@@ -191,8 +202,11 @@ export default function CampagneDetail() {
   const courriersAssignes = missions.reduce((sum, m) => sum + (m.courriers_prevu || 0), 0);
   const courriersRestants = (campagne?.nb_courriers || 0) - courriersAssignes;
 
+  // Use QR stats from Uniqode if available, otherwise fallback to campagne.scans_count
+  const actualScans = qrStats?.totalScans ?? campagne?.scans_count ?? 0;
+
   const stats = {
-    scans: campagne?.scans_count || 0,
+    scans: actualScans,
     courriersDistribues,
     courriersAssignes,
     courriersRestants,
@@ -200,16 +214,16 @@ export default function CampagneDetail() {
     estimations: campagne?.nb_estimations || 0,
     mandats: campagne?.nb_mandats || 0,
     coutParScan:
-      campagne?.scans_count && campagne.scans_count > 0
-        ? ((campagne.cout_total || 0) / campagne.scans_count).toFixed(2)
+      actualScans > 0
+        ? ((campagne?.cout_total || 0) / actualScans).toFixed(2)
         : null,
     tauxScanProspect:
-      campagne?.scans_count && campagne.scans_count > 0
-        ? (((campagne.nb_prospects || 0) / campagne.scans_count) * 100).toFixed(1)
+      actualScans > 0
+        ? (((campagne?.nb_prospects || 0) / actualScans) * 100).toFixed(1)
         : null,
     tauxProspectEstimation:
       campagne?.nb_prospects && campagne.nb_prospects > 0
-        ? (((campagne.nb_estimations || 0) / campagne.nb_prospects) * 100).toFixed(1)
+        ? (((campagne?.nb_estimations || 0) / campagne.nb_prospects) * 100).toFixed(1)
         : null,
   };
 
@@ -225,6 +239,46 @@ export default function CampagneDetail() {
   const handleAddMission = () => {
     setSelectedMission(null);
     setShowMissionModal(true);
+  };
+
+  // Generate QR code manually
+  const handleGenerateQR = async () => {
+    if (!campagne || !campagne.qr_destination_url || !campagne.code) {
+      toast.error('URL de destination ou code campagne manquant');
+      return;
+    }
+
+    setIsGeneratingQR(true);
+    try {
+      const result = await createQRCode(campagne.code, campagne.qr_destination_url);
+      
+      if (result.success && result.uniqodeId) {
+        // Update campagne with QR data
+        await supabase
+          .from('campagnes')
+          .update({
+            uniqode_id: result.uniqodeId,
+            qr_image_url: result.qrImageUrl,
+          })
+          .eq('id', campagne.id);
+        
+        toast.success('QR code généré avec succès');
+        refetch();
+      } else {
+        toast.error('Erreur: ' + (result.error || 'Génération échouée'));
+      }
+    } catch (err: any) {
+      toast.error('Erreur: ' + err.message);
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
+
+  const handleCopyTrackingUrl = () => {
+    if (campagne?.qr_destination_url) {
+      navigator.clipboard.writeText(campagne.qr_destination_url);
+      toast.success('URL copiée dans le presse-papier');
+    }
   };
 
   if (isLoading) {
@@ -499,18 +553,55 @@ export default function CampagneDetail() {
             />
           </div>
 
-          {/* Placeholder pour graphique */}
+          {/* QR Scans Graph */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Évolution des scans
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Évolution des scans
+                </span>
+                {campagne.uniqode_id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => refetchQRStats()}
+                    disabled={qrStatsLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${qrStatsLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
-                Graphique disponible après intégration Uniqode
-              </div>
+              {qrStatsLoading ? (
+                <div className="h-32 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : qrStats?.scansByDay && qrStats.scansByDay.length > 0 ? (
+                <div className="space-y-2">
+                  {qrStats.scansByDay.slice(-7).map((day, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-20">
+                        {format(new Date(day.date), 'dd MMM', { locale: fr })}
+                      </span>
+                      <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ 
+                            width: `${Math.min(100, (day.scans / Math.max(...qrStats.scansByDay.map(d => d.scans), 1)) * 100)}%` 
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium w-8 text-right">{day.scans}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
+                  {campagne.uniqode_id ? 'Pas encore de scans' : 'Générez un QR code pour voir les statistiques'}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -534,7 +625,14 @@ export default function CampagneDetail() {
                       className="w-48 h-48 border rounded-lg"
                     />
                   </div>
-                  <div className="flex justify-center">
+                  
+                  {/* Stats from Uniqode */}
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <p className="text-2xl font-bold text-primary">{stats.scans}</p>
+                    <p className="text-xs text-muted-foreground">scans totaux</p>
+                  </div>
+                  
+                  <div className="flex gap-2 justify-center">
                     <Button asChild>
                       <a
                         href={campagne.qr_image_url}
@@ -543,10 +641,15 @@ export default function CampagneDetail() {
                         rel="noopener noreferrer"
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        Télécharger en HD
+                        Télécharger
                       </a>
                     </Button>
+                    <Button variant="outline" onClick={handleCopyTrackingUrl}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copier URL
+                    </Button>
                   </div>
+                  
                   {campagne.uniqode_id && (
                     <p className="text-xs text-center text-muted-foreground">
                       ID Uniqode: {campagne.uniqode_id}
@@ -558,12 +661,34 @@ export default function CampagneDetail() {
                   <div className="w-48 h-48 mx-auto border-2 border-dashed rounded-lg flex items-center justify-center">
                     <QrCode className="h-16 w-16 text-muted-foreground/30" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Le QR code sera généré après configuration de Uniqode
-                  </p>
-                  <Button disabled variant="outline">
-                    Générer le QR
-                  </Button>
+                  
+                  {campagne.qr_destination_url ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        URL de destination configurée. Cliquez pour générer le QR.
+                      </p>
+                      <Button 
+                        onClick={handleGenerateQR}
+                        disabled={isGeneratingQR || isCreatingQR}
+                      >
+                        {(isGeneratingQR || isCreatingQR) ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Génération...
+                          </>
+                        ) : (
+                          <>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Générer le QR code
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ajoutez une URL de destination dans les paramètres de la campagne pour générer un QR code.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
