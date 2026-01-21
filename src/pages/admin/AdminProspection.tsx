@@ -110,7 +110,7 @@ export default function AdminProspection() {
       {/* Header */}
       <header className="border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 bg-background z-50">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/campagnes')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <GaryLogo className="h-6 text-primary" />
