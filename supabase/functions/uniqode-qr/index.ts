@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { renderSVG } from "https://esm.sh/uqr@0.1.2";
 
 const corsHeaders = {
@@ -133,69 +134,48 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
     const qrId = qrData.id;
     const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
 
-    // Try to get the QR image URL from Uniqode
-    // Option 1: Fetch the QR code details to get the actual image URL (not template)
+    console.log('QR created with ID:', qrId, 'trackingUrl:', trackingUrl);
+
+    // Download the branded QR image using Uniqode download endpoint
     let qrImageUrl: string | null = null;
     
     if (qrId) {
-      // Wait a short moment for Uniqode to generate the image
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait for Uniqode to finish generating the image with template
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Fetch QR code details to get the actual image URL
-      const detailsResponse = await fetch(`${UNIQODE_API_BASE}/qrcodes/${qrId}/`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Download the PNG with custom design (logo GARY, colors, frame)
+      const downloadUrl = `https://api.beaconstac.com/api/2.0/qrcodes/${qrId}/download/?size=1024&canvas_type=png`;
+      console.log('Downloading QR image from:', downloadUrl);
+      
+      try {
+        const downloadResponse = await fetch(downloadUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Token ${apiKey}`,
+          },
+        });
 
-      if (detailsResponse.ok) {
-        const detailsData = await detailsResponse.json();
-        console.log('QR details response:', JSON.stringify(detailsData, null, 2));
-        
-        // Try various possible fields for image URL
-        qrImageUrl = 
-          detailsData.image_url ||
-          detailsData.png_url ||
-          detailsData.download_url ||
-          detailsData.qr_image ||
-          detailsData.attributes?.image_url ||
-          null;
-          
-        // If we have attributes with a thumbnail that matches THIS QR id (not template)
-        if (!qrImageUrl && detailsData.attributes) {
-          const attrs = detailsData.attributes;
-          // Check if thumbnail URLs contain the QR id (not template id)
-          if (attrs.thumbnail_url_png && attrs.thumbnail_url_png.includes(`/${qrId}/`)) {
-            qrImageUrl = attrs.thumbnail_url_png;
-          } else if (attrs.thumbnail_url && attrs.thumbnail_url.includes(`/${qrId}/`)) {
-            qrImageUrl = attrs.thumbnail_url;
-          }
+        if (downloadResponse.ok) {
+          // Get binary data and convert to base64
+          const imageBuffer = await downloadResponse.arrayBuffer();
+          const base64Image = base64Encode(imageBuffer);
+          qrImageUrl = `data:image/png;base64,${base64Image}`;
+          console.log('Successfully downloaded branded QR image, size:', imageBuffer.byteLength);
+        } else {
+          const errorText = await downloadResponse.text();
+          console.error('Download endpoint error:', downloadResponse.status, errorText);
         }
-        
-        // Construct URL based on pattern (organization/qr-codes/qrId/png/qrcode-512.png)
-        if (!qrImageUrl) {
-          const constructedUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
-          // Test if this URL is accessible
-          try {
-            const testResponse = await fetch(constructedUrl, { method: 'HEAD' });
-            if (testResponse.ok) {
-              qrImageUrl = constructedUrl;
-            }
-          } catch (e) {
-            console.log('Constructed URL not accessible:', constructedUrl);
-          }
-        }
+      } catch (e) {
+        console.error('Failed to download QR image:', e);
       }
     }
 
-    // Fallback: generate SVG locally if no Uniqode image URL available
+    // Fallback: generate SVG locally if download failed
     if (!qrImageUrl && trackingUrl) {
       try {
         const svg = renderSVG(trackingUrl);
         qrImageUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-        console.log('Using fallback SVG generation');
+        console.log('Using fallback SVG generation (no branding)');
       } catch (e) {
         console.error('Failed to generate fallback SVG:', e);
       }
