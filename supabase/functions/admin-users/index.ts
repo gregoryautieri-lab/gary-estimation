@@ -186,10 +186,11 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Admin users error:", error);
     const errorMessage = error.message || error.toString();
     const errorCode = error.code || "UNKNOWN";
+    const statusCode = typeof error?.status === "number" ? error.status : 500;
     console.error(`Error code: ${errorCode}, Message: ${errorMessage}`);
     return new Response(
       JSON.stringify({ error: errorMessage, code: errorCode }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };
