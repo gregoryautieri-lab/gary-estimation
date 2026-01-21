@@ -84,6 +84,8 @@ const ROLE_LABELS: Record<AppRole, { label: string; icon: typeof Crown; color: s
   back_office: { label: "Back Office", icon: Building2, color: "bg-blue-500" },
   courtier: { label: "Courtier", icon: Briefcase, color: "bg-emerald-500" },
   marketing: { label: "Marketing", icon: Briefcase, color: "bg-purple-500" },
+  etudiant: { label: "Étudiant", icon: Briefcase, color: "bg-cyan-500" },
+  responsable_prospection: { label: "Resp. Prospection", icon: Building2, color: "bg-rose-500" },
 };
 
 export default function Admin() {
