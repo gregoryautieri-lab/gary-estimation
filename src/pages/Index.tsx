@@ -16,9 +16,7 @@ import {
   Map, 
   ChevronRight,
   Zap,
-  Search,
-  Megaphone,
-  Settings2
+  Search
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -185,51 +183,6 @@ const Index = () => {
                 />
               </div>
 
-              {/* Prospection Card - visible pour courtiers, admins, responsables */}
-              {(isAdmin || isResponsableProspection || isCourtier || isBackOffice) && (
-                <Card 
-                  className="border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
-                  onClick={() => navigate('/campagnes')}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                        <Megaphone className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground">Prospection</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Gérer vos campagnes de distribution
-                        </p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Admin Prospection Card - visible pour admin et responsable_prospection */}
-              {(isAdmin || isResponsableProspection) && (
-                <Card 
-                  className="border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
-                  onClick={() => navigate('/admin/prospection')}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                        <Settings2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground">Admin Prospection</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Supports et étudiants
-                        </p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </>
           )}
 
