@@ -28,6 +28,7 @@ import Admin from "./pages/Admin";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminComparables from "./pages/admin/AdminComparables";
 import AdminCommissions from "./pages/admin/AdminCommissions";
+import AdminProspection from "./pages/admin/AdminProspection";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
 import EtudiantMissions from "./pages/etudiant/EtudiantMissions";
@@ -146,6 +147,14 @@ function AppWithWarning() {
             <ProtectedRoute>
               <AdminCommissions />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/prospection"
+          element={
+            <RoleBasedRoute allowedRoles={['admin', 'responsable_prospection']}>
+              <AdminProspection />
+            </RoleBasedRoute>
           }
         />
         
