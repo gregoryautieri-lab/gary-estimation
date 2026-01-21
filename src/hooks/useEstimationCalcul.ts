@@ -50,6 +50,11 @@ export interface EstimationCalculResult {
   cubage: number;
   surfaceAmenagement: number;
   
+  // Surface aménagements extérieurs (Maison) - NOUVEAU
+  empriseAuSolEstimee: number;      // Surface hab / (niveaux + 1)
+  surfaceAmenagementExtAuto: number; // Surface parcelle - emprise
+  surfaceAmenagementExt: number;     // Valeur utilisée (auto ou manuel)
+  
   // Valeurs intermédiaires Appartement
   prixM2Ajuste: number;
   valeurSurfaceBrute: number;
@@ -152,8 +157,20 @@ export function useEstimationCalcul(
     const surfaceSousSolAuto = Math.max(0, surfaceUtile - surfaceHabMaison);
     const surfaceSousSol = parseNum(carac.surfaceSousSol) || surfaceSousSolAuto;
     
-    // Emprise au sol = surface habitable / nombre de niveaux
-    const empriseAuSol = nombreNiveaux > 0 ? surfaceHabMaison / nombreNiveaux : surfaceHabMaison;
+    // Emprise au sol ESTIMÉE = surface habitable / (nombre de niveaux + 1)
+    // nombreNiveaux = étages AU-DESSUS du RDC, donc +1 pour inclure le RDC
+    const empriseAuSolEstimee = (nombreNiveaux + 1) > 0 
+      ? surfaceHabMaison / (nombreNiveaux + 1) 
+      : surfaceHabMaison;
+    
+    // Surface aménagements extérieurs AUTO = parcelle - emprise estimée
+    const surfaceAmenagementExtAuto = Math.max(0, surfaceTerrain - empriseAuSolEstimee);
+    
+    // Surface utilisée (manuel si saisi, sinon auto)
+    const surfaceAmenagementExtManuel = parseNum(preEst.surfaceAmenagementManuel);
+    const surfaceAmenagementExt = surfaceAmenagementExtManuel > 0 
+      ? surfaceAmenagementExtManuel 
+      : surfaceAmenagementExtAuto;
     
     // Cubage SIA :
     // 1. Hors-sol : surface habitable × hauteur sous-plafond
@@ -162,9 +179,9 @@ export function useEstimationCalcul(
     // 2. Sous-sol : surface sous-sol × hauteur sous-sol
     const cubageSousSol = surfaceSousSol * hauteurSousSol;
     
-    // 3. Combles : emprise × 1.5m si aménageables
+    // 3. Combles : emprise × 1.5m si aménageables (utilise l'emprise estimée)
     const comblesType = carac.comblesType || '';
-    const cubageCombles = comblesType === 'amenageables' ? empriseAuSol * HAUTEUR_COMBLES : 0;
+    const cubageCombles = comblesType === 'amenageables' ? empriseAuSolEstimee * HAUTEUR_COMBLES : 0;
     
     // Total cubage automatique
     const cubageAuto = cubageHorsSol + cubageSousSol + cubageCombles;
@@ -173,7 +190,7 @@ export function useEstimationCalcul(
     const cubageManuel = parseNum(preEst.cubageManuel);
     const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
     
-    // Surface aménagement = sous-sol (pour valorisation)
+    // Surface aménagement (sous-sol) pour valorisation
     const surfaceAmenagement = surfaceSousSol;
     
     // ============================================
@@ -212,7 +229,8 @@ export function useEstimationCalcul(
     // ============================================
     const valeurTerrain = surfaceTerrain * parseNum(preEst.prixM2Terrain);
     const valeurCubage = cubage * prixM3Ajuste;
-    const valeurAmenagement = surfaceAmenagement * parseNum(preEst.prixM2Amenagement);
+    // Utilise surfaceAmenagementExt (jardin/extérieur) pour la valorisation des aménagements
+    const valeurAmenagement = surfaceAmenagementExt * parseNum(preEst.prixM2Amenagement);
     const valeurAnnexes = (preEst.annexes || []).reduce(
       (sum, a) => sum + parseNum(a.prix), 0
     );
@@ -292,6 +310,9 @@ export function useEstimationCalcul(
       cubageAuto,
       cubage,
       surfaceAmenagement,
+      empriseAuSolEstimee,
+      surfaceAmenagementExtAuto,
+      surfaceAmenagementExt,
       prixM2Ajuste,
       valeurSurfaceBrute,
       valeurSurface,

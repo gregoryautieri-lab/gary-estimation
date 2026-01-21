@@ -782,6 +782,7 @@ export interface PreEstimation {
   prixM3: string;
   tauxVetusteMaison: number;
   prixM2Amenagement: string;
+  surfaceAmenagementManuel: string; // Surcharge manuelle de la surface aménagements ext
   annexes: Annexe[];
   
   // Rendement
@@ -1328,6 +1329,7 @@ export const defaultPreEstimation: PreEstimation = {
   prixM3: '',
   tauxVetusteMaison: 0,
   prixM2Amenagement: '',
+  surfaceAmenagementManuel: '',
   annexes: [],
   loyerMensuel: '',
   valeurLocativeEstimee: '',
