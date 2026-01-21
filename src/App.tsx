@@ -31,6 +31,7 @@ import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
 import EtudiantMissions from "./pages/etudiant/EtudiantMissions";
 import EtudiantProfil from "./pages/etudiant/EtudiantProfil";
+import MissionValidation from "./pages/etudiant/MissionValidation";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -179,6 +180,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <EtudiantProfil />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/etudiant/mission/:id"
+          element={
+            <ProtectedRoute>
+              <MissionValidation />
             </ProtectedRoute>
           }
         />
