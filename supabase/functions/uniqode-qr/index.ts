@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -131,33 +132,45 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
     const qrData = await createResponse.json();
     const qrId = qrData.id;
 
-    // Fetch the actual QR code image by downloading it
-    let qrImageUrl = null;
+    // Build a browser-safe image source (data URL), to avoid private S3 URLs (AccessDenied).
+    let qrImageUrl: string | null = null;
     if (qrId) {
-      // Try to get the download URL for the QR code
-      const downloadResponse = await fetch(
-        `${UNIQODE_API_BASE}/qrcodes/${qrId}/download/?size=512&format=png`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Token ${apiKey}`,
-          },
+      const downloadEndpoint = `${UNIQODE_API_BASE}/qrcodes/${qrId}/download/?size=512&format=png`;
+      const downloadResponse = await fetch(downloadEndpoint, {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          'Authorization': `Token ${apiKey}`,
+        },
+      });
+
+      let finalImageResponse: Response | null = null;
+
+      // If Uniqode responds with a redirect, fetch that URL to get bytes.
+      if ([301, 302, 303, 307, 308].includes(downloadResponse.status)) {
+        const location = downloadResponse.headers.get('location');
+        if (location) {
+          finalImageResponse = await fetch(location);
         }
-      );
-      
-      if (downloadResponse.ok) {
-        // The download endpoint returns the image directly or a redirect URL
-        const contentType = downloadResponse.headers.get('content-type');
-        if (contentType?.includes('application/json')) {
+      } else if (downloadResponse.ok) {
+        const contentType = downloadResponse.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
           const downloadData = await downloadResponse.json();
-          qrImageUrl = downloadData.url || downloadData.download_url || null;
-        } else {
-          // If it's not JSON, try the direct S3 URL pattern
-          qrImageUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
+          const url = downloadData.url || downloadData.download_url || downloadData.location || null;
+          if (url) finalImageResponse = await fetch(url);
+        } else if (contentType.startsWith('image/')) {
+          finalImageResponse = downloadResponse;
         }
       } else {
-        // Fallback to constructed URL pattern
-        qrImageUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
+        const errorText = await downloadResponse.text();
+        console.error('Uniqode download error:', downloadResponse.status, errorText);
+      }
+
+      if (finalImageResponse?.ok) {
+        const contentType = finalImageResponse.headers.get('content-type') || 'image/png';
+        const bytes = new Uint8Array(await finalImageResponse.arrayBuffer());
+        const base64 = encodeBase64(bytes);
+        qrImageUrl = `data:${contentType};base64,${base64}`;
       }
     }
 

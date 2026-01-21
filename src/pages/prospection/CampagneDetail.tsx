@@ -632,7 +632,7 @@ export default function CampagneDetail() {
                     <p className="text-xs text-muted-foreground">scans totaux</p>
                   </div>
                   
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex gap-2 justify-center flex-wrap">
                     <Button asChild>
                       <a
                         href={campagne.qr_image_url}
@@ -643,6 +643,23 @@ export default function CampagneDetail() {
                         <Download className="mr-2 h-4 w-4" />
                         Télécharger
                       </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleGenerateQR}
+                      disabled={isGeneratingQR || isCreatingQR}
+                    >
+                      {(isGeneratingQR || isCreatingQR) ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Régénération...
+                        </>
+                      ) : (
+                        <>
+                          <QrCode className="mr-2 h-4 w-4" />
+                          Régénérer
+                        </>
+                      )}
                     </Button>
                     <Button variant="outline" onClick={handleCopyTrackingUrl}>
                       <Copy className="mr-2 h-4 w-4" />
