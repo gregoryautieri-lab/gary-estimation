@@ -28,6 +28,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminComparables from "./pages/admin/AdminComparables";
 import AdminCommissions from "./pages/admin/AdminCommissions";
 import Campagnes from "./pages/prospection/Campagnes";
+import CampagneDetail from "./pages/prospection/CampagneDetail";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -150,6 +151,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <Campagnes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/campagnes/:id"
+          element={
+            <ProtectedRoute>
+              <CampagneDetail />
             </ProtectedRoute>
           }
         />

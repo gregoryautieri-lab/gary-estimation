@@ -64,11 +64,12 @@ interface CampagneFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campagne?: Campagne | null;
+  onSuccess?: () => void;
 }
 
 // ============ COMPONENT ============
 
-export function CampagneFormModal({ open, onOpenChange, campagne }: CampagneFormModalProps) {
+export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: CampagneFormModalProps) {
   const { user } = useAuth();
   const { isAdmin, isResponsableProspection, isBackOffice } = useUserRole();
   const { supports, isLoading: supportsLoading } = useSupportsProspection();
@@ -210,6 +211,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne }: CampagneForm
       queryClient.invalidateQueries({ queryKey: ['campagnes'] });
       toast.success('Campagne créée avec succès');
       onOpenChange(false);
+      onSuccess?.();
     },
     onError: (error: Error) => {
       toast.error(`Erreur: ${error.message}`);
@@ -249,8 +251,10 @@ export function CampagneFormModal({ open, onOpenChange, campagne }: CampagneForm
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campagnes'] });
       queryClient.invalidateQueries({ queryKey: ['campagne', campagne?.id] });
+      queryClient.invalidateQueries({ queryKey: ['campagne_detail', campagne?.id] });
       toast.success('Campagne modifiée avec succès');
       onOpenChange(false);
+      onSuccess?.();
     },
     onError: (error: Error) => {
       toast.error(`Erreur: ${error.message}`);
