@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import QRCode from "https://esm.sh/qrcode@1.5.3";
+import { renderSVG } from "https://esm.sh/uqr@0.1.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -134,18 +134,14 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
 
     const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
 
-    // The Uniqode "download" endpoint we tried returns 404 in this account/config.
-    // To always display a working QR inside the app, we generate a PNG data URL from the tracking URL.
+    // The Uniqode image download endpoint we tried returns 404 in this account/config.
+    // To always display a working QR inside the app, we generate a data URL from the tracking URL.
     // Scanning it redirects to the configured destination URL (as Uniqode manages the redirect).
     let qrImageUrl: string | null = null;
     try {
       const textToEncode = trackingUrl || destinationUrl;
-      qrImageUrl = await QRCode.toDataURL(textToEncode, {
-        width: 512,
-        margin: 1,
-        errorCorrectionLevel: 'H',
-        type: 'image/png',
-      });
+      const svg = renderSVG(textToEncode);
+      qrImageUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
     } catch (e) {
       console.error('Failed to generate QR data URL:', e);
       qrImageUrl = null;
