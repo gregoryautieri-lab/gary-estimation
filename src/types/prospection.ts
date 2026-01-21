@@ -97,12 +97,15 @@ export interface Mission {
 // ============ INTERFACES UTILITAIRES ============
 
 export interface StravaData {
-  valid: boolean;
+  valid?: boolean;
   temps?: string;
   distance_km?: number;
   vitesse_moy_kmh?: number;
+  vitesse_moy?: number; // Alias pour compatibilité hooks
   date?: string;
 }
+
+export type SupportProspectionFormData = Omit<SupportProspection, 'id' | 'created_at' | 'updated_at'>;
 
 export interface CampagneStats {
   cout_par_scan: number | null;
