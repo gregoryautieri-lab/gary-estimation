@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useProjectsComparables } from '@/hooks/useProjectsComparables';
 import { GaryLogo } from '@/components/gary/GaryLogo';
@@ -15,7 +16,8 @@ import {
   Map, 
   ChevronRight,
   Zap,
-  Search
+  Search,
+  Megaphone
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,6 +60,7 @@ const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin, isResponsableProspection, isCourtier, isBackOffice } = useUserRole();
   const { fetchEstimations, createEstimation, loading: creatingEstimation } = useEstimationPersistence();
   const { fetchProjects } = useProjectsComparables();
   
@@ -157,28 +160,53 @@ const Index = () => {
               <Skeleton className="h-36 rounded-lg" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <ToolCard
-                icon={<FileText className="h-4 w-4 text-primary" />}
-                title="Estimations"
-                stats={[
-                  { label: 'Total estimations', value: estimationsStats.total },
-                  { label: 'En cours', value: estimationsStats.enCours }
-                ]}
-                onClick={() => navigate('/estimations')}
-                color="bg-primary/10"
-              />
-              <ToolCard
-                icon={<Map className="h-4 w-4 text-emerald-600" />}
-                title="Comparables"
-                stats={[
-                  { label: 'Projets', value: comparablesStats.projects },
-                  { label: 'Total comparables', value: comparablesStats.totalComparables }
-                ]}
-                onClick={() => navigate('/comparables')}
-                color="bg-emerald-100"
-              />
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <ToolCard
+                  icon={<FileText className="h-4 w-4 text-primary" />}
+                  title="Estimations"
+                  stats={[
+                    { label: 'Total estimations', value: estimationsStats.total },
+                    { label: 'En cours', value: estimationsStats.enCours }
+                  ]}
+                  onClick={() => navigate('/estimations')}
+                  color="bg-primary/10"
+                />
+                <ToolCard
+                  icon={<Map className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                  title="Comparables"
+                  stats={[
+                    { label: 'Projets', value: comparablesStats.projects },
+                    { label: 'Total comparables', value: comparablesStats.totalComparables }
+                  ]}
+                  onClick={() => navigate('/comparables')}
+                  color="bg-emerald-500/10"
+                />
+              </div>
+
+              {/* Prospection Card - visible pour courtiers, admins, responsables */}
+              {(isAdmin || isResponsableProspection || isCourtier || isBackOffice) && (
+                <Card 
+                  className="border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
+                  onClick={() => navigate('/campagnes')}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                        <Megaphone className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground">Prospection</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Gérer vos campagnes de distribution
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Quick Actions */}
