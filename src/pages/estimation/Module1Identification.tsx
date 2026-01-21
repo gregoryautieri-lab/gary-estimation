@@ -619,11 +619,12 @@ const Module1Identification = () => {
             />
           </div>
 
-          {/* Plan cadastral Swisstopo */}
+          {/* Plan cadastral Swisstopo - Pin déplaçable */}
           <div className="mt-4">
             <CadastreMap
               coordinates={identification.adresse.coordinates || null}
               initialZoom={identification.adresse.cadastreZoom}
+              draggable={true}
               onZoomChange={(zoom) => {
                 setIdentification(prev => ({
                   ...prev,
@@ -633,6 +634,52 @@ const Module1Identification = () => {
                   }
                 }));
                 scheduleSave();
+              }}
+              onPinMove={async (newCoords) => {
+                // Re-lookup cadastre avec les nouvelles coordonnées
+                const postalCode = identification.adresse.codePostal;
+                
+                try {
+                  const result = await fetchCadastre(newCoords.lat, newCoords.lng, postalCode);
+                  
+                  if (result && !result.error) {
+                    const cadastreData: CadastreData = {
+                      numeroParcelle: result.numeroParcelle,
+                      surfaceParcelle: result.surfaceParcelle,
+                      zone: result.zone,
+                      zoneDetail: result.zoneDetail,
+                      commune: result.commune,
+                      canton: result.canton,
+                      source: result.source
+                    };
+                    
+                    // Stocker les nouvelles coords ajustées + données cadastre
+                    setIdentification(prev => ({
+                      ...prev,
+                      adresse: {
+                        ...prev.adresse,
+                        cadastreCoordinates: newCoords, // Nouvelles coords pour le cadastre
+                        cadastreData
+                      }
+                    }));
+                    scheduleSave();
+                    
+                    // Toast de succès
+                    const infos: string[] = [];
+                    if (result.numeroParcelle) infos.push(`N° ${result.numeroParcelle}`);
+                    if (result.surfaceParcelle) infos.push(`${result.surfaceParcelle.toLocaleString('fr-CH')} m²`);
+                    if (result.zone) infos.push(`Zone ${result.zone}`);
+                    
+                    if (infos.length > 0) {
+                      toast.success(`Cadastre mis à jour : ${infos.join(' • ')}`);
+                    }
+                  } else if (result?.error) {
+                    toast.info(result.error);
+                  }
+                } catch (error) {
+                  console.error('Erreur cadastre après déplacement:', error);
+                  toast.error('Erreur lors de la récupération cadastre');
+                }
               }}
             />
           </div>

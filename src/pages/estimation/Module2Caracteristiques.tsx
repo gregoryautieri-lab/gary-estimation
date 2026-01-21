@@ -217,32 +217,39 @@ export default function Module2Caracteristiques() {
     }
   }, [id]);
 
-  // Pré-remplir depuis cadastreData récupéré par Module 1
+  // Pré-remplir / Synchroniser depuis cadastreData récupéré par Module 1
+  // TOUJOURS synchroniser si les données de Module 1 sont différentes
   useEffect(() => {
     const cadastreData = estimation?.identification?.adresse?.cadastreData;
     
-    if (cadastreData && !cadastreFetched && carac.typeBien === 'maison') {
-      let updated = false;
+    if (cadastreData && carac.typeBien === 'maison') {
+      let hasChanges = false;
+      const updates: Partial<Caracteristiques> = {};
       
-      if (cadastreData.numeroParcelle && !carac.numeroParcelle) {
-        setCarac(prev => ({ ...prev, numeroParcelle: cadastreData.numeroParcelle }));
-        updated = true;
+      // Comparer et mettre à jour si différent
+      if (cadastreData.numeroParcelle && cadastreData.numeroParcelle !== carac.numeroParcelle) {
+        updates.numeroParcelle = cadastreData.numeroParcelle;
+        hasChanges = true;
       }
-      if (cadastreData.surfaceParcelle && cadastreData.surfaceParcelle > 0 && !carac.surfaceTerrain) {
-        setCarac(prev => ({ ...prev, surfaceTerrain: cadastreData.surfaceParcelle.toString() }));
-        updated = true;
+      if (cadastreData.surfaceParcelle && cadastreData.surfaceParcelle > 0) {
+        const newSurface = cadastreData.surfaceParcelle.toString();
+        if (newSurface !== carac.surfaceTerrain) {
+          updates.surfaceTerrain = newSurface;
+          hasChanges = true;
+        }
       }
-      if (cadastreData.zone && !carac.zone) {
-        setCarac(prev => ({ ...prev, zone: cadastreData.zone }));
-        updated = true;
+      if (cadastreData.zone && cadastreData.zone !== carac.zone) {
+        updates.zone = cadastreData.zone;
+        hasChanges = true;
       }
       
-      if (updated) {
+      if (hasChanges) {
+        setCarac(prev => ({ ...prev, ...updates }));
         setCadastreFetched(true);
-        toast.success('Données cadastre pré-remplies depuis Module 1');
+        toast.success('Données cadastre synchronisées depuis Module 1');
       }
     }
-  }, [estimation, carac.typeBien, cadastreFetched]);
+  }, [estimation?.identification?.adresse?.cadastreData, carac.typeBien]);
 
   const loadEstimation = async () => {
     if (!id) return;

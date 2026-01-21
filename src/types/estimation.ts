@@ -284,6 +284,10 @@ export interface Adresse {
     lat: number;
     lng: number;
   };
+  cadastreCoordinates?: {
+    lat: number;
+    lng: number;
+  }; // Coordonnées ajustées pour le cadastre (si différent de l'adresse)
   placeId?: string; // Google Places ID
   loading?: boolean;
   mapState?: MapState; // État de la carte Google Maps
