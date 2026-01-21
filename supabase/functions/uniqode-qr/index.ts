@@ -131,20 +131,74 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
 
     const qrData = await createResponse.json();
     const qrId = qrData.id;
-
     const trackingUrl = qrData.url || qrData.short_url || qrData.tracking_link || null;
 
-    // The Uniqode image download endpoint we tried returns 404 in this account/config.
-    // To always display a working QR inside the app, we generate a data URL from the tracking URL.
-    // Scanning it redirects to the configured destination URL (as Uniqode manages the redirect).
+    // Try to get the QR image URL from Uniqode
+    // Option 1: Fetch the QR code details to get the actual image URL (not template)
     let qrImageUrl: string | null = null;
-    try {
-      const textToEncode = trackingUrl || destinationUrl;
-      const svg = renderSVG(textToEncode);
-      qrImageUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-    } catch (e) {
-      console.error('Failed to generate QR data URL:', e);
-      qrImageUrl = null;
+    
+    if (qrId) {
+      // Wait a short moment for Uniqode to generate the image
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Fetch QR code details to get the actual image URL
+      const detailsResponse = await fetch(`${UNIQODE_API_BASE}/qrcodes/${qrId}/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (detailsResponse.ok) {
+        const detailsData = await detailsResponse.json();
+        console.log('QR details response:', JSON.stringify(detailsData, null, 2));
+        
+        // Try various possible fields for image URL
+        qrImageUrl = 
+          detailsData.image_url ||
+          detailsData.png_url ||
+          detailsData.download_url ||
+          detailsData.qr_image ||
+          detailsData.attributes?.image_url ||
+          null;
+          
+        // If we have attributes with a thumbnail that matches THIS QR id (not template)
+        if (!qrImageUrl && detailsData.attributes) {
+          const attrs = detailsData.attributes;
+          // Check if thumbnail URLs contain the QR id (not template id)
+          if (attrs.thumbnail_url_png && attrs.thumbnail_url_png.includes(`/${qrId}/`)) {
+            qrImageUrl = attrs.thumbnail_url_png;
+          } else if (attrs.thumbnail_url && attrs.thumbnail_url.includes(`/${qrId}/`)) {
+            qrImageUrl = attrs.thumbnail_url;
+          }
+        }
+        
+        // Construct URL based on pattern (organization/qr-codes/qrId/png/qrcode-512.png)
+        if (!qrImageUrl) {
+          const constructedUrl = `https://beaconstac-content.s3.amazonaws.com/${ORGANIZATION_ID}/qr-codes/${qrId}/png/qrcode-512.png`;
+          // Test if this URL is accessible
+          try {
+            const testResponse = await fetch(constructedUrl, { method: 'HEAD' });
+            if (testResponse.ok) {
+              qrImageUrl = constructedUrl;
+            }
+          } catch (e) {
+            console.log('Constructed URL not accessible:', constructedUrl);
+          }
+        }
+      }
+    }
+
+    // Fallback: generate SVG locally if no Uniqode image URL available
+    if (!qrImageUrl && trackingUrl) {
+      try {
+        const svg = renderSVG(trackingUrl);
+        qrImageUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+        console.log('Using fallback SVG generation');
+      } catch (e) {
+        console.error('Failed to generate fallback SVG:', e);
+      }
     }
 
     return new Response(
@@ -216,7 +270,7 @@ async function handleStats(body: StatsQRRequest, apiKey: string): Promise<Respon
       return new Response(
         JSON.stringify({
           success: true,
-          totalScans: qrInfo.total_scans || qrInfo.scan_count || 0,
+          totalScans: qrInfo.total_scans || qrInfo.scan_count || qrInfo.scans || 0,
           scansByDay: [],
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
