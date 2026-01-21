@@ -29,6 +29,8 @@ import AdminComparables from "./pages/admin/AdminComparables";
 import AdminCommissions from "./pages/admin/AdminCommissions";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
+import EtudiantMissions from "./pages/etudiant/EtudiantMissions";
+import EtudiantProfil from "./pages/etudiant/EtudiantProfil";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -161,6 +163,28 @@ function AppWithWarning() {
               <CampagneDetail />
             </ProtectedRoute>
           }
+        />
+        
+        {/* Espace Étudiant */}
+        <Route
+          path="/etudiant/missions"
+          element={
+            <ProtectedRoute>
+              <EtudiantMissions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/etudiant/profil"
+          element={
+            <ProtectedRoute>
+              <EtudiantProfil />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/etudiant"
+          element={<Navigate to="/etudiant/missions" replace />}
         />
         
         {/* Estimation Overview */}
