@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { renderSVG } from "https://esm.sh/uqr@0.1.2";
 
 const corsHeaders = {
@@ -136,16 +135,16 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
 
     console.log('QR created with ID:', qrId, 'trackingUrl:', trackingUrl);
 
-    // Download the branded QR image using Uniqode download endpoint
+    // Get the branded QR image URL from Uniqode download endpoint
     let qrImageUrl: string | null = null;
     
     if (qrId) {
       // Wait for Uniqode to finish generating the image with template
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Download the PNG with custom design (logo GARY, colors, frame)
+      // Call the download endpoint to get the PNG URL
       const downloadUrl = `https://api.beaconstac.com/api/2.0/qrcodes/${qrId}/download/?size=1024&canvas_type=png`;
-      console.log('Downloading QR image from:', downloadUrl);
+      console.log('Fetching QR image URL from:', downloadUrl);
       
       try {
         const downloadResponse = await fetch(downloadUrl, {
@@ -156,21 +155,34 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
         });
 
         if (downloadResponse.ok) {
-          // Get binary data and convert to base64
-          const imageBuffer = await downloadResponse.arrayBuffer();
-          const base64Image = base64Encode(imageBuffer);
-          qrImageUrl = `data:image/png;base64,${base64Image}`;
-          console.log('Successfully downloaded branded QR image, size:', imageBuffer.byteLength);
+          const contentType = downloadResponse.headers.get('content-type') || '';
+          
+          if (contentType.includes('application/json')) {
+            // Endpoint returns JSON with URLs
+            const jsonData = await downloadResponse.json();
+            console.log('Download endpoint returned JSON:', JSON.stringify(jsonData));
+            
+            // Extract the PNG URL from the response
+            qrImageUrl = jsonData.urls?.png || jsonData.png || jsonData.url || null;
+            
+            if (qrImageUrl) {
+              console.log('Got branded QR image URL:', qrImageUrl);
+            }
+          } else if (contentType.includes('image/')) {
+            // If it's actually binary image data, we still need to handle it
+            // But store as URL would need uploading to storage, so use fallback
+            console.log('Endpoint returned binary image, using fallback');
+          }
         } else {
           const errorText = await downloadResponse.text();
           console.error('Download endpoint error:', downloadResponse.status, errorText);
         }
       } catch (e) {
-        console.error('Failed to download QR image:', e);
+        console.error('Failed to get QR image URL:', e);
       }
     }
 
-    // Fallback: generate SVG locally if download failed
+    // Fallback: generate SVG locally if no URL available
     if (!qrImageUrl && trackingUrl) {
       try {
         const svg = renderSVG(trackingUrl);
