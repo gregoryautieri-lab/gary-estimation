@@ -17,15 +17,10 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
   const query = useQuery({
     queryKey: [...QUERY_KEY, options],
     queryFn: async (): Promise<Campagne[]> => {
+      // Requête campagnes
       let queryBuilder = supabase
         .from('campagnes')
-        .select(`
-          *,
-          profiles:courtier_id (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (options.courtier_id) {
@@ -44,16 +39,32 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
         queryBuilder = queryBuilder.eq('commune', options.commune);
       }
 
-      const { data, error } = await queryBuilder;
+      const { data: campagnesData, error: campagnesError } = await queryBuilder;
 
-      if (error) throw error;
-      
-      // Map profiles data to courtier_name and courtier_email
-      return (data || []).map((campagne: any) => ({
+      if (campagnesError) throw campagnesError;
+      if (!campagnesData || campagnesData.length === 0) return [];
+
+      // Récupérer les IDs uniques des courtiers
+      const courtierIds = [...new Set(campagnesData.map(c => c.courtier_id))];
+
+      // Requête profiles pour récupérer les noms
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', courtierIds);
+
+      if (profilesError) throw profilesError;
+
+      // Créer un map pour lookup rapide
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.user_id, { full_name: p.full_name, email: p.email }])
+      );
+
+      // Fusionner les données
+      return campagnesData.map((campagne) => ({
         ...campagne,
-        courtier_name: campagne.profiles?.full_name || null,
-        courtier_email: campagne.profiles?.email || null,
-        profiles: undefined, // Remove the nested profiles object
+        courtier_name: profilesMap.get(campagne.courtier_id)?.full_name || null,
+        courtier_email: profilesMap.get(campagne.courtier_id)?.email || null,
       })) as Campagne[];
     },
   });
