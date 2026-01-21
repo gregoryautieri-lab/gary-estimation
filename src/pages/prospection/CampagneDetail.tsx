@@ -611,6 +611,7 @@ export default function CampagneDetail() {
         open={showMissionModal}
         onOpenChange={setShowMissionModal}
         campagneId={campagne.id}
+        commune={campagne.commune}
         secteurs={campagne.secteurs}
         mission={selectedMission}
         courriersRestants={stats.courriersRestants}
