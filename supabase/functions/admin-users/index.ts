@@ -86,8 +86,13 @@ const handler = async (req: Request): Promise<Response> => {
     switch (action) {
       case "delete":
         // Delete user completely from auth.users (cascades to profiles and roles)
+        console.log(`Attempting to delete user: ${target_user_id}`);
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(target_user_id);
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+          console.error("Delete error:", deleteError);
+          throw deleteError;
+        }
+        console.log(`User ${target_user_id} deleted successfully`);
         result = { success: true, message: "User deleted successfully" };
         break;
 
@@ -136,8 +141,11 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Admin users error:", error);
+    const errorMessage = error.message || error.toString();
+    const errorCode = error.code || "UNKNOWN";
+    console.error(`Error code: ${errorCode}, Message: ${errorMessage}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage, code: errorCode }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
