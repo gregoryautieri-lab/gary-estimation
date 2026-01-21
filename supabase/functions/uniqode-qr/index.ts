@@ -111,12 +111,7 @@ async function handleCreate(body: CreateQRRequest, apiKey: string): Promise<Resp
           content_type: 1, // Website URL
           custom_url: destinationUrl,
         },
-        attributes: {
-          color: '#FA4238', // GARY primary color
-          backgroundColor: '#FFFFFF',
-          margin: 1,
-          isVCard: false,
-        },
+        template: 10067345, // GARY branded template (logo, colors, frame)
       }),
     });
 
