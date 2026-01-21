@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.import-popety]
 verify_jwt = false
+
+[functions.parse-strava-screenshot]
+verify_jwt = false
