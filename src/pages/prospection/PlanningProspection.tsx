@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Mail, ClipboardList, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Mail, ClipboardList, Plus, ArrowLeft } from 'lucide-react';
 import { format, addWeeks, subWeeks, startOfWeek, addDays, isToday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { usePlanningMissions, type PlanningMission } from '@/hooks/usePlanningMissions';
@@ -13,6 +14,7 @@ import { CreateMissionModal } from '@/components/prospection/CreateMissionModal'
 const JOURS_SEMAINE = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 export default function PlanningProspection() {
+  const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { locale: fr, weekStartsOn: 1 })
   );
@@ -72,6 +74,9 @@ export default function PlanningProspection() {
           <div className="container max-w-7xl mx-auto px-4 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/campagnes')}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
                 <Calendar className="h-6 w-6 text-primary" />
                 <h1 className="text-xl font-bold">Planning Prospection</h1>
               </div>
