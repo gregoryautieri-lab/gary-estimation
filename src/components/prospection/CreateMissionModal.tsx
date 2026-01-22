@@ -161,7 +161,9 @@ export function CreateMissionModal({
 
       if (assigneType === 'etudiant' && assigneId) {
         payload.etudiant_id = assigneId;
-      } else if (assigneType === 'courtier' && campagneSelected) {
+      } else if (campagneSelected) {
+        // Par défaut, assigner au courtier de la campagne
+        // Cela inclut le cas "none" et "courtier"
         payload.courtier_id = campagneSelected.courtier_id;
       }
 
@@ -267,7 +269,7 @@ export function CreateMissionModal({
                 <SelectValue placeholder="Non assigné" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Non assigné</SelectItem>
+                <SelectItem value="none">Courtier (par défaut)</SelectItem>
                 <SelectItem value="courtier">Courtier de la campagne</SelectItem>
                 <SelectGroup>
                   <SelectLabel>Étudiants</SelectLabel>
