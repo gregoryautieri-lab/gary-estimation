@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { subDays, format } from 'date-fns';
+import { subDays, format, isBefore, parseISO, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-export type AlerteType = 'courriers_non_assignes' | 'mission_sans_assigne' | 'a_relancer';
+export type AlerteType = 'courriers_non_assignes' | 'mission_sans_assigne' | 'a_relancer' | 'campagne_en_retard';
 export type AlerteNiveau = 'rouge' | 'orange' | 'jaune';
 
 export interface Alerte {
@@ -21,7 +22,7 @@ export function useProspectionAlertes() {
       const { data: campagnes, error } = await supabase
         .from('campagnes')
         .select(`
-          id, code, commune, nb_courriers, statut,
+          id, code, commune, nb_courriers, statut, date_fin,
           missions:missions(id, courriers_prevu, statut, date, etudiant_id, courtier_id, etudiant:etudiants(prenom))
         `)
         .in('statut', ['planifiee', 'en_cours']);
@@ -72,9 +73,25 @@ export function useProspectionAlertes() {
               message: `Relancer ${assigneName} - mission du ${m.date} (${c.commune})`,
               missionId: m.id,
               campagneId: c.id,
-            });
+          });
           }
         });
+
+        // 4. Campagne en retard (rouge) - date_fin passée et campagne non terminée
+        if (c.date_fin) {
+          const dateFin = parseISO(c.date_fin);
+          const aujourdhui = startOfDay(new Date());
+          
+          if (isBefore(dateFin, aujourdhui)) {
+            alertes.push({
+              id: `retard-${c.id}`,
+              type: 'campagne_en_retard',
+              niveau: 'rouge',
+              message: `Campagne ${c.commune} en retard (deadline: ${format(dateFin, 'd MMM', { locale: fr })})`,
+              campagneId: c.id,
+            });
+          }
+        }
       });
 
       // Trier: rouge en premier, puis orange, puis jaune
