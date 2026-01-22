@@ -247,11 +247,18 @@ function ZoneDrawerMap({
               placeholder="Rechercher une adresse..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // ZoneDrawer est souvent utilisé à l'intérieur d'un <form> (MissionFormModal)
+                  // -> éviter un submit involontaire qui ferme le modal.
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
               className="pl-9"
             />
           </div>
-          <Button variant="outline" size="icon" onClick={handleSearch}>
+          <Button type="button" variant="outline" size="icon" onClick={handleSearch}>
             <Search className="h-4 w-4" />
           </Button>
         </div>
@@ -261,6 +268,7 @@ function ZoneDrawerMap({
       {!readOnly && (
         <div className="flex gap-2 flex-wrap">
           <Button
+            type="button"
             variant={drawingMode === 'polygon' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDrawingMode(drawingMode === 'polygon' ? null : 'polygon')}
@@ -269,6 +277,7 @@ function ZoneDrawerMap({
             Polygone
           </Button>
           <Button
+            type="button"
             variant={drawingMode === 'rectangle' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDrawingMode(drawingMode === 'rectangle' ? null : 'rectangle')}
@@ -277,6 +286,7 @@ function ZoneDrawerMap({
             Rectangle
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={handleClearZone}
@@ -321,6 +331,7 @@ function ZoneDrawerMap({
       {!readOnly && (
         <div className="flex flex-col gap-2">
           <Button
+            type="button"
             onClick={handleCapture}
             disabled={!hasZone || capturing}
             className="w-full"
