@@ -31,6 +31,7 @@ import AdminCommissions from "./pages/admin/AdminCommissions";
 import AdminProspection from "./pages/admin/AdminProspection";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
+import PlanningProspection from "./pages/prospection/PlanningProspection";
 import EtudiantMissions from "./pages/etudiant/EtudiantMissions";
 import EtudiantProfil from "./pages/etudiant/EtudiantProfil";
 import MissionValidation from "./pages/etudiant/MissionValidation";
@@ -172,6 +173,14 @@ function AppWithWarning() {
           element={
             <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
               <CampagneDetail />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/prospection/planning"
+          element={
+            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
+              <PlanningProspection />
             </RoleBasedRoute>
           }
         />

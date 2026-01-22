@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Megaphone,
   Settings2,
+  CalendarDays,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
@@ -258,6 +259,15 @@ export default function Campagnes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton Planning */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/prospection/planning')}
+            >
+              <CalendarDays className="h-4 w-4 mr-1" />
+              Planning
+            </Button>
             {canAccessAdmin && (
               <Button 
                 variant="outline" 
