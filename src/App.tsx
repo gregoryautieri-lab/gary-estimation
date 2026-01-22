@@ -121,33 +121,33 @@ function AppWithWarning() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin']}>
               <Admin />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/admin/analytics"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin']}>
               <AdminAnalytics />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/admin/comparables"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin']}>
               <AdminComparables />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
           path="/admin/commissions"
           element={
-            <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['admin']}>
               <AdminCommissions />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           }
         />
         <Route
