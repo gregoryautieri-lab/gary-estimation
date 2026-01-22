@@ -6,6 +6,7 @@ import type { MissionStatut } from '@/types/prospection';
 
 interface MissionPlanningCardProps {
   mission: PlanningMission;
+  onClick?: () => void;
 }
 
 const statutConfig: Record<MissionStatut, { label: string; className: string }> = {
@@ -15,7 +16,7 @@ const statutConfig: Record<MissionStatut, { label: string; className: string }> 
   annulee: { label: 'Annulée', className: 'bg-gray-100 text-gray-500 hover:bg-gray-100' },
 };
 
-export function MissionPlanningCard({ mission }: MissionPlanningCardProps) {
+export function MissionPlanningCard({ mission, onClick }: MissionPlanningCardProps) {
   const config = statutConfig[mission.statut] || statutConfig.prevue;
 
   const getAssigneeName = (): string => {
@@ -33,7 +34,7 @@ export function MissionPlanningCard({ mission }: MissionPlanningCardProps) {
     : `${mission.courriers_prevu}`;
 
   return (
-    <Card className="border shadow-sm hover:shadow-md transition-shadow">
+    <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardContent className="p-3 space-y-2">
         {/* Statut badge */}
         <Badge variant="secondary" className={config.className}>

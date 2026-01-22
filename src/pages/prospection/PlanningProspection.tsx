@@ -10,6 +10,8 @@ import { useProspectionAlertes } from '@/hooks/useProspectionAlertes';
 import { MissionPlanningCard } from '@/components/prospection/MissionPlanningCard';
 import { AlertesProspection } from '@/components/prospection/AlertesProspection';
 import { CreateMissionModal } from '@/components/prospection/CreateMissionModal';
+import { MissionFormModal } from '@/components/prospection/MissionFormModal';
+import type { Mission } from '@/types/prospection';
 
 const JOURS_SEMAINE = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -20,6 +22,7 @@ export default function PlanningProspection() {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grille' | 'liste'>('grille');
+  const [selectedMission, setSelectedMission] = useState<PlanningMission | null>(null);
 
   const { data: missions = [], isLoading, refetch } = usePlanningMissions({ weekStart: currentWeekStart });
   const { data: alertes = [], isLoading: alertesLoading } = useProspectionAlertes();
@@ -161,7 +164,11 @@ export default function PlanningProspection() {
                               </p>
                             ) : (
                               dayMissions.map(mission => (
-                                <MissionPlanningCard key={mission.id} mission={mission} />
+                                <MissionPlanningCard 
+                                  key={mission.id} 
+                                  mission={mission} 
+                                  onClick={() => setSelectedMission(mission)}
+                                />
                               ))
                             )}
                           </div>
@@ -196,7 +203,11 @@ export default function PlanningProspection() {
                               </p>
                             ) : (
                               dayMissions.map(mission => (
-                                <MissionPlanningCard key={mission.id} mission={mission} />
+                                <MissionPlanningCard 
+                                  key={mission.id} 
+                                  mission={mission} 
+                                  onClick={() => setSelectedMission(mission)}
+                                />
                               ))
                             )}
                           </div>
@@ -244,6 +255,7 @@ export default function PlanningProspection() {
                                 <div 
                                   key={mission.id}
                                   className="flex items-center justify-between py-3 px-4 hover:bg-muted/50 cursor-pointer"
+                                  onClick={() => setSelectedMission(mission)}
                                 >
                                   <div className="flex items-center gap-3">
                                     {isTerminee ? (
@@ -333,6 +345,21 @@ export default function PlanningProspection() {
         onOpenChange={setModalOpen}
         onSuccess={() => refetch()}
       />
+
+      {/* Modal édition mission */}
+      {selectedMission && selectedMission.campagne && (
+        <MissionFormModal
+          open={!!selectedMission}
+          onOpenChange={(open) => !open && setSelectedMission(null)}
+          campagneId={selectedMission.campagne.id}
+          commune={selectedMission.campagne.commune}
+          mission={selectedMission as unknown as Mission}
+          onSuccess={() => { 
+            setSelectedMission(null); 
+            refetch(); 
+          }}
+        />
+      )}
     </>
   );
 }
