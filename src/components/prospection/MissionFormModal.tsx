@@ -254,7 +254,32 @@ export function MissionFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-lg max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          // Empêcher la fermeture si on clique sur un élément Google Maps (portail externe)
+          const target = e.target as HTMLElement;
+          if (
+            target.closest('.gm-style') ||
+            target.closest('[class*="gm-"]') ||
+            target.closest('.pac-container') ||
+            document.querySelector('.gm-style')?.contains(target)
+          ) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Même logique pour les interactions en dehors
+          const target = e.target as HTMLElement;
+          if (
+            target.closest('.gm-style') ||
+            target.closest('[class*="gm-"]') ||
+            target.closest('.pac-container')
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? 'Modifier la mission' : 'Nouvelle mission'}
