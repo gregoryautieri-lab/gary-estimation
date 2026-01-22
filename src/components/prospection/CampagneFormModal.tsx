@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,7 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -79,6 +79,9 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
 
   const isEditMode = !!campagne;
   const canViewAll = isAdmin || isResponsableProspection;
+
+  // State pour la date de fin calculée (dimanche de la semaine)
+  const [dateFin, setDateFin] = useState<Date | null>(null);
 
   // Vérifier les permissions
   const canEdit = useMemo(() => {
@@ -142,6 +145,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
     if (open) {
       if (campagne) {
         // Mode édition
+        const dateDebutEdit = campagne.date_debut ? new Date(campagne.date_debut) : null;
         reset({
           courtier_id: campagne.courtier_id,
           commune: campagne.commune,
@@ -151,10 +155,18 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
           nb_flyers: campagne.nb_flyers,
           cout_unitaire_courrier: campagne.cout_unitaire_courrier ?? 0,
           cout_unitaire_flyer: campagne.cout_unitaire_flyer,
-          date_debut: campagne.date_debut ? new Date(campagne.date_debut) : null,
+          date_debut: dateDebutEdit,
           qr_destination_url: campagne.qr_destination_url || '',
           notes: campagne.notes || '',
         });
+        // Initialiser dateFin depuis la campagne ou recalculer
+        if (campagne.date_fin) {
+          setDateFin(new Date(campagne.date_fin));
+        } else if (dateDebutEdit) {
+          setDateFin(endOfWeek(dateDebutEdit, { weekStartsOn: 1 }));
+        } else {
+          setDateFin(null);
+        }
       } else {
         // Mode création
         reset({
@@ -170,9 +182,26 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
           qr_destination_url: '',
           notes: '',
         });
+        setDateFin(null);
       }
     }
   }, [open, campagne, reset, user?.id, canViewAll]);
+
+  // Fonction pour gérer la sélection de date (calcul auto lundi/dimanche)
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (!selectedDate) {
+      setValue('date_debut', null);
+      setDateFin(null);
+      return;
+    }
+    // Calculer le lundi de la semaine
+    const lundi = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    // Calculer le dimanche
+    const dimanche = endOfWeek(selectedDate, { weekStartsOn: 1 });
+    
+    setValue('date_debut', lundi);
+    setDateFin(dimanche);
+  };
 
   // Calcul du coût total en temps réel
   const coutTotal = useMemo(() => {
@@ -195,6 +224,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
         cout_unitaire_flyer: data.cout_unitaire_flyer,
         cout_total: coutTotal,
         date_debut: data.date_debut ? format(data.date_debut, 'yyyy-MM-dd') : null,
+        date_fin: dateFin ? format(dateFin, 'yyyy-MM-dd') : null,
         qr_destination_url: data.qr_destination_url || null,
         notes: data.notes || null,
         statut: 'brouillon' as const,
@@ -262,6 +292,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
         cout_unitaire_flyer: data.cout_unitaire_flyer,
         cout_total: coutTotal,
         date_debut: data.date_debut ? format(data.date_debut, 'yyyy-MM-dd') : null,
+        date_fin: dateFin ? format(dateFin, 'yyyy-MM-dd') : null,
         qr_destination_url: data.qr_destination_url || null,
         notes: data.notes || null,
       };
@@ -583,14 +614,21 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
                       <Calendar
                         mode="single"
                         selected={field.value || undefined}
-                        onSelect={(date) => field.onChange(date || null)}
+                        onSelect={handleDateSelect}
                         locale={fr}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
                 )}
               />
+              {/* Affichage de la semaine calculée */}
+              {watch('date_debut') && dateFin && (
+                <p className="text-sm text-muted-foreground">
+                  Semaine : {format(watch('date_debut')!, 'EEE d MMM', { locale: fr })} → {format(dateFin, 'EEE d MMM yyyy', { locale: fr })}
+                </p>
+              )}
             </div>
 
             {/* URL QR */}
