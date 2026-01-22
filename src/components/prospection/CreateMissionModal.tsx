@@ -248,9 +248,9 @@ export function CreateMissionModal({
           <div className="space-y-2">
             <Label>Assigné à</Label>
             <Select
-              value={assigneType === 'none' ? '' : `${assigneType}:${assigneId}`}
+              value={assigneType === 'none' ? 'none' : (assigneType === 'courtier' ? 'courtier' : `etudiant:${assigneId}`)}
               onValueChange={(val) => {
-                if (!val) {
+                if (val === 'none' || !val) {
                   setAssigneType('none');
                   setAssigneId('');
                 } else if (val === 'courtier') {
@@ -267,7 +267,7 @@ export function CreateMissionModal({
                 <SelectValue placeholder="Non assigné" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Non assigné</SelectItem>
+                <SelectItem value="none">Non assigné</SelectItem>
                 <SelectItem value="courtier">Courtier de la campagne</SelectItem>
                 <SelectGroup>
                   <SelectLabel>Étudiants</SelectLabel>
