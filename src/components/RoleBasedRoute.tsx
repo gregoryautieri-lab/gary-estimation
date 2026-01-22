@@ -22,7 +22,7 @@ export const RoleBasedRoute = ({
   redirectTo 
 }: RoleBasedRouteProps) => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { roles, isLoading: rolesLoading, isEtudiant } = useUserRole();
+  const { roles, isLoading: rolesLoading } = useUserRole();
 
   const isLoading = authLoading || rolesLoading;
 
@@ -47,11 +47,7 @@ export const RoleBasedRoute = ({
       return <Navigate to={redirectTo} replace />;
     }
     
-    // Default redirects based on role
-    if (isEtudiant) {
-      return <Navigate to="/etudiant/missions" replace />;
-    }
-    
+    // Default redirect
     return <Navigate to="/" replace />;
   }
 

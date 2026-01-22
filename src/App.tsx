@@ -32,9 +32,6 @@ import AdminProspection from "./pages/admin/AdminProspection";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
 import PlanningProspection from "./pages/prospection/PlanningProspection";
-import EtudiantMissions from "./pages/etudiant/EtudiantMissions";
-import EtudiantProfil from "./pages/etudiant/EtudiantProfil";
-import MissionValidation from "./pages/etudiant/MissionValidation";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -185,35 +182,6 @@ function AppWithWarning() {
           }
         />
         
-        {/* Espace Étudiant - accessible uniquement aux étudiants */}
-        <Route
-          path="/etudiant/missions"
-          element={
-            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
-              <EtudiantMissions />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/etudiant/profil"
-          element={
-            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
-              <EtudiantProfil />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/etudiant/mission/:id"
-          element={
-            <RoleBasedRoute allowedRoles={['etudiant']} redirectTo="/">
-              <MissionValidation />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/etudiant"
-          element={<Navigate to="/etudiant/missions" replace />}
-        />
         
         {/* Estimation Overview */}
         <Route
