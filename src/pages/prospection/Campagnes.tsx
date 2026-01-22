@@ -6,6 +6,7 @@ import { useCampagnes } from '@/hooks/useCampagnes';
 import { useSupportsProspection } from '@/hooks/useSupportsProspection';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { isBefore, parseISO, startOfDay } from 'date-fns';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { CampagneFormModal } from '@/components/prospection/CampagneFormModal';
@@ -91,6 +92,11 @@ function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () =>
     ? campagne.courtier_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
+  // Calcul si la campagne est en retard
+  const isEnRetard = campagne.date_fin && 
+    campagne.statut !== 'terminee' && 
+    isBefore(parseISO(campagne.date_fin), startOfDay(new Date()));
+
   return (
     <button
       onClick={onClick}
@@ -98,13 +104,18 @@ function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () =>
     >
       {/* Code & infos principales */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="font-mono font-semibold text-sm text-primary">
             {campagne.code}
           </span>
           <Badge className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
             {CAMPAGNE_STATUT_LABELS[campagne.statut]}
           </Badge>
+          {isEnRetard && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/50 text-destructive bg-destructive/10 font-medium">
+              En retard
+            </Badge>
+          )}
         </div>
         <p className="text-sm text-foreground truncate">
           {campagne.commune}
