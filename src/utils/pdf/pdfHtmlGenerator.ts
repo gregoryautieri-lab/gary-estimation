@@ -2700,13 +2700,13 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(adresse.rue)} ${val(adresse.numero)}, ${val(adresse.codePostal)} ${val(adresse.localite)}</p>`;
   html += '</div>';
   
-  // Cartes empilées verticalement (format carré) avec transports en bas
-  html += '<div style="padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;height:calc(100% - 150px);">';
+  // Cartes empilées verticalement (1 sur l'autre) avec transports en bas
+  html += '<div style="padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
   
-  // Carte Google Maps - carré
-  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;">';
+  // Carte Google Maps - carrée
+  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;">';
   html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGlobe} Vue satellite</div>`;
-  html += '<div style="flex:1;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
+  html += '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
   if (googleMapImage) {
     html += `<img src="${googleMapImage}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   } else {
@@ -2715,10 +2715,10 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += '</div>';
   html += '</div>';
   
-  // Carte Swisstopo avec pin central - carré
-  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;">';
+  // Carte Swisstopo avec pin central - carrée
+  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;">';
   html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGrid} Plan cadastral officiel</div>`;
-  html += '<div style="flex:1;border-radius:6px;overflow:hidden;position:relative;">';
+  html += '<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;position:relative;">';
   html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   // Pin central overlay
   html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:10;">';
