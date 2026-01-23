@@ -2551,17 +2551,18 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   const adresse = identification.adresse || {};
   const mapState = adresse.mapState || {};
   const coordinates = adresse.coordinates || {};
-  const proximites = identification.proximites || [];
+  const cadastreCoordinates = adresse.cadastreCoordinates || {};
+  const proximites = identification.proximites || {};
   
-  // Récupérer lat/lng depuis coordinates ou mapState
-  const mapLat = coordinates.lat || mapState.center?.lat;
-  const mapLng = coordinates.lng || mapState.center?.lng;
+  // PRIORITÉ: cadastreCoordinates (ajustées par l'utilisateur) > coordinates (originales) > mapState
+  const mapLat = cadastreCoordinates.lat || coordinates.lat || mapState.center?.lat;
+  const mapLng = cadastreCoordinates.lng || coordinates.lng || mapState.center?.lng;
   
   if (!mapLat || !mapLng) return '';
   
   const mapZoom = mapState.zoom || 18;
   const mapType = mapState.mapType || 'hybrid';
-  const swissZoom = 19;
+  const swissZoom = adresse.cadastreZoom || 19;
   const swissLat = mapLat;
   const swissLng = mapLng;
   
