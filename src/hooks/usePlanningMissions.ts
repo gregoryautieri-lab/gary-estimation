@@ -44,7 +44,7 @@ export function usePlanningMissions({ weekStart }: UsePlanningMissionsOptions) {
           id, date, statut, courriers_prevu, courriers_distribues,
           secteur_nom, etudiant_id, courtier_id,
           etudiant:etudiants(id, prenom, nom),
-          campagne:campagnes(id, code, commune)
+          campagne:campagnes!fk_missions_campagne(id, code, commune)
         `)
         .gte('date', debutSemaine)
         .lte('date', finSemaine)
