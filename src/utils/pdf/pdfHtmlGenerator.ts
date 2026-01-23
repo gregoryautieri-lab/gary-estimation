@@ -2639,11 +2639,15 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += '</div>';
   html += '</div>';
   
-  // Carte Swisstopo
+  // Carte Swisstopo avec pin central
   html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
   html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGrid} Plan cadastral officiel</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;">';
+  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;position:relative;">';
   html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  // Pin central overlay
+  html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:10;">';
+  html += '<svg width="24" height="24" viewBox="0 0 24 24" fill="#FA4538" stroke="#fff" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="#fff"/></svg>';
+  html += '</div>';
   html += '</div>';
   html += '</div>';
   
@@ -2757,7 +2761,13 @@ export async function generatePDFHtml(
   
   // Pré-charger l'image Google Maps si des coordonnées sont disponibles
   const adresseCheck = (estimation.identification as any)?.adresse || {};
-  const coordsCheck = adresseCheck.coordinates || {};
+  const cadastreCoordsCheck = adresseCheck.cadastreCoordinates || {};
+  const originalCoordsCheck = adresseCheck.coordinates || {};
+  // PRIORITÉ: cadastreCoordinates (ajustées) > coordinates (originales)
+  const coordsCheck = {
+    lat: cadastreCoordsCheck.lat || originalCoordsCheck.lat,
+    lng: cadastreCoordsCheck.lng || originalCoordsCheck.lng
+  };
   const mapStateCheck = adresseCheck.mapState || {};
   
   // Vérifier les données pour calcul dynamique du nombre de pages
