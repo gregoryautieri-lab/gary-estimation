@@ -1530,47 +1530,107 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
   const isAppartement = bien.type === 'appartement' || carac.typeBien === 'appartement';
   const isMaison = bien.type === 'maison' || carac.typeBien === 'maison';
   
-  // === CALCULS SURFACES APPARTEMENT ===
+  // ============================================
+  // CALCULS IDENTIQUES À useEstimationCalcul.ts
+  // ============================================
+  
+  // === APPARTEMENT - Surface pondérée GARY ===
+  // Coefficients officiels GARY:
+  // - Habitable: 100%
+  // - Sous-sol (cave incluse dans PPE): 50%
+  // - Balcon: 50%
+  // - Terrasse: 33%
+  // - Jardin: 10%
   const surfacePPE = parseFloat(carac.surfacePPE) || 0;
   const surfaceNonHab = parseFloat(carac.surfaceNonHabitable) || 0;
   const surfaceBalcon = parseFloat(carac.surfaceBalcon) || 0;
   const surfaceTerrasse = parseFloat(carac.surfaceTerrasse) || 0;
   const surfaceJardin = parseFloat(carac.surfaceJardin) || 0;
-  const surfacePonderee = surfacePPE + (surfaceNonHab * 0.5) + (surfaceBalcon * 0.5) + (surfaceTerrasse * 0.33) + (surfaceJardin * 0.1);
   
-  // === CALCULS MAISON ===
-  const surfaceTerrain = parseFloat(carac.surfaceTerrain) || 0;
+  // Surface habitable = PPE - non habitable (caves, etc.)
+  const surfaceHabitable = surfacePPE - surfaceNonHab;
+  
+  // Surface pondérée GARY complète (MÊME FORMULE que le hook)
+  const surfacePonderee = surfaceHabitable + 
+    (surfaceNonHab * 0.5) +  // Sous-sol/Cave à 50%
+    (surfaceBalcon * 0.5) + 
+    (surfaceTerrasse * 0.33) + 
+    (surfaceJardin * 0.1);
+  
+  // === MAISON - Cubage SIA ===
+  const surfaceHabMaison = parseFloat(carac.surfaceHabitableMaison) || 0;
   const surfaceUtile = parseFloat(carac.surfaceUtile) || 0;
-  const hauteurSousPlafond = parseFloat(carac.hauteurSousPlafond) || 2.5;
-  const cubage = surfaceUtile * hauteurSousPlafond;
-  const surfaceAmenagement = parseFloat(carac.surfaceAmenagement) || Math.max(0, surfaceTerrain - 200);
+  const surfaceTerrain = parseFloat(carac.surfaceTerrain) || 0;
+  const nombreNiveaux = parseFloat(carac.nombreNiveaux) || 1;
   
-  // === VALEURS PRÉ-ESTIMATION ===
-  const prixM2 = parseFloat(pre.prixM2) || 15000;
-  const valeurSurface = surfacePonderee * prixM2;
+  // Hauteurs personnalisables (ou défauts SIA)
+  const HAUTEUR_ETAGE_DEFAUT = 2.7;
+  const HAUTEUR_SOUS_SOL_DEFAUT = 2.4;
+  const HAUTEUR_COMBLES = 1.5;
+  
+  const hauteurEtage = parseFloat(carac.hauteurSousPlafond) || HAUTEUR_ETAGE_DEFAUT;
+  const hauteurSousSol = parseFloat(carac.hauteurSousSol) || HAUTEUR_SOUS_SOL_DEFAUT;
+  
+  // Surface sous-sol
+  const surfaceSousSolAuto = Math.max(0, surfaceUtile - surfaceHabMaison);
+  const surfaceSousSol = parseFloat(carac.surfaceSousSol) || surfaceSousSolAuto;
+  
+  // Emprise au sol estimée
+  const empriseAuSolEstimee = (nombreNiveaux + 1) > 0 
+    ? surfaceHabMaison / (nombreNiveaux + 1) 
+    : surfaceHabMaison;
+  
+  // Surface aménagements extérieurs
+  const surfaceAmenagementExtAuto = Math.max(0, surfaceTerrain - empriseAuSolEstimee);
+  const surfaceAmenagementExtManuel = parseFloat(pre.surfaceAmenagementManuel) || 0;
+  const surfaceAmenagement = surfaceAmenagementExtManuel > 0 
+    ? surfaceAmenagementExtManuel 
+    : surfaceAmenagementExtAuto;
+  
+  // Cubage SIA
+  const cubageHorsSol = surfaceHabMaison * hauteurEtage;
+  const cubageSousSol = surfaceSousSol * hauteurSousSol;
+  const comblesType = carac.comblesType || '';
+  const cubageCombles = comblesType === 'amenageables' ? empriseAuSolEstimee * HAUTEUR_COMBLES : 0;
+  const cubageAuto = cubageHorsSol + cubageSousSol + cubageCombles;
+  const cubageManuel = parseFloat(pre.cubageManuel) || 0;
+  const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
+  
+  // === PRIX AVEC VÉTUSTÉ (CRUCIAL) ===
+  const prixM2 = parseFloat(pre.prixM2) || 0;
+  const tauxVetuste = pre.tauxVetuste || 0;
+  const prixM2Ajuste = prixM2 * (1 - tauxVetuste / 100); // RÉDUCTION VÉTUSTÉ
+  
+  const prixM3 = parseFloat(pre.prixM3) || 0;
+  const tauxVetusteMaison = pre.tauxVetusteMaison || 0;
+  const prixM3Ajuste = prixM3 * (1 - tauxVetusteMaison / 100); // RÉDUCTION VÉTUSTÉ
+  
+  // === VALEURS APPARTEMENT ===
+  const valeurSurfaceBrute = surfacePonderee * prixM2;
+  const valeurSurface = surfacePonderee * prixM2Ajuste; // Avec réduction vétusté
   
   const nbPlaceInt = parseInt(carac.parkingInterieur) || 0;
   const nbPlaceExt = parseInt(carac.parkingExterieur) || 0;
-  const nbBox = parseInt(carac.boxFerme) || 0;
+  const nbBox = parseInt(carac.box) || parseInt(carac.boxFerme) || 0;
   const hasCave = carac.cave === true || carac.cave === 'oui';
   
-  const prixPlaceInt = parseFloat(pre.prixPlaceInterieur) || 50000;
-  const prixPlaceExt = parseFloat(pre.prixPlaceExterieur) || 30000;
-  const prixBox = parseFloat(pre.prixBox) || 60000;
-  const prixCave = parseFloat(pre.prixCave) || 15000;
+  // NOMS DE CHAMPS CORRECTS (prixPlaceInt, pas prixPlaceInterieur)
+  const prixPlaceInt = parseFloat(pre.prixPlaceInt) || 0;
+  const prixPlaceExt = parseFloat(pre.prixPlaceExt) || 0;
+  const prixBox = parseFloat(pre.prixBox) || 0;
+  const prixCave = parseFloat(pre.prixCave) || 0;
   
   const valeurPlaceInt = nbPlaceInt * prixPlaceInt;
   const valeurPlaceExt = nbPlaceExt * prixPlaceExt;
   const valeurBox = nbBox * prixBox;
   const valeurCave = hasCave ? prixCave : 0;
   
-  // Maison
-  const prixM2Terrain = parseFloat(pre.prixM2Terrain) || 2000;
-  const prixM3 = parseFloat(pre.prixM3) || 800;
-  const prixM2Amenagement = parseFloat(pre.prixM2Amenagement) || 150;
+  // === VALEURS MAISON ===
+  const prixM2Terrain = parseFloat(pre.prixM2Terrain) || 0;
+  const prixM2Amenagement = parseFloat(pre.prixM2Amenagement) || 0;
   
   const valeurTerrain = surfaceTerrain * prixM2Terrain;
-  const valeurCubage = cubage * prixM3;
+  const valeurCubage = cubage * prixM3Ajuste; // Avec réduction vétusté
   const valeurAmenagement = surfaceAmenagement * prixM2Amenagement;
   
   // Lignes supplémentaires
@@ -1587,28 +1647,40 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
     if (a && a.prix) valeurAnnexes += parseFloat(a.prix) || 0;
   });
   
-  // Total vénale
-  let totalVenale = 0;
-  if (isAppartement) {
-    totalVenale = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
-  } else {
-    totalVenale = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
-  }
-  const totalVenaleArrondi = Math.round(totalVenale / 5000) * 5000;
+  // === TOTAL VALEUR VENALE ===
+  const arrondir5000 = (val: number): number => Math.ceil(val / 5000) * 5000;
   
-  // Fourchette
-  const prixEntre = Math.round(totalVenaleArrondi * 0.97 / 5000) * 5000;
-  const prixEt = Math.round(totalVenaleArrondi * 1.03 / 5000) * 5000;
+  const totalVenaleAppart = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
+  const totalVenaleMaison = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
+  const totalVenale = isAppartement ? totalVenaleAppart : totalVenaleMaison;
+  const totalVenaleArrondi = arrondir5000(totalVenale);
   
-  // Valeur rendement
-  const loyerMensuel = parseFloat(pre.loyerMensuel) || 0;
-  const loyerAnnuel = loyerMensuel * 12;
-  const tauxCapitalisation = parseFloat(pre.tauxCapitalisation) || 2.5;
-  const valeurRendement = loyerAnnuel > 0 ? Math.round((loyerAnnuel / (tauxCapitalisation / 100)) / 5000) * 5000 : 0;
+  // === FOURCHETTE (±3%) ===
+  const prixEntre = arrondir5000(totalVenale * 0.97);
+  const prixEt = arrondir5000(totalVenale * 1.03);
   
-  // Valeur de gage (65% vénale)
-  const valeurGage = Math.round(totalVenaleArrondi * 0.65 / 5000) * 5000;
-  const valeurGageArrondi = valeurGage;
+  // === VALEUR RENDEMENT ===
+  const loyerMensuelSaisi = parseFloat(pre.loyerMensuel) || 0;
+  const valeurLocativeEstimee = parseFloat(pre.valeurLocativeEstimee) || 0;
+  const loyerBrut = loyerMensuelSaisi > 0 
+    ? loyerMensuelSaisi 
+    : (valeurLocativeEstimee > 0 ? valeurLocativeEstimee / 12 : 0);
+  const loyerMensuel = loyerBrut;
+  const tauxCharges = parseFloat(pre.tauxChargesLocatives as any) || 10;
+  const loyerNet = loyerBrut * (1 - tauxCharges / 100);
+  const loyerAnnuel = loyerNet * 12;
+  const tauxCapitalisation = (pre.tauxCapitalisation || 3.5);
+  const tauxCapi = tauxCapitalisation / 100;
+  const valeurRendement = tauxCapi > 0 && loyerAnnuel > 0 
+    ? arrondir5000(loyerAnnuel / tauxCapi) 
+    : 0;
+  
+  // === VALEUR DE GAGE (Formule bancaire suisse) ===
+  // Formule: (2 × Valeur vénale + Valeur de rendement) / 3
+  const valeurGage = valeurRendement > 0 
+    ? (2 * totalVenale + valeurRendement) / 3
+    : totalVenale * 0.85;
+  const valeurGageArrondi = arrondir5000(valeurGage);
   
   // === COMPARABLES ===
   const comparablesVendus = pre.comparablesVendus || [];
@@ -1681,7 +1753,9 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
   html += '</tr>';
   
   if (isAppartement) {
-    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Surface pondérée</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfacePonderee.toFixed(1)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurSurface)}</td></tr>`;
+    // Afficher le prix/m² ajusté si vétusté appliquée
+    const prixM2Label = tauxVetuste > 0 ? `${formatPriceLocal(prixM2Ajuste)} <span style="font-size:8px;color:#ef4444;">(-${tauxVetuste}%)</span>` : formatPriceLocal(prixM2Ajuste);
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Surface pondérée</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfacePonderee.toFixed(1)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${prixM2Label}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurSurface)}</td></tr>`;
     if (nbPlaceInt) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Places intérieures</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbPlaceInt}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixPlaceInt)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurPlaceInt)}</td></tr>`;
     if (nbPlaceExt) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Places extérieures</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbPlaceExt}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixPlaceExt)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurPlaceExt)}</td></tr>`;
     if (nbBox) html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Box fermé</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${nbBox}</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixBox)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurBox)}</td></tr>`;
@@ -1692,8 +1766,10 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
       }
     });
   } else {
+    // Maison - Afficher le prix/m³ ajusté si vétusté appliquée
+    const prixM3Label = tauxVetusteMaison > 0 ? `${formatPriceLocal(prixM3Ajuste)} <span style="font-size:8px;color:#ef4444;">(-${tauxVetusteMaison}%)</span>` : formatPriceLocal(prixM3Ajuste);
     html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Terrain</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfaceTerrain.toFixed(0)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2Terrain)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurTerrain)}</td></tr>`;
-    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Cubage construction</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${cubage.toFixed(0)} m³</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM3)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurCubage)}</td></tr>`;
+    html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Cubage construction</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${cubage.toFixed(0)} m³</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${prixM3Label}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurCubage)}</td></tr>`;
     html += `<tr><td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;">Aménagements ext.</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${surfaceAmenagement.toFixed(0)} m²</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #f1f5f9;">${formatPriceLocal(prixM2Amenagement)}</td><td style="padding:10px 16px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:600;">${formatPriceLocal(valeurAmenagement)}</td></tr>`;
     annexes.forEach((a: any) => {
       if (a && a.libelle && a.prix) {
