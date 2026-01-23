@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { generatePDFHtml } from "@/utils/pdf/pdfHtmlGenerator";
 import { EstimationData, PDFConfig } from "@/types/estimation";
 import { toast } from "sonner";
@@ -37,28 +31,19 @@ export function ExportPDFButton({ estimation, config, className }: ExportPDFButt
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={className}
-          disabled={exporting}
-        >
-          {exporting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <FileText className="h-4 w-4 mr-2" />
-          )}
-          Export PDF
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleDownload}>
-          <Download className="h-4 w-4 mr-2" />
-          Générer PDF
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="outline"
+      size="sm"
+      className={className}
+      disabled={exporting}
+      onClick={handleDownload}
+    >
+      {exporting ? (
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      ) : (
+        <FileText className="h-4 w-4 mr-2" />
+      )}
+      Export PDF
+    </Button>
   );
 }

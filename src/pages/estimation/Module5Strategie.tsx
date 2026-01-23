@@ -15,9 +15,8 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useStrategieLogic } from '@/hooks/useStrategieLogic';
 import { EstimationData, StrategiePitch, defaultStrategiePitch, PhaseDurees } from '@/types/estimation';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, FileDown, AlertTriangle, Presentation } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Clock, Rocket, MessageSquare, CheckSquare, BarChart3, Zap, Calendar, Settings2, RefreshCw, Sparkles, Users, Crown, AlertTriangle, Presentation } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { downloadEstimationPDF } from '@/utils/pdfExport';
 import { ExportPDFButton } from '@/components/estimation/ExportPDFButton';
 import { useLuxMode } from '@/hooks/useEstimationCalcul';
 import { supabase } from '@/integrations/supabase/client';
@@ -262,19 +261,6 @@ export default function Module5Strategie() {
 
   const handleNext = async () => {
     await handleSave();
-    
-    // Générer et télécharger le PDF automatiquement
-    if (estimation) {
-      try {
-        toast.loading('Génération du PDF...', { id: 'pdf-gen' });
-        await downloadEstimationPDF({ estimation });
-        toast.success('PDF téléchargé !', { id: 'pdf-gen' });
-      } catch (err) {
-        console.error('Erreur génération PDF:', err);
-        toast.error('Erreur lors de la génération du PDF', { id: 'pdf-gen' });
-      }
-    }
-    
     toast.success('Estimation terminée !');
     navigate(`/estimations`);
   };
