@@ -12,7 +12,7 @@ import {
   StrategiePitch,
   PhaseDurees 
 } from '@/types/estimation';
-import { addWeeks, format, parseISO, differenceInWeeks, nextMonday, startOfMonth, addMonths } from 'date-fns';
+import { addWeeks, format, parseISO, differenceInWeeks, nextMonday, startOfMonth, addMonths, isMonday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // ============================================
@@ -400,7 +400,7 @@ export const calculerPhasesDepuisDateIdeale = (
   }
   
   const debut = parseISO(dateDebut);
-  const venteIdeale = startOfMonth(parseISO(dateVenteIdeale));
+  const venteIdeale = parseISO(dateVenteIdeale);
   const semainesDisponibles = differenceInWeeks(venteIdeale, debut);
   
   const MIN_PHASE0 = 1;
@@ -571,8 +571,8 @@ export const calculerDatesPhases = (
   if (!dateDebut) return [];
   
   let currentDate = parseISO(dateDebut);
-  // Toujours démarrer un lundi
-  currentDate = nextMonday(currentDate);
+  // Démarrer un lundi (garder si déjà lundi, sinon lundi suivant)
+  currentDate = isMonday(currentDate) ? currentDate : nextMonday(currentDate);
   
   const phaseConfigs = getPhaseConfigs(typeMiseEnVente);
   const durees = [phaseDurees.phase0, phaseDurees.phase1, phaseDurees.phase2, phaseDurees.phase3];
