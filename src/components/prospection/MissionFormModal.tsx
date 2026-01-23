@@ -616,20 +616,39 @@ export function MissionFormModal({
                       )}
                     </CardContent>
                   </Card>
-                  {mission.strava_screenshot_url && (
-                    <a
-                      href={mission.strava_screenshot_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <img
-                        src={mission.strava_screenshot_url}
-                        alt="Screenshot Strava"
-                        className="w-full rounded-lg border"
-                      />
-                    </a>
-                  )}
+                  {/* Galerie Strava : affiche strava_screenshots si présent, sinon fallback sur strava_screenshot_url */}
+                  {(() => {
+                    const screenshots = mission.strava_screenshots?.length 
+                      ? mission.strava_screenshots 
+                      : mission.strava_screenshot_url 
+                        ? [mission.strava_screenshot_url] 
+                        : [];
+                    
+                    if (screenshots.length === 0) return null;
+                    
+                    return (
+                      <div className={cn(
+                        "grid gap-2",
+                        screenshots.length === 1 ? "grid-cols-1" : screenshots.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                      )}>
+                        {screenshots.map((url, index) => (
+                          <a
+                            key={index}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <img
+                              src={url}
+                              alt={`Screenshot Strava ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </>
             )}

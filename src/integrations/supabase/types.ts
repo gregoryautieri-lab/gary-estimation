@@ -561,6 +561,7 @@ export type Database = {
           statut: Database["public"]["Enums"]["mission_statut"]
           strava_distance_km: number | null
           strava_screenshot_url: string | null
+          strava_screenshots: string[] | null
           strava_temps: string | null
           strava_validated: boolean
           strava_vitesse_moy: number | null
@@ -582,6 +583,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["mission_statut"]
           strava_distance_km?: number | null
           strava_screenshot_url?: string | null
+          strava_screenshots?: string[] | null
           strava_temps?: string | null
           strava_validated?: boolean
           strava_vitesse_moy?: number | null
@@ -603,6 +605,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["mission_statut"]
           strava_distance_km?: number | null
           strava_screenshot_url?: string | null
+          strava_screenshots?: string[] | null
           strava_temps?: string | null
           strava_validated?: boolean
           strava_vitesse_moy?: number | null
