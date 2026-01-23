@@ -315,16 +315,13 @@ const EstimationsList = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🔄 [EstimationsList] useEffect triggered, user:', user?.id);
     if (user) {
       loadEstimations();
     }
   }, [user]);
 
   const loadEstimations = async () => {
-    console.log('📥 [EstimationsList] loadEstimations called');
     const data = await fetchEstimations();
-    console.log('📦 [EstimationsList] Data received:', data.length, 'items');
     setEstimations(data);
   };
 

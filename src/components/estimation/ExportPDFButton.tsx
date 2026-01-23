@@ -25,10 +25,7 @@ export function ExportPDFButton({ estimation, config, className }: ExportPDFButt
     try {
       await generatePDFHtml(estimation, {
         inclurePhotos: config?.inclurePhotos ?? true,
-        inclureCarte: config?.inclureCarte ?? true,
-        onProgress: (msg, pct) => {
-          console.log(`[PDF] ${msg} (${pct}%)`);
-        }
+        inclureCarte: config?.inclureCarte ?? true
       });
       toast.success("PDF généré ! Utilisez l'impression pour sauvegarder.");
     } catch (error) {

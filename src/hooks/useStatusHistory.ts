@@ -72,18 +72,17 @@ export function useStatusHistory(
         .eq('id', estimationId);
 
       if (updateError) {
-        console.error('❌ [StatusHistory] Erreur update statut:', updateError);
+        console.error('[StatusHistory] Erreur update statut:', updateError);
         toast.error('Erreur lors du changement de statut');
         return false;
       }
 
-      console.log(`✅ [StatusHistory] Statut changé: ${currentStatus} → ${newStatus}`);
       toast.success(`Statut changé: ${newStatus}`);
       
       options.onStatusChange?.(newStatus);
       return true;
     } catch (err) {
-      console.error('❌ [StatusHistory] Exception:', err);
+      console.error('[StatusHistory] Exception:', err);
       toast.error('Erreur lors du changement de statut');
       return false;
     }

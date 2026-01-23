@@ -46,12 +46,10 @@ export function useEstimationTracking(
         .insert(entries);
 
       if (error) {
-        console.error('❌ [Tracking] Erreur sauvegarde modifications:', error);
-      } else {
-        console.log(`📝 [Tracking] ${entries.length} modification(s) enregistrée(s)`);
+        console.error('[Tracking] Erreur sauvegarde modifications:', error);
       }
     } catch (err) {
-      console.error('❌ [Tracking] Exception:', err);
+      console.error('[Tracking] Exception:', err);
     }
   }, [estimationId, user]);
 
@@ -118,7 +116,7 @@ export function useEstimationTracking(
         }]);
 
       if (error) {
-        console.error('❌ [Tracking] Erreur création version:', error);
+        console.error('[Tracking] Erreur création version:', error);
         toast.error('Erreur lors de la création de version');
         return null;
       }
@@ -126,10 +124,9 @@ export function useEstimationTracking(
       if (!silentMode) {
         toast.success(`📸 Version ${newVersionNumber} créée`);
       }
-      console.log(`📸 [Tracking] Version ${newVersionNumber} créée: "${label}"`);
       return newVersionNumber;
     } catch (err) {
-      console.error('❌ [Tracking] Exception création version:', err);
+      console.error('[Tracking] Exception création version:', err);
       toast.error('Erreur lors de la création de version');
       return null;
     }
