@@ -1071,45 +1071,27 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase0} sem.</div>`;
   html += '</div>';
   
-  // Phase 1 - Labels dynamiques selon typeMiseEnVente
-  if (phase1Active) {
-    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
-    html += `<div style="margin-bottom:2px;">${ico(phaseConfig[0].iconName, 16, '#6b7280')}</div>`;
-    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phaseConfig[0].label}</div>`;
-    html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase1Start)}</div>`;
-    html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase1} sem.</div>`;
-    html += '</div>';
-  } else {
-    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:#f9fafb;border-radius:6px;border:1px dashed #e5e7eb;opacity:0.5;">`;
-    html += `<div style="margin-bottom:2px;">${ico(phaseConfig[0].iconName, 16, '#d1d5db')}</div>`;
-    html += `<div style="font-size:9px;font-weight:600;color:#9ca3af;">${phaseConfig[0].label}</div>`;
-    html += `<div style="font-size:7px;color:#d1d5db;margin-top:2px;">–</div>`;
-    html += `<div style="font-size:7px;color:#d1d5db;">Optionnel</div>`;
-    html += '</div>';
-  }
+  // Phase 1 - Toujours active avec labels dynamiques
+  html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
+  html += `<div style="margin-bottom:2px;">${ico(phaseConfig[0].iconName, 16, '#6b7280')}</div>`;
+  html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phaseConfig[0].label}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase1Start)}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase1} sem.</div>`;
+  html += '</div>';
   
-  // Phase 2 - Labels dynamiques selon typeMiseEnVente
-  if (phase2Active) {
-    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
-    html += `<div style="margin-bottom:2px;">${ico(phaseConfig[1].iconName, 16, '#6b7280')}</div>`;
-    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phaseConfig[1].label}</div>`;
-    html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase2StartActif)}</div>`;
-    html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase2} sem.</div>`;
-    html += '</div>';
-  } else {
-    html += `<div style="flex:1;text-align:center;padding:8px 4px;background:#f9fafb;border-radius:6px;border:1px dashed #e5e7eb;opacity:0.5;">`;
-    html += `<div style="margin-bottom:2px;">${ico(phaseConfig[1].iconName, 16, '#d1d5db')}</div>`;
-    html += `<div style="font-size:9px;font-weight:600;color:#9ca3af;">${phaseConfig[1].label}</div>`;
-    html += `<div style="font-size:7px;color:#d1d5db;margin-top:2px;">–</div>`;
-    html += `<div style="font-size:7px;color:#d1d5db;">Optionnel</div>`;
-    html += '</div>';
-  }
+  // Phase 2 - Toujours active avec labels dynamiques
+  html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
+  html += `<div style="margin-bottom:2px;">${ico(phaseConfig[1].iconName, 16, '#6b7280')}</div>`;
+  html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phaseConfig[1].label}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase2Start)}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;">${phaseDurees.phase2} sem.</div>`;
+  html += '</div>';
   
-  // Phase 3 - Labels dynamiques selon typeMiseEnVente
+  // Phase 3 - Toujours active avec labels dynamiques
   html += `<div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:6px;border:1px solid #e5e7eb;">`;
   html += `<div style="margin-bottom:2px;">${ico(phaseConfig[2].iconName, 16, '#6b7280')}</div>`;
   html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;">${phaseConfig[2].label}</div>`;
-  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase3StartActif)}</div>`;
+  html += `<div style="font-size:7px;color:#6b7280;margin-top:2px;">${formatDateFR(phase3Start)}</div>`;
   html += `<div style="font-size:7px;color:#6b7280;">~${phaseDurees.phase3} sem.</div>`;
   html += '</div>';
   
