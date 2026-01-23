@@ -7,6 +7,7 @@ import { useSupportsProspection } from '@/hooks/useSupportsProspection';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { isBefore, parseISO, startOfDay } from 'date-fns';
+import { toast } from 'sonner';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { CampagneFormModal } from '@/components/prospection/CampagneFormModal';
@@ -23,6 +24,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   LogOut,
   Plus,
   FileText,
@@ -34,6 +45,7 @@ import {
   Megaphone,
   Settings2,
   CalendarDays,
+  Trash2,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
@@ -86,7 +98,17 @@ function StatCard({ icon: Icon, label, value, className }: {
 }
 
 // Composant ligne de campagne
-function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () => void }) {
+function CampagneRow({ 
+  campagne, 
+  onClick, 
+  canDelete,
+  onDeleteClick 
+}: { 
+  campagne: Campagne; 
+  onClick: () => void;
+  canDelete: boolean;
+  onDeleteClick: (e: React.MouseEvent) => void;
+}) {
   const statusColor = CAMPAGNE_STATUT_COLORS[campagne.statut] || 'bg-gray-100 text-gray-700';
   const initials = campagne.courtier_name 
     ? campagne.courtier_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -98,12 +120,12 @@ function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () =>
     isBefore(parseISO(campagne.date_fin), startOfDay(new Date()));
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-card border border-border rounded-lg p-3 text-left transition-all hover:border-primary/50 flex items-center gap-3"
-    >
-      {/* Code & infos principales */}
-      <div className="flex-1 min-w-0">
+    <div className="w-full bg-card border border-border rounded-lg p-3 text-left transition-all hover:border-primary/50 flex items-center gap-3">
+      {/* Zone cliquable pour navigation */}
+      <button
+        onClick={onClick}
+        className="flex-1 min-w-0 text-left"
+      >
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="font-mono font-semibold text-sm text-primary">
             {campagne.code}
@@ -133,7 +155,7 @@ function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () =>
             {campagne.scans_count}
           </span>
         </div>
-      </div>
+      </button>
 
       {/* Courtier */}
       <Avatar className="h-8 w-8 shrink-0">
@@ -142,8 +164,21 @@ function CampagneRow({ campagne, onClick }: { campagne: Campagne; onClick: () =>
         </AvatarFallback>
       </Avatar>
 
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-    </button>
+      {/* Bouton suppression */}
+      {canDelete && (
+        <button
+          onClick={onDeleteClick}
+          className="p-2 rounded-md text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+          aria-label="Supprimer la campagne"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+
+      <button onClick={onClick} className="shrink-0">
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+    </div>
   );
 }
 
@@ -176,6 +211,12 @@ export default function Campagnes() {
   const [supportFilter, setSupportFilter] = useState<string>('tous');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
   const [modalOpen, setModalOpen] = useState(false);
+
+  // État pour la suppression
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campagneToDelete, setCampagneToDelete] = useState<Campagne | null>(null);
+  const [missionsCount, setMissionsCount] = useState<number>(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Récupérer les supports
   const { supports, isLoading: supportsLoading } = useSupportsProspection();
@@ -246,6 +287,51 @@ export default function Campagnes() {
   }, [filteredCampagnes]);
 
   const isLoading = campagnesLoading || supportsLoading || rolesLoading;
+
+  // Fonction pour gérer le clic sur le bouton suppression
+  const handleDeleteClick = async (e: React.MouseEvent, campagne: Campagne) => {
+    e.stopPropagation();
+    
+    // Fetch le nombre de missions
+    const { count } = await supabase
+      .from('missions')
+      .select('*', { count: 'exact', head: true })
+      .eq('campagne_id', campagne.id);
+    
+    setMissionsCount(count || 0);
+    setCampagneToDelete(campagne);
+    setDeleteDialogOpen(true);
+  };
+
+  // Fonction pour confirmer la suppression
+  const handleConfirmDelete = async () => {
+    if (!campagneToDelete) return;
+    
+    setIsDeleting(true);
+    
+    const { error } = await supabase
+      .from('campagnes')
+      .delete()
+      .eq('id', campagneToDelete.id);
+    
+    setIsDeleting(false);
+    
+    if (error) {
+      toast.error('Erreur lors de la suppression');
+      console.error('Delete error:', error);
+    } else {
+      toast.success(`Campagne ${campagneToDelete.code} supprimée${missionsCount > 0 ? ` (${missionsCount} mission(s))` : ''}`);
+      refetch();
+    }
+    
+    setDeleteDialogOpen(false);
+    setCampagneToDelete(null);
+  };
+
+  // Vérifie si l'utilisateur peut supprimer une campagne
+  const canDeleteCampagne = (campagne: Campagne) => {
+    return isAdmin || isResponsableProspection || campagne.courtier_id === user?.id;
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -431,6 +517,8 @@ export default function Campagnes() {
                 key={campagne.id}
                 campagne={campagne}
                 onClick={() => navigate(`/campagnes/${campagne.id}`)}
+                canDelete={canDeleteCampagne(campagne)}
+                onDeleteClick={(e) => handleDeleteClick(e, campagne)}
               />
             ))
           )}
@@ -442,6 +530,41 @@ export default function Campagnes() {
 
       {/* Modal de création */}
       <CampagneFormModal open={modalOpen} onOpenChange={setModalOpen} />
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette campagne ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {missionsCount > 0 ? (
+                <>
+                  Cette action supprimera la campagne <strong>{campagneToDelete?.code}</strong> et{' '}
+                  <strong>{missionsCount} mission(s)</strong> associée(s).
+                  <br />
+                  <span className="text-destructive font-medium">Cette action est irréversible.</span>
+                </>
+              ) : (
+                <>
+                  Cette action supprimera la campagne <strong>{campagneToDelete?.code}</strong>.
+                  <br />
+                  <span className="text-destructive font-medium">Cette action est irréversible.</span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
