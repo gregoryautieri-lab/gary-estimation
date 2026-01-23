@@ -66,9 +66,12 @@ function rowToEstimation(row: {
     adresse: {
       ...defIdent.adresse,
       ...adresseFromDb,
-      // Préserver les objets imbriqués dans adresse
+      // Préserver TOUS les objets imbriqués dans adresse
       coordinates: adresseFromDb.coordinates || defIdent.adresse.coordinates,
-      cadastreData: adresseFromDb.cadastreData || defIdent.adresse.cadastreData
+      cadastreCoordinates: adresseFromDb.cadastreCoordinates || defIdent.adresse.cadastreCoordinates,
+      cadastreData: adresseFromDb.cadastreData || defIdent.adresse.cadastreData,
+      cadastreZoom: adresseFromDb.cadastreZoom || defIdent.adresse.cadastreZoom,
+      mapState: adresseFromDb.mapState || defIdent.adresse.mapState
     },
     vendeur: {
       ...defIdent.vendeur,

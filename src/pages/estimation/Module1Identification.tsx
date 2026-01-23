@@ -323,15 +323,30 @@ const Module1Identification = () => {
   };
 
   // Déclencher cadastre auto dès qu'on a des coordonnées
-  // Se déclenche à chaque changement d'adresse (nouvelles coordonnées)
+  // MAIS seulement si:
+  // 1. Pas de cadastreData déjà sauvegardée (premier fetch)
+  // 2. OU les coordonnées originales ont changé (nouvelle adresse)
+  // NE PAS re-fetch si l'utilisateur a déjà ajusté manuellement (cadastreCoordinates existe)
   useEffect(() => {
     const coords = identification.adresse.coordinates;
     const postalCode = identification.adresse.codePostal;
+    const existingCadastreData = identification.adresse.cadastreData;
+    const adjustedCoords = identification.adresse.cadastreCoordinates;
     
-    // Clé unique basée sur les coordonnées
+    // Clé unique basée sur les coordonnées originales
     const coordsKey = coords ? `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : null;
     
+    // Si l'utilisateur a déjà ajusté manuellement la position, ne pas re-fetch auto
+    if (adjustedCoords && existingCadastreData?.numeroParcelle) {
+      // Marquer comme déjà fetché pour éviter les re-fetch
+      if (coordsKey) {
+        cadastreFetchedRef.current = coordsKey;
+      }
+      return;
+    }
+    
     // Se déclenche si nouvelles coordonnées différentes des précédentes
+    // ET pas de données cadastrales existantes (ou coordsKey a changé = nouvelle adresse)
     if (
       coords?.lat && 
       coords?.lng && 
@@ -343,7 +358,9 @@ const Module1Identification = () => {
       handleAutoCadastre(coords.lat, coords.lng, postalCode);
     }
   }, [
-    identification.adresse.coordinates
+    identification.adresse.coordinates,
+    identification.adresse.cadastreCoordinates,
+    identification.adresse.cadastreData
   ]);
 
   const updateField = <K extends keyof Identification>(
