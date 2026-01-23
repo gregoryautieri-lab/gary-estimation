@@ -622,7 +622,7 @@ const Module1Identification = () => {
           {/* Plan cadastral Swisstopo - Pin déplaçable */}
           <div className="mt-4">
             <CadastreMap
-              coordinates={identification.adresse.coordinates || null}
+              coordinates={identification.adresse.cadastreCoordinates || identification.adresse.coordinates || null}
               initialZoom={identification.adresse.cadastreZoom}
               draggable={true}
               onZoomChange={(zoom) => {
