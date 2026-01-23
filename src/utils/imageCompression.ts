@@ -85,10 +85,7 @@ export async function compressImage(
                 return;
               }
               
-              console.log(
-                `Image compressée: ${formatBytes(file.size)} → ${formatBytes(compressedFile.size)} ` +
-                `(${Math.round((1 - compressedFile.size / file.size) * 100)}% de réduction)`
-              );
+              // Compression réussie silencieusement
               
               resolve(compressedFile);
             },

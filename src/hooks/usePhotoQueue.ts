@@ -141,8 +141,6 @@ export function usePhotoQueue(estimationId: string) {
           compressedSize: compressedFile.size
         });
 
-        console.log(`Photo compressée: ${formatBytes(pendingItem.originalSize)} → ${formatBytes(compressedFile.size)}`);
-
         // 2. Upload vers Supabase Storage
         const fileName = `${estimationId}/${Date.now()}-${pendingItem.id}.jpg`;
         
@@ -167,10 +165,8 @@ export function usePhotoQueue(estimationId: string) {
           progress: 100 
         });
 
-        console.log('Photo uploadée:', urlData.publicUrl);
-
       } catch (error: any) {
-        console.error('Erreur upload photo:', error);
+        console.error('[PhotoQueue] Erreur upload:', error);
         updateQueueItem(pendingItem.id, { 
           status: 'error', 
           progress: 0,

@@ -69,9 +69,7 @@ export function usePhotoUpload(): UsePhotoUploadReturn {
       
       setProgress(40);
       
-      if (compressionRatio > 5) {
-        console.log(`📸 Compression: ${formatBytes(originalSize)} → ${formatBytes(compressedFile.size)} (-${compressionRatio}%)`);
-      }
+      // Compression effectuée silencieusement
 
       // ÉTAPE 2: Générer un nom unique avec structure de dossiers
       const timestamp = Date.now();
@@ -216,10 +214,9 @@ export function usePhotoUpload(): UsePhotoUploadReturn {
 
       if (deleteError) throw deleteError;
 
-      console.log(`🗑️ Dossier ${estimationId} supprimé (${files.length} fichiers)`);
       return true;
     } catch (err) {
-      console.error('Erreur suppression dossier:', err);
+      console.error('[PhotoUpload] Erreur suppression dossier:', err);
       return false;
     }
   }, [user]);

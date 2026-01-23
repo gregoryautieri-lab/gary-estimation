@@ -246,26 +246,17 @@ export function useEstimationPersistence() {
     setError(null);
 
     try {
-      console.log('🔍 [fetchEstimations] Requête Supabase...');
       const { data, error: fetchError } = await supabase
         .from('estimations')
         .select('*')
         .order('updated_at', { ascending: false });
 
-      console.log('📊 [fetchEstimations] Réponse:', {
-        count: data?.length,
-        error: fetchError?.message,
-        firstItem: data?.[0]?.id
-      });
-
       if (fetchError) throw fetchError;
 
       const mapped = (data || []).map(row => rowToEstimation(row as Parameters<typeof rowToEstimation>[0]));
-      console.log('✅ [fetchEstimations] Mapped:', mapped.length, 'estimations');
       return mapped;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur de chargement';
-      console.error('❌ [fetchEstimations] Erreur:', message);
       setError(message);
       toast.error('Erreur de chargement des estimations');
       return [];

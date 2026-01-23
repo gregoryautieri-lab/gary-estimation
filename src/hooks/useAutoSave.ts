@@ -29,9 +29,8 @@ export function useAutoSave({ delay = 2000, onSave, enabled = true }: UseAutoSav
       setIsSaving(true);
       try {
         await onSave();
-        console.log('💾 [AutoSave] Sauvegarde réussie');
       } catch (error) {
-        console.error('❌ [AutoSave] Erreur:', error);
+        console.error('[AutoSave] Erreur:', error);
       } finally {
         isSavingRef.current = false;
         setIsSaving(false);
@@ -54,9 +53,8 @@ export function useAutoSave({ delay = 2000, onSave, enabled = true }: UseAutoSav
     setIsSaving(true);
     try {
       await onSave();
-      console.log('💾 [AutoSave] Sauvegarde forcée réussie');
     } catch (error) {
-      console.error('❌ [AutoSave] Erreur sauvegarde forcée:', error);
+      console.error('[AutoSave] Erreur sauvegarde forcée:', error);
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);

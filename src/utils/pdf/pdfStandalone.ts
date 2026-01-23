@@ -1987,7 +1987,6 @@ async function generatePageMap(
     const markerLng = markerPos?.lng || coords.lng;
     
     try {
-      console.log('[PDF] Fetching Google map via proxy...');
       const { data: googleData, error: googleError } = await supabase.functions.invoke('static-map-proxy', {
         body: {
           type: 'google',
@@ -2001,7 +2000,7 @@ async function generatePageMap(
       });
       
       if (googleError) {
-        console.warn('[PDF] Google proxy error:', googleError);
+        // Erreur proxy silencieuse
       } else if (googleData?.image) {
         html += '<div style="padding:16px 24px 8px;">';
         html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Vue satellite</div>';
@@ -2012,13 +2011,11 @@ async function generatePageMap(
         html += '<span style="font-size:8px;color:#9ca3af;">Coordonnées : ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6) + '</span>';
         html += '</div>';
       } else {
-        console.warn('[PDF] No Google image returned');
         html += '<div style="padding:16px 24px;text-align:center;background:#f9fafb;border-radius:8px;margin:16px 24px;">';
         html += '<div style="font-size:11px;color:#6b7280;">Carte satellite non disponible</div>';
         html += '</div>';
       }
     } catch (err) {
-      console.error('[PDF] Google map proxy error:', err);
       html += '<div style="padding:16px 24px;text-align:center;background:#f9fafb;border-radius:8px;margin:16px 24px;">';
       html += '<div style="font-size:11px;color:#6b7280;">Carte satellite non disponible</div>';
       html += '</div>';
@@ -2034,7 +2031,6 @@ async function generatePageMap(
   // Carte cadastre via WMS geo.admin (base64)
   if (coords && coords.lat && coords.lng) {
     try {
-      console.log('[PDF] Fetching cadastre map via proxy...');
       const { data: cadastreData, error: cadastreError } = await supabase.functions.invoke('static-map-proxy', {
         body: {
           type: 'cadastre',
@@ -2045,9 +2041,7 @@ async function generatePageMap(
         }
       });
       
-      if (cadastreError) {
-        console.warn('[PDF] Cadastre proxy error:', cadastreError);
-      } else if (cadastreData?.image) {
+      if (!cadastreError && cadastreData?.image) {
         html += '<div style="padding:0 24px 16px;">';
         html += '<div style="font-size:9px;color:#6b7280;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Plan cadastral (parcelles)</div>';
         html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">';
@@ -2056,11 +2050,9 @@ async function generatePageMap(
         html += '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#FA4238;border:3px solid #ffffff;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>';
         html += '</div>';
         html += '</div>';
-      } else {
-        console.warn('[PDF] No cadastre image returned');
       }
     } catch (err) {
-      console.error('[PDF] Cadastre map proxy error:', err);
+      // Erreur silencieuse
     }
   }
   
@@ -2186,7 +2178,7 @@ async function fetchPhotosAsBase64(data: EstimationData): Promise<PhotoItem[]> {
         }
       }
     } catch (error) {
-      console.warn('Erreur chargement photo:', error);
+      // Erreur silencieuse lors du chargement
     }
   }
   
@@ -2203,7 +2195,7 @@ async function fetchGoogleMapsKey(): Promise<string | undefined> {
     if (error) throw error;
     return data?.key;
   } catch (error) {
-    console.warn('Erreur récupération clé Google Maps:', error);
+    // Clé non disponible
     return undefined;
   }
 }
@@ -2230,7 +2222,6 @@ export async function generatePDFStandalone(
   
   const notify = (msg: string, pct: number) => {
     if (onProgress) onProgress(msg, pct);
-    console.log(`[PDF] ${msg} (${pct}%)`);
   };
   
   try {

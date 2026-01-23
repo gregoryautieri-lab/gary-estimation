@@ -34,22 +34,10 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
     lng: number, 
     postalCode?: string
   ): Promise<CadastreData | null> => {
-    const startTime = Date.now();
     setLoading(true);
     setError(null);
 
-    // Log #1: Démarrage recherche
-    console.log('🗺️ [Cadastre] Recherche démarrée', {
-      lat: lat.toFixed(6),
-      lng: lng.toFixed(6),
-      postalCode: postalCode || 'non renseigné',
-      timestamp: new Date().toISOString()
-    });
-
     try {
-      // Log #2: Appel API
-      console.log('📡 [Cadastre] Appel Edge Function cadastre-lookup...');
-      
       const { data: responseData, error: fetchError } = await supabase.functions.invoke(
         'cadastre-lookup',
         {
@@ -57,41 +45,11 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
         }
       );
 
-      const responseTime = Date.now() - startTime;
-
-      // Log #3: Réponse API reçue
-      console.log('📡 [Cadastre] Réponse API reçue', {
-        status: fetchError ? 'error' : 'success',
-        hasData: !!responseData,
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString()
-      });
-
       if (fetchError) {
-        // Log #4: Erreur Supabase
-        console.error('❌ [Cadastre] Erreur Supabase détaillée', {
-          error: fetchError.message,
-          context: fetchError.context,
-          coordinates: { lat, lng },
-          postalCode,
-          responseTime: `${responseTime}ms`,
-          timestamp: new Date().toISOString()
-        });
         throw new Error(fetchError.message);
       }
 
-      // Log #5: Réponse brute
-      console.log('📦 [Cadastre] Payload reçu:', JSON.stringify(responseData, null, 2));
-
       if (responseData?.error && !responseData.numeroParcelle) {
-        // Log #6: Erreur métier
-        console.warn('⚠️ [Cadastre] Erreur métier détectée', {
-          error: responseData.error,
-          source: responseData.source || 'unknown',
-          coordinates: { lat, lng },
-          responseTime: `${responseTime}ms`,
-          timestamp: new Date().toISOString()
-        });
         setError(responseData.error);
         setData(null);
         return null;
@@ -99,35 +57,13 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
 
       const cadastreData = responseData as CadastreData;
       
-      // Log #7: Succès
-      console.log('✅ [Cadastre] Données récupérées avec succès', {
-        numeroParcelle: cadastreData.numeroParcelle,
-        surfaceParcelle: `${cadastreData.surfaceParcelle} m²`,
-        commune: cadastreData.commune,
-        zone: cadastreData.zone,
-        zoneDetail: cadastreData.zoneDetail || 'N/A',
-        canton: cadastreData.canton,
-        source: cadastreData.source,
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString()
-      });
-      
       setData(cadastreData);
       return cadastreData;
 
     } catch (err) {
-      const responseTime = Date.now() - startTime;
       const message = err instanceof Error ? err.message : 'Erreur lors de la recherche cadastrale';
       
-      // Log #8: Exception
-      console.error('💥 [Cadastre] Exception détaillée', {
-        error: message,
-        stack: err instanceof Error ? err.stack : undefined,
-        coordinates: { lat, lng },
-        postalCode,
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString()
-      });
+      console.error('[Cadastre] Exception:', message);
       
       setError(message);
       setData(null);
