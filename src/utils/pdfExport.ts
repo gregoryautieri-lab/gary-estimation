@@ -2741,14 +2741,35 @@ export async function generateEstimationPDF({
     // ===== TIMELINE VISUELLE 4 PHASES =====
     const phaseDureesBase = strat.phaseDurees || { phase0: 1, phase1: 3, phase2: 2, phase3: 10 };
     
-    // Dériver typeMV depuis canauxActifs (comme dans PresentationPage.tsx)
-    const canauxActifs = strat.canauxActifs || [];
-    let typeMV: 'offmarket' | 'comingsoon' | 'public' = 'public';
-    if (canauxActifs.includes('offmarket') && !canauxActifs.includes('immoscout')) {
-      typeMV = 'offmarket';
-    } else if (canauxActifs.includes('reseaux_sociaux') && !canauxActifs.includes('immoscout')) {
-      typeMV = 'comingsoon';
-    }
+    // Utiliser directement typeMiseEnVente depuis preEstimation (cohérence avec le Module 5)
+    const typeMV = (estimation.preEstimation?.typeMiseEnVente as 'offmarket' | 'comingsoon' | 'public') || 'public';
+
+    // Configuration dynamique des labels selon typeMiseEnVente (cohérent avec useStrategieLogic.ts)
+    const getTimelinePhaseConfig = (type: 'offmarket' | 'comingsoon' | 'public') => {
+      switch (type) {
+        case 'offmarket':
+          return [
+            { label: 'Off-Market', iconName: 'lock' },
+            { label: 'Off-Market +', iconName: 'users' },
+            { label: 'Public (si besoin)', iconName: 'globe' }
+          ];
+        case 'comingsoon':
+          return [
+            { label: 'Teasing', iconName: 'clock' },
+            { label: 'Coming Soon', iconName: 'rocket' },
+            { label: 'Public', iconName: 'globe' }
+          ];
+        case 'public':
+        default:
+          return [
+            { label: 'Soft Launch', iconName: 'megaphone' },
+            { label: 'Full Launch', iconName: 'rocket' },
+            { label: 'Boost', iconName: 'zap' }
+          ];
+      }
+    };
+
+    const phaseConfig = getTimelinePhaseConfig(typeMV);
 
     // Calcul pause recalibrage si bien déjà diffusé
     let pauseRecalibrage = 0;
@@ -2804,33 +2825,37 @@ export async function generateEstimationPDF({
     const phaseWidth = (contentWidth - 30) / 4;
     const phaseY = yPos;
 
-    // Label phase 0
+    // Label phase 0 (toujours "Préparation" ou "Prépa. & Recalib.")
     const phase0Label = pauseRecalibrage > 0 ? 'Prepa. & Recalib.' : 'Preparation';
 
     const timelinePhases = [
       { 
         label: phase0Label, 
+        iconName: 'edit',  // Phase 0 : icône préparation
         date: formatDateShort(phase0Start), 
         duree: `${phaseDurees.phase0} sem.`, 
         active: true,
         isStart: true
       },
       { 
-        label: 'Off-market', 
+        label: phaseConfig[0].label,  // Dynamique selon typeMiseEnVente
+        iconName: phaseConfig[0].iconName,
         date: phase1Active ? formatDateShort(phase1Start) : '—', 
         duree: phase1Active ? `${phaseDurees.phase1} sem.` : 'Optionnel', 
         active: phase1Active,
         isStart: false
       },
       { 
-        label: 'Coming soon', 
+        label: phaseConfig[1].label,  // Dynamique selon typeMiseEnVente
+        iconName: phaseConfig[1].iconName,
         date: phase2Active ? formatDateShort(phase2StartActif) : '—', 
         duree: phase2Active ? `${phaseDurees.phase2} sem.` : 'Optionnel', 
         active: phase2Active,
         isStart: false
       },
       { 
-        label: 'Public', 
+        label: phaseConfig[2].label,  // Dynamique selon typeMiseEnVente
+        iconName: phaseConfig[2].iconName,
         date: formatDateShort(phase3StartActif), 
         duree: `~${phaseDurees.phase3} sem.`, 
         active: true,
