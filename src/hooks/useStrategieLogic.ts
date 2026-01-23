@@ -400,7 +400,7 @@ export const calculerPhasesDepuisDateIdeale = (
   }
   
   const debut = parseISO(dateDebut);
-  const venteIdeale = startOfMonth(parseISO(dateVenteIdeale + '-01'));
+  const venteIdeale = startOfMonth(parseISO(dateVenteIdeale));
   const semainesDisponibles = differenceInWeeks(venteIdeale, debut);
   
   const MIN_PHASE0 = 1;
