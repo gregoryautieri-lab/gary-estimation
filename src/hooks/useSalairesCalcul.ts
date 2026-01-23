@@ -66,7 +66,8 @@ export const getPeriodeDates = (periode: string): { dateDebut: Date; dateFin: Da
 };
 
 /**
- * Génère une liste des périodes disponibles (12 derniers mois + mois actuel)
+ * Génère une liste des périodes disponibles
+ * 3 mois en arrière + mois actuel + 6 mois en avant = 10 mois
  */
 export const getPeriodesDisponibles = (): { value: string; label: string }[] => {
   const periodes: { value: string; label: string }[] = [];
@@ -77,9 +78,9 @@ export const getPeriodesDisponibles = (): { value: string; label: string }[] => 
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
   
-  // Générer les 12 derniers mois + mois actuel
-  for (let i = 0; i <= 12; i++) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  // Générer : 3 mois arrière + actuel + 6 mois avant
+  for (let i = -3; i <= 6; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const value = `${year}-${month.toString().padStart(2, '0')}`;
@@ -87,7 +88,8 @@ export const getPeriodesDisponibles = (): { value: string; label: string }[] => 
     periodes.push({ value, label });
   }
   
-  return periodes;
+  // Plus récent en haut (inverser l'ordre)
+  return periodes.reverse();
 };
 
 /**
