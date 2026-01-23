@@ -634,6 +634,71 @@ export type Database = {
           },
         ]
       }
+      paies: {
+        Row: {
+          created_at: string
+          date_debut: string
+          date_fin: string
+          date_paiement: string | null
+          date_validation: string | null
+          etudiant_id: string
+          id: string
+          missions_ids: string[]
+          montant_total: number
+          notes: string | null
+          periode: string
+          salaire_horaire: number
+          statut: Database["public"]["Enums"]["paie_statut"]
+          total_heures: number
+          total_missions: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_debut: string
+          date_fin: string
+          date_paiement?: string | null
+          date_validation?: string | null
+          etudiant_id: string
+          id?: string
+          missions_ids?: string[]
+          montant_total?: number
+          notes?: string | null
+          periode: string
+          salaire_horaire: number
+          statut?: Database["public"]["Enums"]["paie_statut"]
+          total_heures?: number
+          total_missions?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_debut?: string
+          date_fin?: string
+          date_paiement?: string | null
+          date_validation?: string | null
+          etudiant_id?: string
+          id?: string
+          missions_ids?: string[]
+          montant_total?: number
+          notes?: string | null
+          periode?: string
+          salaire_horaire?: number
+          statut?: Database["public"]["Enums"]["paie_statut"]
+          total_heures?: number
+          total_missions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paies_etudiant_id_fkey"
+            columns: ["etudiant_id"]
+            isOneToOne: false
+            referencedRelation: "etudiants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -882,6 +947,7 @@ export type Database = {
         | "mandat_signe"
         | "perdu"
       mission_statut: "prevue" | "en_cours" | "terminee" | "annulee"
+      paie_statut: "brouillon" | "validee" | "payee"
       project_statut_filter: "vendus" | "en_vente" | "tous"
       type_bien:
         | "appartement"
@@ -1041,6 +1107,7 @@ export const Constants = {
         "perdu",
       ],
       mission_statut: ["prevue", "en_cours", "terminee", "annulee"],
+      paie_statut: ["brouillon", "validee", "payee"],
       project_statut_filter: ["vendus", "en_vente", "tous"],
       type_bien: ["appartement", "maison", "terrain", "immeuble", "commercial"],
       type_bien_prospection: ["PPE", "Villa", "Mixte"],
