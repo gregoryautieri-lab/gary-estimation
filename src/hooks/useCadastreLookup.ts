@@ -62,10 +62,9 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la recherche cadastrale';
-      
-      console.error('[Cadastre] Exception:', message);
-      
       setError(message);
+      setData(null);
+      return null;
       setData(null);
       return null;
     } finally {
@@ -77,7 +76,6 @@ export function useCadastreLookup(): UseCadastreLookupReturn {
     setData(null);
     setError(null);
     setLoading(false);
-    console.log('🔄 [Cadastre] Reset effectué');
   }, []);
 
   return {
