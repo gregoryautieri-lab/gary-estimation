@@ -122,8 +122,11 @@ export default function AdminSalaires() {
     await valider(paieId);
   };
 
-  const handleSupprimer = (paieId: string) => {
+  const [selectedPaieRow, setSelectedPaieRow] = useState<SalaireRow | null>(null);
+
+  const handleSupprimer = (paieId: string, row: SalaireRow) => {
     setSelectedPaieId(paieId);
+    setSelectedPaieRow(row);
     setDeleteDialogOpen(true);
   };
 
@@ -133,6 +136,7 @@ export default function AdminSalaires() {
     }
     setDeleteDialogOpen(false);
     setSelectedPaieId(null);
+    setSelectedPaieRow(null);
   };
 
   const handleMarquerPayee = (paieId: string) => {
@@ -310,28 +314,17 @@ export default function AdminSalaires() {
                             </Button>
                           )}
 
-                          {/* Brouillon → Valider + Supprimer */}
+                          {/* Brouillon → Valider */}
                           {row.paie?.statut === 'brouillon' && (
-                            <>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleValider(row.paie!.id)}
-                                disabled={isValidating}
-                              >
-                                <Check className="h-3.5 w-3.5 mr-1" />
-                                Valider
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleSupprimer(row.paie!.id)}
-                                disabled={isDeleting}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleValider(row.paie!.id)}
+                              disabled={isValidating}
+                            >
+                              <Check className="h-3.5 w-3.5 mr-1" />
+                              Valider
+                            </Button>
                           )}
 
                           {/* Validée → Marquer payé */}
@@ -347,9 +340,27 @@ export default function AdminSalaires() {
                             </Button>
                           )}
 
-                          {/* Payée → Rien */}
+                          {/* Payée → Badge */}
                           {row.paie?.statut === 'payee' && (
                             <span className="text-xs text-emerald-600 font-medium">✓ Payée</span>
+                          )}
+
+                          {/* Bouton Supprimer pour TOUTES les paies (visible quel que soit le statut) */}
+                          {row.paie && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleSupprimer(row.paie!.id, row)}
+                                  disabled={isDeleting}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Supprimer</TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </TableCell>
@@ -379,7 +390,13 @@ export default function AdminSalaires() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cette paie ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action va supprimer la paie figée. Les données seront recalculées dynamiquement.
+              {selectedPaieRow ? (
+                <>
+                  La paie de <strong>{periodeLabel}</strong> pour <strong>{selectedPaieRow.etudiantNom}</strong> sera supprimée. Cette action est irréversible.
+                </>
+              ) : (
+                "Cette action va supprimer la paie figée. Les données seront recalculées dynamiquement."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
