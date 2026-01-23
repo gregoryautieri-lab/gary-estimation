@@ -2700,13 +2700,13 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += `<p style="font-size:10px;color:#64748b;margin:0;">${val(adresse.rue)} ${val(adresse.numero)}, ${val(adresse.codePostal)} ${val(adresse.localite)}</p>`;
   html += '</div>';
   
-  // Cartes côte à côte pour économiser l'espace vertical
-  html += '<div style="padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  // Cartes empilées verticalement (format carré) avec transports en bas
+  html += '<div style="padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;height:calc(100% - 150px);">';
   
-  // Carte Google Maps
-  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+  // Carte Google Maps - carré
+  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;">';
   html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGlobe} Vue satellite</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
+  html += '<div style="flex:1;border-radius:6px;overflow:hidden;background:#e2e8f0;">';
   if (googleMapImage) {
     html += `<img src="${googleMapImage}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   } else {
@@ -2715,10 +2715,10 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   html += '</div>';
   html += '</div>';
   
-  // Carte Swisstopo avec pin central
-  html += '<div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+  // Carte Swisstopo avec pin central - carré
+  html += '<div style="background:#f8fafc;padding:6px;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;">';
   html += `<div style="font-size:8px;font-weight:600;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${iconGrid} Plan cadastral officiel</div>`;
-  html += '<div style="width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;position:relative;">';
+  html += '<div style="flex:1;border-radius:6px;overflow:hidden;position:relative;">';
   html += `<img src="${swisstopoUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
   // Pin central overlay
   html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:10;">';
@@ -2729,48 +2729,46 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   
   html += '</div>'; // fin cartes
   
-  // Section Transports
-  if (arret || gare) {
-    html += '<div style="padding:10px 24px 70px;margin-top:6px;">';
-    html += `<div style="font-size:9px;font-weight:700;color:#FA4538;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">${iconClock} Transports à proximité</div>`;
-    
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-    
-    // Arrêt bus/tram
-    if (arret) {
-      const arretDistance = arret.distance >= 1000 ? (arret.distance / 1000).toFixed(1) + ' km' : arret.distance + ' m';
-      html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:10px;display:flex;align-items:flex-start;gap:8px;">';
-      html += `<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconBus}</div>`;
-      html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Arrêt bus / tram</div>';
-      html += `<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-bottom:3px;line-height:1.2;">${arret.nom}</div>`;
-      html += `<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">${arretDistance} <span style="background:#FA4538;color:white;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:600;">~${arret.tempsMarche} min à pied</span></div>`;
-      html += '</div>';
-      html += '</div>';
-    } else {
-      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;color:#94a3b8;font-size:9px;">Aucun arrêt à proximité</div>';
-    }
-    
-    // Gare
-    if (gare) {
-      const gareDistance = gare.distance >= 1000 ? (gare.distance / 1000).toFixed(1) + ' km' : gare.distance + ' m';
-      const gareTemps = gare.temps;
-      const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
-      html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:10px;display:flex;align-items:flex-start;gap:8px;">';
-      html += `<div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconTrain}</div>`;
-      html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Gare ferroviaire</div>';
-      html += `<div style="font-size:10px;font-weight:600;color:#1a2e35;margin-bottom:3px;line-height:1.2;">${gare.nom}</div>`;
-      html += `<div style="font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">${gareDistance} <span style="background:#FA4538;color:white;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:600;">~${gareTemps} min ${gareMode}</span></div>`;
-      html += '</div>';
-      html += '</div>';
-    } else {
-      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;color:#94a3b8;font-size:9px;">Aucune gare à proximité</div>';
-    }
-    
-    html += '</div>'; // fin grid
-    html += '</div>'; // fin section transports
+  // Section Transports - toujours en bas
+  html += '<div style="padding:8px 24px 70px;margin-top:6px;">';
+  html += `<div style="font-size:9px;font-weight:700;color:#FA4538;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${iconClock} Transports à proximité</div>`;
+  
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  
+  // Arrêt bus/tram
+  if (arret) {
+    const arretDistance = arret.distance >= 1000 ? (arret.distance / 1000).toFixed(1) + ' km' : arret.distance + ' m';
+    html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:8px;display:flex;align-items:flex-start;gap:6px;">';
+    html += `<div style="width:24px;height:24px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconBus}</div>`;
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Arrêt bus / tram</div>';
+    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;margin-bottom:2px;line-height:1.2;">${arret.nom}</div>`;
+    html += `<div style="font-size:8px;color:#64748b;display:flex;align-items:center;gap:4px;">${arretDistance} <span style="background:#FA4538;color:white;padding:1px 4px;border-radius:6px;font-size:7px;font-weight:600;">~${arret.tempsMarche} min à pied</span></div>`;
+    html += '</div>';
+    html += '</div>';
+  } else {
+    html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;color:#94a3b8;font-size:8px;">Aucun arrêt à proximité</div>';
   }
+  
+  // Gare
+  if (gare) {
+    const gareDistance = gare.distance >= 1000 ? (gare.distance / 1000).toFixed(1) + ' km' : gare.distance + ' m';
+    const gareTemps = gare.temps;
+    const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
+    html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:8px;display:flex;align-items:flex-start;gap:6px;">';
+    html += `<div style="width:24px;height:24px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconTrain}</div>`;
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:7px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">Gare ferroviaire</div>';
+    html += `<div style="font-size:9px;font-weight:600;color:#1a2e35;margin-bottom:2px;line-height:1.2;">${gare.nom}</div>`;
+    html += `<div style="font-size:8px;color:#64748b;display:flex;align-items:center;gap:4px;">${gareDistance} <span style="background:#FA4538;color:white;padding:1px 4px;border-radius:6px;font-size:7px;font-weight:600;">~${gareTemps} min ${gareMode}</span></div>`;
+    html += '</div>';
+    html += '</div>';
+  } else {
+    html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;color:#94a3b8;font-size:8px;">Aucune gare à proximité</div>';
+  }
+  
+  html += '</div>'; // fin grid
+  html += '</div>'; // fin section transports
   
   // Footer
   const refId = 'EST-' + (estimation.id || '').slice(-8);
