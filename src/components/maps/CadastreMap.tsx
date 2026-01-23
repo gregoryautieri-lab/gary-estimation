@@ -9,18 +9,55 @@ interface CadastreMapProps {
   coordinates: { lat: number; lng: number } | null;
   onZoomChange?: (zoom: number) => void;
   onPinMove?: (newCoords: { lat: number; lng: number }) => void;
+  onCenterChange?: (newCenter: { lat: number; lng: number }, zoom: number) => void;
   initialZoom?: number;
   className?: string;
   draggable?: boolean;
 }
 
-// Composant pour synchroniser la vue de la carte
-const MapUpdater: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+// Composant pour synchroniser la vue de la carte ET écouter les mouvements
+interface MapControllerProps {
+  center: [number, number];
+  zoom: number;
+  isDragMode: boolean;
+  onMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
+}
+
+const MapController: React.FC<MapControllerProps> = ({ center, zoom, isDragMode, onMoveEnd }) => {
   const map = useMap();
+  const isUserInteraction = useRef(false);
+  const lastCenter = useRef<string>('');
   
+  // Synchroniser la vue programmatiquement
   useEffect(() => {
-    map.setView(center, zoom, { animate: true });
+    const centerKey = `${center[0].toFixed(6)},${center[1].toFixed(6)},${zoom}`;
+    if (centerKey !== lastCenter.current) {
+      lastCenter.current = centerKey;
+      map.setView(center, zoom, { animate: true });
+    }
   }, [center, zoom, map]);
+  
+  // Écouter les mouvements utilisateur en mode Ajuster
+  useMapEvents({
+    movestart: () => {
+      isUserInteraction.current = true;
+    },
+    moveend: () => {
+      if (isDragMode && isUserInteraction.current && onMoveEnd) {
+        const newCenter = map.getCenter();
+        const newZoom = map.getZoom();
+        onMoveEnd({ lat: newCenter.lat, lng: newCenter.lng }, newZoom);
+      }
+      isUserInteraction.current = false;
+    },
+    zoomend: () => {
+      if (isDragMode && onMoveEnd) {
+        const newCenter = map.getCenter();
+        const newZoom = map.getZoom();
+        onMoveEnd({ lat: newCenter.lat, lng: newCenter.lng }, newZoom);
+      }
+    }
+  });
   
   return null;
 };
@@ -78,6 +115,7 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
   coordinates,
   onZoomChange,
   onPinMove,
+  onCenterChange,
   initialZoom = 19,
   className = "",
   draggable = false,
@@ -87,17 +125,37 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
   const [isDragMode, setIsDragMode] = useState(false);
   const [adjustedPosition, setAdjustedPosition] = useState<{ lat: number; lng: number } | null>(null);
   
+  // Debounce pour éviter trop de re-fetch cadastre
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Position effective (ajustée ou originale)
   const effectivePosition = adjustedPosition || coordinates;
 
-  // Regénérer la carte quand les coordonnées originales changent significativement
+  // Regénérer la carte SEULEMENT quand l'adresse ORIGINALE change significativement
+  // ET qu'il n'y a pas de position ajustée sauvegardée
+  const prevCoordsRef = useRef<string | null>(null);
   useEffect(() => {
     if (coordinates) {
-      // Reset l'ajustement quand l'adresse principale change
+      const coordsKey = `${coordinates.lat.toFixed(5)},${coordinates.lng.toFixed(5)}`;
+      
+      // Si c'est un rechargement avec les mêmes coordonnées originales, ne pas reset
+      if (prevCoordsRef.current === coordsKey) {
+        return;
+      }
+      
+      // Nouvelles coordonnées originales = reset l'ajustement
+      prevCoordsRef.current = coordsKey;
       setAdjustedPosition(null);
       setMapKey(prev => prev + 1);
     }
   }, [coordinates?.lat, coordinates?.lng]);
+
+  // Sync zoom depuis props (pour rechargement)
+  useEffect(() => {
+    if (initialZoom && initialZoom !== zoom) {
+      setZoom(initialZoom);
+    }
+  }, [initialZoom]);
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + 1, 20);
@@ -115,6 +173,22 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
     setAdjustedPosition(newCoords);
     onPinMove?.(newCoords);
   };
+  
+  // Handler pour mouvement de carte en mode Ajuster (debounced)
+  const handleMapMoveEnd = (newCenter: { lat: number; lng: number }, newZoom: number) => {
+    // Debounce pour éviter spam
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      setAdjustedPosition(newCenter);
+      setZoom(newZoom);
+      
+      // Notifier le parent pour sauvegarde + re-fetch cadastre
+      onCenterChange?.(newCenter, newZoom);
+    }, 300);
+  };
 
   const handleReset = () => {
     if (coordinates) {
@@ -126,6 +200,15 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
   const toggleDragMode = () => {
     setIsDragMode(prev => !prev);
   };
+
+  // Cleanup debounce
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   if (!coordinates) {
     return (
@@ -213,7 +296,7 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
       {isDragMode && (
         <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg flex items-center gap-2">
           <Move className="h-4 w-4" />
-          <span>Glissez le point rouge pour ajuster la position cadastrale</span>
+          <span>Glissez la carte ou le point rouge pour ajuster la position cadastrale</span>
         </div>
       )}
 
@@ -226,8 +309,16 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
           attributionControl={false}
+          dragging={isDragMode} // Désactiver le drag sauf en mode Ajuster
+          scrollWheelZoom={isDragMode}
+          doubleClickZoom={isDragMode}
         >
-          <MapUpdater center={center} zoom={zoom} />
+          <MapController 
+            center={center} 
+            zoom={zoom} 
+            isDragMode={isDragMode}
+            onMoveEnd={handleMapMoveEnd}
+          />
           
           {/* Layer cadastre Swisstopo */}
           <TileLayer
@@ -250,7 +341,7 @@ export const CadastreMap: React.FC<CadastreMapProps> = ({
 
       <p className="text-xs text-center text-muted-foreground">
         {isDragMode 
-          ? "Déplacez le marqueur pour corriger la position cadastrale" 
+          ? "Déplacez la carte ou le marqueur pour corriger la position cadastrale" 
           : "Plan cadastral officiel suisse"}
       </p>
     </div>

@@ -635,8 +635,59 @@ const Module1Identification = () => {
                 }));
                 scheduleSave();
               }}
+              onCenterChange={async (newCenter, newZoom) => {
+                // Appelé quand on déplace la carte en mode Ajuster
+                const postalCode = identification.adresse.codePostal;
+                
+                // Sauvegarder immédiatement les nouvelles coordonnées + zoom
+                setIdentification(prev => ({
+                  ...prev,
+                  adresse: {
+                    ...prev.adresse,
+                    cadastreCoordinates: newCenter,
+                    cadastreZoom: newZoom
+                  }
+                }));
+                scheduleSave();
+                
+                // Re-fetch cadastre pour la nouvelle position
+                try {
+                  const result = await fetchCadastre(newCenter.lat, newCenter.lng, postalCode);
+                  
+                  if (result && !result.error) {
+                    const cadastreData: CadastreData = {
+                      numeroParcelle: result.numeroParcelle,
+                      surfaceParcelle: result.surfaceParcelle,
+                      zone: result.zone,
+                      zoneDetail: result.zoneDetail,
+                      commune: result.commune,
+                      canton: result.canton,
+                      source: result.source
+                    };
+                    
+                    setIdentification(prev => ({
+                      ...prev,
+                      adresse: {
+                        ...prev.adresse,
+                        cadastreData
+                      }
+                    }));
+                    scheduleSave();
+                    
+                    // Toast discret
+                    const infos: string[] = [];
+                    if (result.numeroParcelle) infos.push(`N° ${result.numeroParcelle}`);
+                    if (result.surfaceParcelle) infos.push(`${result.surfaceParcelle.toLocaleString('fr-CH')} m²`);
+                    if (infos.length > 0) {
+                      toast.success(`Cadastre : ${infos.join(' • ')}`);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Erreur cadastre après déplacement carte:', error);
+                }
+              }}
               onPinMove={async (newCoords) => {
-                // Re-lookup cadastre avec les nouvelles coordonnées
+                // Re-lookup cadastre avec les nouvelles coordonnées (drag du pin)
                 const postalCode = identification.adresse.codePostal;
                 
                 try {
@@ -658,7 +709,7 @@ const Module1Identification = () => {
                       ...prev,
                       adresse: {
                         ...prev.adresse,
-                        cadastreCoordinates: newCoords, // Nouvelles coords pour le cadastre
+                        cadastreCoordinates: newCoords,
                         cadastreData
                       }
                     }));
