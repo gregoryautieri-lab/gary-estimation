@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       campagnes: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           code: string | null
           commune: string
           courtier_id: string
@@ -43,6 +45,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           code?: string | null
           commune: string
           courtier_id: string
@@ -70,6 +74,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           code?: string | null
           commune?: string
           courtier_id?: string

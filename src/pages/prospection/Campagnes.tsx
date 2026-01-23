@@ -45,7 +45,8 @@ import {
   Megaphone,
   Settings2,
   CalendarDays,
-  Trash2,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
@@ -101,38 +102,49 @@ function StatCard({ icon: Icon, label, value, className }: {
 function CampagneRow({ 
   campagne, 
   onClick, 
-  canDelete,
-  onDeleteClick 
+  canArchive,
+  canRestore,
+  onArchiveClick,
+  onRestoreClick,
 }: { 
-  campagne: Campagne; 
+  campagne: Campagne & { archived_at?: string | null }; 
   onClick: () => void;
-  canDelete: boolean;
-  onDeleteClick: (e: React.MouseEvent) => void;
+  canArchive: boolean;
+  canRestore: boolean;
+  onArchiveClick: (e: React.MouseEvent) => void;
+  onRestoreClick: (e: React.MouseEvent) => void;
 }) {
+  const isArchived = !!campagne.archived_at;
   const statusColor = CAMPAGNE_STATUT_COLORS[campagne.statut] || 'bg-gray-100 text-gray-700';
   const initials = campagne.courtier_name 
     ? campagne.courtier_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
   // Calcul si la campagne est en retard
-  const isEnRetard = campagne.date_fin && 
+  const isEnRetard = !isArchived && campagne.date_fin && 
     campagne.statut !== 'terminee' && 
     isBefore(parseISO(campagne.date_fin), startOfDay(new Date()));
 
   return (
-    <div className="w-full bg-card border border-border rounded-lg p-3 text-left transition-all hover:border-primary/50 flex items-center gap-3">
+    <div className={`w-full bg-card border border-border rounded-lg p-3 text-left transition-all hover:border-primary/50 flex items-center gap-3 ${isArchived ? 'opacity-60' : ''}`}>
       {/* Zone cliquable pour navigation */}
       <button
         onClick={onClick}
         className="flex-1 min-w-0 text-left"
       >
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="font-mono font-semibold text-sm text-primary">
+          <span className={`font-mono font-semibold text-sm ${isArchived ? 'text-muted-foreground' : 'text-primary'}`}>
             {campagne.code}
           </span>
-          <Badge className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
-            {CAMPAGNE_STATUT_LABELS[campagne.statut]}
-          </Badge>
+          {isArchived ? (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              Archivée
+            </Badge>
+          ) : (
+            <Badge className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
+              {CAMPAGNE_STATUT_LABELS[campagne.statut]}
+            </Badge>
+          )}
           {isEnRetard && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/50 text-destructive bg-destructive/10 font-medium">
               En retard
@@ -164,14 +176,25 @@ function CampagneRow({
         </AvatarFallback>
       </Avatar>
 
-      {/* Bouton suppression */}
-      {canDelete && (
+      {/* Bouton restaurer (pour les archivées) */}
+      {isArchived && canRestore && (
         <button
-          onClick={onDeleteClick}
-          className="p-2 rounded-md text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-          aria-label="Supprimer la campagne"
+          onClick={onRestoreClick}
+          className="p-2 rounded-md text-primary hover:bg-primary/10 transition-colors shrink-0"
+          aria-label="Restaurer la campagne"
         >
-          <Trash2 className="h-4 w-4" />
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Bouton archiver (pour les actives) */}
+      {!isArchived && canArchive && (
+        <button
+          onClick={onArchiveClick}
+          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+          aria-label="Archiver la campagne"
+        >
+          <Archive className="h-4 w-4" />
         </button>
       )}
 
@@ -210,13 +233,14 @@ export default function Campagnes() {
   const [courtierFilter, setCourtierFilter] = useState<string>('tous');
   const [supportFilter, setSupportFilter] = useState<string>('tous');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
+  const [showArchived, setShowArchived] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // État pour la suppression
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [campagneToDelete, setCampagneToDelete] = useState<Campagne | null>(null);
+  // État pour l'archivage
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [campagneToArchive, setCampagneToArchive] = useState<Campagne | null>(null);
   const [missionsCount, setMissionsCount] = useState<number>(0);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   // Récupérer les supports
   const { supports, isLoading: supportsLoading } = useSupportsProspection();
@@ -237,7 +261,7 @@ export default function Campagnes() {
 
   // Récupérer les campagnes avec les filtres côté serveur
   const campagnesOptions = useMemo(() => {
-    const opts: { courtier_id?: string; statut?: CampagneStatut | CampagneStatut[] } = {};
+    const opts: { courtier_id?: string; statut?: CampagneStatut | CampagneStatut[]; includeArchived?: boolean } = {};
     
     // Si courtier standard, filtrer par son ID
     if (!canViewAll && user?.id) {
@@ -250,10 +274,13 @@ export default function Campagnes() {
       opts.statut = statusFilter;
     }
 
-    return opts;
-  }, [canViewAll, user?.id, courtierFilter, statusFilter]);
+    // Inclure les archivées si demandé
+    opts.includeArchived = showArchived;
 
-  const { campagnes, isLoading: campagnesLoading, error, refetch } = useCampagnes(campagnesOptions);
+    return opts;
+  }, [canViewAll, user?.id, courtierFilter, statusFilter, showArchived]);
+
+  const { campagnes, isLoading: campagnesLoading, error, refetch, archive, restore, isArchiving: hookIsArchiving, isRestoring } = useCampagnes(campagnesOptions);
 
   // Filtrage côté client (support, période)
   const filteredCampagnes = useMemo(() => {
@@ -288,8 +315,8 @@ export default function Campagnes() {
 
   const isLoading = campagnesLoading || supportsLoading || rolesLoading;
 
-  // Fonction pour gérer le clic sur le bouton suppression
-  const handleDeleteClick = async (e: React.MouseEvent, campagne: Campagne) => {
+  // Fonction pour gérer le clic sur le bouton archivage
+  const handleArchiveClick = async (e: React.MouseEvent, campagne: Campagne) => {
     e.stopPropagation();
     
     // Fetch le nombre de missions
@@ -299,37 +326,29 @@ export default function Campagnes() {
       .eq('campagne_id', campagne.id);
     
     setMissionsCount(count || 0);
-    setCampagneToDelete(campagne);
-    setDeleteDialogOpen(true);
+    setCampagneToArchive(campagne);
+    setArchiveDialogOpen(true);
   };
 
-  // Fonction pour confirmer la suppression
-  const handleConfirmDelete = async () => {
-    if (!campagneToDelete) return;
+  // Fonction pour confirmer l'archivage
+  const handleConfirmArchive = async () => {
+    if (!campagneToArchive) return;
     
-    setIsDeleting(true);
-    
-    const { error } = await supabase
-      .from('campagnes')
-      .delete()
-      .eq('id', campagneToDelete.id);
-    
-    setIsDeleting(false);
-    
-    if (error) {
-      toast.error('Erreur lors de la suppression');
-      console.error('Delete error:', error);
-    } else {
-      toast.success(`Campagne ${campagneToDelete.code} supprimée${missionsCount > 0 ? ` (${missionsCount} mission(s))` : ''}`);
-      refetch();
-    }
-    
-    setDeleteDialogOpen(false);
-    setCampagneToDelete(null);
+    setIsArchiving(true);
+    archive(campagneToArchive.id);
+    setIsArchiving(false);
+    setArchiveDialogOpen(false);
+    setCampagneToArchive(null);
   };
 
-  // Vérifie si l'utilisateur peut supprimer une campagne
-  const canDeleteCampagne = (campagne: Campagne) => {
+  // Fonction pour restaurer une campagne
+  const handleRestore = (e: React.MouseEvent, campagne: Campagne) => {
+    e.stopPropagation();
+    restore(campagne.id);
+  };
+
+  // Vérifie si l'utilisateur peut archiver/restaurer une campagne
+  const canManageCampagne = (campagne: Campagne) => {
     return isAdmin || isResponsableProspection || campagne.courtier_id === user?.id;
   };
 
@@ -459,6 +478,17 @@ export default function Campagnes() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Toggle Archivées */}
+          <Button
+            variant={showArchived ? "secondary" : "outline"}
+            size="sm"
+            className="h-9"
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive className="h-4 w-4 mr-1" />
+            Archivées
+          </Button>
         </div>
 
         {/* Stats */}
@@ -515,10 +545,12 @@ export default function Campagnes() {
             filteredCampagnes.map((campagne) => (
               <CampagneRow
                 key={campagne.id}
-                campagne={campagne}
+                campagne={campagne as Campagne & { archived_at?: string | null }}
                 onClick={() => navigate(`/campagnes/${campagne.id}`)}
-                canDelete={canDeleteCampagne(campagne)}
-                onDeleteClick={(e) => handleDeleteClick(e, campagne)}
+                canArchive={canManageCampagne(campagne)}
+                canRestore={canManageCampagne(campagne)}
+                onArchiveClick={(e) => handleArchiveClick(e, campagne)}
+                onRestoreClick={(e) => handleRestore(e, campagne)}
               />
             ))
           )}
@@ -531,36 +563,35 @@ export default function Campagnes() {
       {/* Modal de création */}
       <CampagneFormModal open={modalOpen} onOpenChange={setModalOpen} />
 
-      {/* Dialog de confirmation de suppression */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Dialog de confirmation d'archivage */}
+      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette campagne ?</AlertDialogTitle>
+            <AlertDialogTitle>Archiver cette campagne ?</AlertDialogTitle>
             <AlertDialogDescription>
               {missionsCount > 0 ? (
                 <>
-                  Cette action supprimera la campagne <strong>{campagneToDelete?.code}</strong> et{' '}
-                  <strong>{missionsCount} mission(s)</strong> associée(s).
+                  La campagne <strong>{campagneToArchive?.code}</strong> et ses{' '}
+                  <strong>{missionsCount} mission(s)</strong> seront archivées.
                   <br />
-                  <span className="text-destructive font-medium">Cette action est irréversible.</span>
+                  <span className="text-muted-foreground">Vous pourrez la restaurer ultérieurement.</span>
                 </>
               ) : (
                 <>
-                  Cette action supprimera la campagne <strong>{campagneToDelete?.code}</strong>.
+                  La campagne <strong>{campagneToArchive?.code}</strong> sera archivée.
                   <br />
-                  <span className="text-destructive font-medium">Cette action est irréversible.</span>
+                  <span className="text-muted-foreground">Vous pourrez la restaurer ultérieurement.</span>
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isArchiving || hookIsArchiving}>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmArchive}
+              disabled={isArchiving || hookIsArchiving}
             >
-              {isDeleting ? 'Suppression...' : 'Supprimer'}
+              {isArchiving || hookIsArchiving ? 'Archivage...' : 'Archiver'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
