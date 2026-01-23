@@ -62,6 +62,9 @@ export interface Campagne {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Champs d'archivage (soft delete)
+  archived_at: string | null;
+  archived_by: string | null;
   // Champs de jointure optionnels
   courtier_name?: string;
   courtier_email?: string;

@@ -42,7 +42,7 @@ export function usePlanningMissions({ weekStart }: UsePlanningMissionsOptions) {
           id, date, statut, courriers_prevu, courriers_distribues,
           secteur_nom, etudiant_id, courtier_id,
           etudiant:etudiants(id, prenom, nom),
-          campagne:campagnes!fk_missions_campagne(id, code, commune)
+          campagne:campagnes!fk_missions_campagne(id, code, commune, archived_at)
         `)
         .gte('date', debutSemaine)
         .lte('date', finSemaine)
@@ -51,11 +51,14 @@ export function usePlanningMissions({ weekStart }: UsePlanningMissionsOptions) {
       if (error) throw error;
       
       // Transform the data to match our interface (handle array returns from joins)
-      return (data || []).map((mission: any) => ({
-        ...mission,
-        etudiant: Array.isArray(mission.etudiant) ? mission.etudiant[0] || null : mission.etudiant,
-        campagne: Array.isArray(mission.campagne) ? mission.campagne[0] || null : mission.campagne,
-      }));
+      // Also filter out missions from archived campaigns
+      return (data || [])
+        .map((mission: any) => ({
+          ...mission,
+          etudiant: Array.isArray(mission.etudiant) ? mission.etudiant[0] || null : mission.etudiant,
+          campagne: Array.isArray(mission.campagne) ? mission.campagne[0] || null : mission.campagne,
+        }))
+        .filter((mission: any) => !mission.campagne?.archived_at); // Exclure les campagnes archivées
     },
   });
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import type { Campagne, CampagneFormData, CampagneStatut } from '@/types/prospection';
 
 const QUERY_KEY = ['campagnes'];
@@ -9,10 +10,12 @@ interface UseCampagnesOptions {
   courtier_id?: string;
   statut?: CampagneStatut | CampagneStatut[];
   commune?: string;
+  includeArchived?: boolean; // Nouveau: inclure les campagnes archivées
 }
 
 export function useCampagnes(options: UseCampagnesOptions = {}) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const query = useQuery({
     queryKey: [...QUERY_KEY, options],
@@ -22,6 +25,11 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
         .from('campagnes')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filtre archivées par défaut (sauf si explicitement demandé)
+      if (!options.includeArchived) {
+        queryBuilder = queryBuilder.is('archived_at', null);
+      }
 
       if (options.courtier_id) {
         queryBuilder = queryBuilder.eq('courtier_id', options.courtier_id);
@@ -110,21 +118,47 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
     },
   });
 
-  const deleteMutation = useMutation({
+  // Archive mutation (soft delete)
+  const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('campagnes')
-        .delete()
+        .update({ 
+          archived_at: new Date().toISOString(),
+          archived_by: user?.id || null
+        })
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Campagne supprimée');
+      toast.success('Campagne archivée');
     },
     onError: (error) => {
-      toast.error(`Erreur lors de la suppression: ${error.message}`);
+      toast.error(`Erreur lors de l'archivage: ${error.message}`);
+    },
+  });
+
+  // Restore mutation (unarchive)
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('campagnes')
+        .update({ 
+          archived_at: null,
+          archived_by: null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast.success('Campagne restaurée');
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors de la restauration: ${error.message}`);
     },
   });
 
@@ -156,10 +190,12 @@ export function useCampagnes(options: UseCampagnesOptions = {}) {
     refetch: query.refetch,
     create: createMutation.mutateAsync,
     update: updateMutation.mutate,
-    delete: deleteMutation.mutate,
+    archive: archiveMutation.mutate,
+    restore: restoreMutation.mutate,
     updateStatut: updateStatut.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending,
+    isArchiving: archiveMutation.isPending,
+    isRestoring: restoreMutation.isPending,
   };
 }
