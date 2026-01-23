@@ -20,8 +20,7 @@ import {
   TrendingUp,
   Trash2,
   Archive,
-  Presentation,
-  Download
+  Presentation
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -105,11 +104,10 @@ interface EstimationCardProps {
   onDelete: () => void;
   onArchive: () => void;
   onOpenPresentation: () => void;
-  onDownloadPDF: () => void;
   isUpdating: boolean;
 }
 
-const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelete, onArchive, onOpenPresentation, onDownloadPDF, isUpdating }: EstimationCardProps) => {
+const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelete, onArchive, onOpenPresentation, isUpdating }: EstimationCardProps) => {
   const [editingStatus, setEditingStatus] = useState(false);
   const statusConfig = getStatusLabel(estimation.statut);
   const colorConfig = statusColorMap[estimation.statut] || statusColorMap.brouillon;
@@ -219,17 +217,6 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
             title="Ouvrir la présentation client"
           >
             <Presentation className="h-3.5 w-3.5" />
-          </button>
-        )}
-        
-        {/* Bouton PDF - disponible dès qu'on a un prix */}
-        {estimation.prixFinal && (
-          <button
-            onClick={e => { e.stopPropagation(); onDownloadPDF(); }}
-            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
-            title="Télécharger le PDF"
-          >
-            <Download className="h-3.5 w-3.5" />
           </button>
         )}
         
@@ -608,14 +595,6 @@ const EstimationsList = () => {
                     onDelete={() => handleDelete(estimation.id)}
                     onArchive={() => handleArchive(estimation.id)}
                     onOpenPresentation={() => navigate(`/estimation/${estimation.id}/presentation`)}
-                    onDownloadPDF={() => {
-                      import('@/utils/pdfExport').then(({ downloadEstimationPDF }) => {
-                        downloadEstimationPDF({ estimation }).catch(err => {
-                          console.error('Erreur PDF:', err);
-                          toast.error('Erreur lors de la génération du PDF');
-                        });
-                      });
-                    }}
                     isUpdating={updatingId === estimation.id}
                   />
                 );

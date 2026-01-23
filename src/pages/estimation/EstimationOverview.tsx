@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { calculateModuleCompletion, getModuleStatuses, getNextIncompleteModule } from '@/lib/completionScore';
 import { generateEstimationAlerts, countAlertsByType, EstimationAlert } from '@/lib/estimationAlerts';
-import { downloadEstimationPDF } from '@/utils/pdfExport';
 import { getCourtierById, EstimationData, COURTIERS_GARY } from '@/types/estimation';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +25,6 @@ import {
   Mail,
   Calendar,
   Clock,
-  FileDown,
   Camera,
   Copy,
   Share2,
@@ -113,18 +111,6 @@ export default function EstimationOverview() {
   
   // Actions
   const handleContinue = () => navigate(nextModule);
-  
-  const handleGeneratePDF = async () => {
-    if (!estimation) return;
-    try {
-      toast.loading('Génération du PDF...', { id: 'pdf-gen' });
-      await downloadEstimationPDF({ estimation });
-      toast.success('PDF téléchargé !', { id: 'pdf-gen' });
-    } catch (err) {
-      console.error('Erreur génération PDF:', err);
-      toast.error('Erreur lors de la génération', { id: 'pdf-gen' });
-    }
-  };
   
   const handleDuplicate = async () => {
     if (!id || duplicating) return;
@@ -403,22 +389,13 @@ export default function EstimationOverview() {
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 onClick={handleContinue}
-                className="h-12 flex items-center gap-2"
+                className="h-12 flex items-center gap-2 col-span-2"
               >
                 <Play className="h-4 w-4" />
                 Continuer
               </Button>
               
-              <Button 
-                variant="outline"
-                onClick={handleGeneratePDF}
-                className="h-12 flex items-center gap-2"
-              >
-                <FileDown className="h-4 w-4" />
-                Générer PDF
-              </Button>
-              
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => navigate(`/estimation/${id}/photos`)}
                 className="h-12 flex items-center gap-2"
