@@ -1189,7 +1189,7 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       // 5. Objectif de valeur + condition
       html += '<div style="padding:8px 10px;background:white;text-align:center;">';
       html += '<div style="font-size:7px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px;font-weight:600;">Objectif de valeur</div>';
-      html += `<div style="font-size:14px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
+      html += `<div style="font-size:14px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};width:100%;display:block;">${formatPrice(objectifValeur)}</div>`;
       html += '<div style="font-size:6px;color:#9ca3af;margin-top:2px;line-height:1.2;">Atteignable si conditions respectées</div>';
       html += '</div>';
     } else {
@@ -1215,8 +1215,8 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
       // Objectif de valeur
       html += '<div style="padding:12px;background:white;text-align:center;">';
       html += '<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Objectif de valeur</div>';
-      html += `<div style="font-size:16px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};">${formatPrice(objectifValeur)}</div>`;
-      html += `<div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vénale +${traj.pourc}%</div>`;
+      html += `<div style="font-size:16px;font-weight:400;color:${isPointDepart ? '#FF4539' : '#1a2e35'};width:100%;display:block;">${formatPrice(objectifValeur)}</div>`;
+      html += `<div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vénale ${traj.pourc >= 0 ? '+' : ''}${traj.pourc}%</div>`;
       html += '</div>';
     }
     
