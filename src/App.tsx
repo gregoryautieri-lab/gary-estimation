@@ -28,6 +28,7 @@ import Admin from "./pages/Admin";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminComparables from "./pages/admin/AdminComparables";
 import AdminCommissions from "./pages/admin/AdminCommissions";
+import AdminSalaires from "./pages/admin/AdminSalaires";
 import AdminProspection from "./pages/admin/AdminProspection";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
@@ -144,6 +145,14 @@ function AppWithWarning() {
           element={
             <RoleBasedRoute allowedRoles={['admin']}>
               <AdminCommissions />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/salaires"
+          element={
+            <RoleBasedRoute allowedRoles={['admin']}>
+              <AdminSalaires />
             </RoleBasedRoute>
           }
         />

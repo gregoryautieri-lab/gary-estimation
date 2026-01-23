@@ -492,12 +492,22 @@ export default function Admin() {
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
+            onClick={() => navigate('/salaires')}
+            className="w-full"
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            Salaires
+          </Button>
+          <Button 
+            variant="outline"
             onClick={() => navigate('/admin/analytics')}
             className="w-full"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
           </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-2">
           <Button 
             variant="outline"
             onClick={() => navigate('/admin/comparables')}
