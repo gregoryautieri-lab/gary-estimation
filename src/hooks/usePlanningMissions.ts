@@ -36,8 +36,6 @@ export function usePlanningMissions({ weekStart }: UsePlanningMissionsOptions) {
   return useQuery({
     queryKey: ['planning-missions', debutSemaine, finSemaine],
     queryFn: async (): Promise<PlanningMission[]> => {
-      console.log('[Planning] Période:', debutSemaine, '-', finSemaine);
-      
       const { data, error } = await supabase
         .from('missions')
         .select(`
@@ -49,10 +47,6 @@ export function usePlanningMissions({ weekStart }: UsePlanningMissionsOptions) {
         .gte('date', debutSemaine)
         .lte('date', finSemaine)
         .order('date');
-
-      console.log('[Planning] Data reçue:', data);
-      console.log('[Planning] Erreur:', error);
-      console.log('[Planning] Nombre de missions:', data?.length || 0);
 
       if (error) throw error;
       
