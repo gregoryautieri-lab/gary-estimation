@@ -81,6 +81,7 @@ export interface Mission {
   statut: MissionStatut;
   courriers_distribues: number | null;
   strava_screenshot_url: string | null;
+  strava_screenshots: string[] | null;
   strava_temps: string | null;
   strava_distance_km: number | null;
   strava_vitesse_moy: number | null;
@@ -173,6 +174,7 @@ export interface MissionEtudiantUpdate {
   statut?: MissionStatut;
   courriers_distribues?: number;
   strava_screenshot_url?: string;
+  strava_screenshots?: string[];
   strava_temps?: string;
   strava_distance_km?: number;
   strava_vitesse_moy?: number;
