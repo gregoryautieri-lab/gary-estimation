@@ -104,6 +104,56 @@ const getPeriodStartDate = (period: PeriodFilter): Date | null => {
   }
 };
 
+// ============================================
+// Détection des estimations dormantes
+// ============================================
+interface DormantInfo {
+  isDormant: boolean;
+  level: 'warning' | 'urgent' | null;
+  label: string | null;
+  daysSinceUpdate: number;
+}
+
+const getDormantInfo = (estimation: EstimationData): DormantInfo => {
+  if (!estimation.updatedAt) {
+    return { isDormant: false, level: null, label: null, daysSinceUpdate: 0 };
+  }
+  
+  const now = new Date();
+  const updatedAt = new Date(estimation.updatedAt);
+  const daysSinceUpdate = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Règles de dormance selon le statut
+  if (estimation.statut === 'validee' && daysSinceUpdate >= 3) {
+    return { 
+      isDormant: true, 
+      level: 'warning', 
+      label: `En attente ${daysSinceUpdate}j`,
+      daysSinceUpdate 
+    };
+  }
+  
+  if (estimation.statut === 'presentee' && daysSinceUpdate >= 7) {
+    return { 
+      isDormant: true, 
+      level: 'urgent', 
+      label: `Sans nouvelle ${daysSinceUpdate}j`,
+      daysSinceUpdate 
+    };
+  }
+  
+  if (estimation.statut === 'negociation' && daysSinceUpdate >= 14) {
+    return { 
+      isDormant: true, 
+      level: 'urgent', 
+      label: `Bloquée ${daysSinceUpdate}j`,
+      daysSinceUpdate 
+    };
+  }
+  
+  return { isDormant: false, level: null, label: null, daysSinceUpdate };
+};
+
 // Utilise STATUS_CONFIG pour les labels
 const getStatusLabel = (status: string) => {
   const config = STATUS_CONFIG[status as EstimationStatus];
@@ -148,6 +198,7 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
   const [editingStatus, setEditingStatus] = useState(false);
   const statusConfig = getStatusLabel(estimation.statut);
   const colorConfig = statusColorMap[estimation.statut] || statusColorMap.brouillon;
+  const dormantInfo = getDormantInfo(estimation);
   const vendeur = estimation.vendeurNom || estimation.identification?.vendeur?.nom || 'Sans nom';
   const adresse = estimation.adresse || estimation.identification?.adresse?.rue || '';
   const localite = estimation.localite || estimation.identification?.adresse?.localite || '';
@@ -221,6 +272,19 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
           )}
           {/* Priority badge */}
           <PriorityBadge priority={priority} size="sm" />
+          {/* Dormant badge */}
+          {dormantInfo.isDormant && (
+            <span 
+              className={`text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                dormantInfo.level === 'urgent' 
+                  ? 'bg-red-100 text-red-700' 
+                  : 'bg-amber-100 text-amber-700'
+              }`}
+              title={`Dernière mise à jour il y a ${dormantInfo.daysSinceUpdate} jours`}
+            >
+              ⏰ {dormantInfo.label}
+            </span>
+          )}
         </div>
         <h3 className="font-medium text-sm text-foreground truncate">{vendeur}</h3>
         {(adresse || localite) && (
@@ -343,6 +407,7 @@ const EstimationsList = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
   const [courtierFilter, setCourtierFilter] = useState<string>('tous');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('tous');
+  const [showDormantOnly, setShowDormantOnly] = useState(false);
   const [courtiers, setCourtiers] = useState<CourtierOption[]>([]);
   const [sortField, setSortField] = useState<SortField>('priorite');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -445,6 +510,10 @@ const EstimationsList = () => {
       });
     }
     
+    // Filtre dormantes uniquement
+    if (showDormantOnly) {
+      result = result.filter(e => getDormantInfo(e).isDormant);
+    }
     // Filtre par recherche
     if (search) {
       const searchLower = search.toLowerCase();
@@ -495,7 +564,7 @@ const EstimationsList = () => {
     });
     
     return result;
-  }, [estimations, statusFilter, courtierFilter, periodFilter, isAdmin, search, sortField, sortOrder]);
+  }, [estimations, statusFilter, courtierFilter, periodFilter, showDormantOnly, isAdmin, search, sortField, sortOrder]);
 
   // Stats - 7 statuts simplifiés
   const stats = useMemo(() => ({
@@ -639,6 +708,17 @@ const EstimationsList = () => {
                 </SelectContent>
               </Select>
               
+              {/* Toggle dormantes */}
+              <Button
+                variant={showDormantOnly ? "default" : "outline"}
+                size="sm"
+                className={`h-7 px-2 text-xs ${showDormantOnly ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
+                onClick={() => setShowDormantOnly(!showDormantOnly)}
+                title="Afficher uniquement les estimations en attente de suivi"
+              >
+                ⏰ Dormantes
+              </Button>
+              
               {/* Ordre */}
               <Button
                 variant="outline"
@@ -650,7 +730,7 @@ const EstimationsList = () => {
               </Button>
               
               {/* Clear filters */}
-              {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous') && (
+              {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous' || showDormantOnly) && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -659,6 +739,7 @@ const EstimationsList = () => {
                     setStatusFilter('tous');
                     setCourtierFilter('tous');
                     setPeriodFilter('tous');
+                    setShowDormantOnly(false);
                     setSearch('');
                   }}
                 >
@@ -669,12 +750,13 @@ const EstimationsList = () => {
           </div>
 
           {/* Results count */}
-          {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous') && (
+          {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous' || showDormantOnly) && (
             <p className="text-xs text-muted-foreground">
               {processedEstimations.length} résultat{processedEstimations.length > 1 ? 's' : ''}
               {statusFilter !== 'tous' && ` • Filtre: ${getStatusLabel(statusFilter).label}`}
               {courtierFilter !== 'tous' && ` • Courtier: ${courtiers.find(c => c.id === courtierFilter)?.full_name}`}
               {periodFilter !== 'tous' && ` • ${periodOptions.find(p => p.value === periodFilter)?.label}`}
+              {showDormantOnly && ` • Dormantes uniquement`}
             </p>
           )}
 
