@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { supabase } from '@/integrations/supabase/client';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -38,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -285,16 +288,54 @@ const EstimationCard = ({ estimation, priority, onClick, onStatusChange, onDelet
   );
 };
 
+// Type pour les courtiers
+interface CourtierOption {
+  id: string;
+  full_name: string;
+}
+
 const EstimationsList = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const { fetchEstimations, createEstimation, updateEstimation, deleteEstimation, loading } = useEstimationPersistence();
   const [estimations, setEstimations] = useState<EstimationData[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
+  const [courtierFilter, setCourtierFilter] = useState<string>('tous');
+  const [courtiers, setCourtiers] = useState<CourtierOption[]>([]);
   const [sortField, setSortField] = useState<SortField>('priorite');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Charger les courtiers pour le filtre admin
+  useEffect(() => {
+    const loadCourtiers = async () => {
+      if (!isAdmin) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .order('full_name');
+      
+      if (!error && data) {
+        // Filtrer ceux qui ont le rôle courtier ou admin
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('role', ['courtier', 'admin']);
+        
+        const courtierUserIds = new Set(rolesData?.map(r => r.user_id) || []);
+        const filteredCourtiers = data
+          .filter(p => courtierUserIds.has(p.user_id) && p.full_name)
+          .map(p => ({ id: p.user_id, full_name: p.full_name! }));
+        
+        setCourtiers(filteredCourtiers);
+      }
+    };
+    
+    loadCourtiers();
+  }, [isAdmin]);
 
   useEffect(() => {
     if (user) {
@@ -349,6 +390,11 @@ const EstimationsList = () => {
       result = result.filter(e => e.statut === statusFilter);
     }
     
+    // Filtre par courtier (admin uniquement)
+    if (isAdmin && courtierFilter !== 'tous') {
+      result = result.filter(e => e.courtierId === courtierFilter);
+    }
+    
     // Filtre par recherche
     if (search) {
       const searchLower = search.toLowerCase();
@@ -399,7 +445,7 @@ const EstimationsList = () => {
     });
     
     return result;
-  }, [estimations, statusFilter, search, sortField, sortOrder]);
+  }, [estimations, statusFilter, courtierFilter, isAdmin, search, sortField, sortOrder]);
 
   // Stats - 7 statuts simplifiés
   const stats = useMemo(() => ({
@@ -486,18 +532,32 @@ const EstimationsList = () => {
                 <SelectContent>
                   <SelectItem value="tous" className="text-xs">Tous</SelectItem>
                   <SelectItem value="brouillon" className="text-xs">Brouillons</SelectItem>
-                  <SelectItem value="en_cours" className="text-xs">En cours</SelectItem>
-                  <SelectItem value="a_presenter" className="text-xs">À présenter</SelectItem>
+                  <SelectItem value="validee" className="text-xs">Validées</SelectItem>
                   <SelectItem value="presentee" className="text-xs">Présentées</SelectItem>
-                  <SelectItem value="reflexion" className="text-xs">En réflexion</SelectItem>
                   <SelectItem value="negociation" className="text-xs">Négociation</SelectItem>
-                  <SelectItem value="accord_oral" className="text-xs">Accord oral</SelectItem>
-                  <SelectItem value="en_signature" className="text-xs">En signature</SelectItem>
                   <SelectItem value="mandat_signe" className="text-xs">Mandats signés</SelectItem>
                   <SelectItem value="perdu" className="text-xs">Perdues</SelectItem>
                   <SelectItem value="archive" className="text-xs">Archivées</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {/* Filtre par courtier - Admin uniquement */}
+              {isAdmin && courtiers.length > 0 && (
+                <Select value={courtierFilter} onValueChange={setCourtierFilter}>
+                  <SelectTrigger className="w-[140px] h-7 text-xs">
+                    <User className="h-3 w-3 mr-1" />
+                    <SelectValue placeholder="Courtier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tous" className="text-xs">Tous les courtiers</SelectItem>
+                    {courtiers.map(c => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs">
+                        {c.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               
               {/* Tri */}
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
@@ -525,13 +585,14 @@ const EstimationsList = () => {
               </Button>
               
               {/* Clear filters */}
-              {(statusFilter !== 'tous' || search) && (
+              {(statusFilter !== 'tous' || search || courtierFilter !== 'tous') && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-7 px-1.5 text-muted-foreground"
                   onClick={() => {
                     setStatusFilter('tous');
+                    setCourtierFilter('tous');
                     setSearch('');
                   }}
                 >
@@ -542,10 +603,11 @@ const EstimationsList = () => {
           </div>
 
           {/* Results count */}
-          {(statusFilter !== 'tous' || search) && (
+          {(statusFilter !== 'tous' || search || courtierFilter !== 'tous') && (
             <p className="text-xs text-muted-foreground">
               {processedEstimations.length} résultat{processedEstimations.length > 1 ? 's' : ''}
               {statusFilter !== 'tous' && ` • Filtre: ${getStatusLabel(statusFilter).label}`}
+              {courtierFilter !== 'tous' && ` • Courtier: ${courtiers.find(c => c.id === courtierFilter)?.full_name}`}
             </p>
           )}
 
