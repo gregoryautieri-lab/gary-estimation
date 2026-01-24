@@ -28,10 +28,10 @@ const NavItem = ({ icon, label, active, onClick }: NavItemProps) => (
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isCourtier, isBackOffice, isResponsableProspection } = useUserRole();
+  const { isAdmin, isCourtier } = useUserRole();
   const currentPath = location.pathname;
 
-  const canAccessProspection = isAdmin || isCourtier || isBackOffice || isResponsableProspection;
+  const canAccessProspection = isAdmin || isCourtier;
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';

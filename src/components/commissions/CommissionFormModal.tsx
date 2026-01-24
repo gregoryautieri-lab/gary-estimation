@@ -116,11 +116,11 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
       // All users with names
       const allUsers = (profiles || []).filter(u => u.full_name) as UserProfile[];
 
-      // Filter only courtiers (exclude admin, back_office, marketing)
+      // Filter only courtiers (exclude admin and etudiant)
       const courtiers = allUsers.filter(u => {
         const userRoles = roleMap.get(u.user_id) || [];
         return userRoles.includes("courtier") || 
-               (!userRoles.includes("admin") && !userRoles.includes("back_office") && !userRoles.includes("marketing"));
+               (!userRoles.includes("admin") && !userRoles.includes("etudiant"));
       });
 
       return { allUsers, courtiers };

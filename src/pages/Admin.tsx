@@ -53,7 +53,7 @@ import {
   Trash2,
   Crown,
   Briefcase,
-  Building2,
+  GraduationCap,
   RefreshCw,
   AlertTriangle,
   BarChart3,
@@ -80,13 +80,11 @@ interface UserWithRole {
   is_disabled?: boolean;
 }
 
-const ROLE_LABELS: Record<AppRole, { label: string; icon: typeof Crown; color: string }> = {
+// Only display 3 roles in UI (simplified from 6)
+const ROLE_LABELS: Partial<Record<AppRole, { label: string; icon: typeof Crown; color: string }>> = {
   admin: { label: "Administrateur", icon: Crown, color: "bg-amber-500" },
-  back_office: { label: "Back Office", icon: Building2, color: "bg-blue-500" },
   courtier: { label: "Courtier", icon: Briefcase, color: "bg-emerald-500" },
-  marketing: { label: "Marketing", icon: Briefcase, color: "bg-purple-500" },
-  etudiant: { label: "Étudiant", icon: Briefcase, color: "bg-cyan-500" },
-  responsable_prospection: { label: "Resp. Prospection", icon: Building2, color: "bg-rose-500" },
+  etudiant: { label: "Étudiant", icon: GraduationCap, color: "bg-cyan-500" },
 };
 
 export default function Admin() {
@@ -513,7 +511,7 @@ export default function Admin() {
             onClick={() => navigate('/admin/comparables')}
             className="w-full"
           >
-            <Building2 className="h-4 w-4 mr-2" />
+            <Briefcase className="h-4 w-4 mr-2" />
             Comparables
           </Button>
         </div>

@@ -30,7 +30,7 @@ import type { SupportProspection, Etudiant } from '@/types/prospection';
 export default function AdminProspection() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { isAdmin, isResponsableProspection, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
 
   const { supports, isLoading: supportsLoading, update: updateSupport } = useSupportsProspection();
   const { etudiants, isLoading: etudiantsLoading, toggleActif } = useEtudiants();
@@ -50,7 +50,7 @@ export default function AdminProspection() {
     );
   }
 
-  if (!isAdmin && !isResponsableProspection) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
         <p className="text-muted-foreground text-center">
