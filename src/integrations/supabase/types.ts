@@ -945,6 +945,7 @@ export type Database = {
       estimation_status:
         | "brouillon"
         | "en_cours"
+        | "validee"
         | "termine"
         | "archive"
         | "a_presenter"
@@ -1104,6 +1105,7 @@ export const Constants = {
       estimation_status: [
         "brouillon",
         "en_cours",
+        "validee",
         "termine",
         "archive",
         "a_presenter",
