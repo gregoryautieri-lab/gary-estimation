@@ -22,7 +22,8 @@ import {
   TrendingUp,
   Trash2,
   Archive,
-  Presentation
+  Presentation,
+  CalendarDays
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +65,44 @@ import { PriorityBadge, PriorityIndicator } from '@/components/gary/PriorityBadg
 type SortField = 'priorite' | 'date' | 'nom' | 'prix' | 'statut';
 type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'tous' | EstimationStatus;
+type PeriodFilter = 'tous' | 'today' | 'week' | 'month' | '30days' | '90days';
+
+// Options de période
+const periodOptions: { value: PeriodFilter; label: string }[] = [
+  { value: 'tous', label: 'Toutes les périodes' },
+  { value: 'today', label: "Aujourd'hui" },
+  { value: 'week', label: 'Cette semaine' },
+  { value: 'month', label: 'Ce mois' },
+  { value: '30days', label: '30 derniers jours' },
+  { value: '90days', label: '90 derniers jours' },
+];
+
+// Fonction pour obtenir la date de début selon le filtre période
+const getPeriodStartDate = (period: PeriodFilter): Date | null => {
+  if (period === 'tous') return null;
+  
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (period) {
+    case 'today':
+      return today;
+    case 'week':
+      // Lundi de la semaine en cours
+      const dayOfWeek = today.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Lundi = 0
+      return new Date(today.getTime() - diff * 24 * 60 * 60 * 1000);
+    case 'month':
+      // 1er du mois en cours
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case '30days':
+      return new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case '90days':
+      return new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    default:
+      return null;
+  }
+};
 
 // Utilise STATUS_CONFIG pour les labels
 const getStatusLabel = (status: string) => {
@@ -303,6 +342,7 @@ const EstimationsList = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
   const [courtierFilter, setCourtierFilter] = useState<string>('tous');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('tous');
   const [courtiers, setCourtiers] = useState<CourtierOption[]>([]);
   const [sortField, setSortField] = useState<SortField>('priorite');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -395,6 +435,16 @@ const EstimationsList = () => {
       result = result.filter(e => e.courtierId === courtierFilter);
     }
     
+    // Filtre par période (sur createdAt)
+    const periodStartDate = getPeriodStartDate(periodFilter);
+    if (periodStartDate) {
+      result = result.filter(e => {
+        if (!e.createdAt) return false;
+        const createdDate = new Date(e.createdAt);
+        return createdDate >= periodStartDate;
+      });
+    }
+    
     // Filtre par recherche
     if (search) {
       const searchLower = search.toLowerCase();
@@ -445,7 +495,7 @@ const EstimationsList = () => {
     });
     
     return result;
-  }, [estimations, statusFilter, courtierFilter, isAdmin, search, sortField, sortOrder]);
+  }, [estimations, statusFilter, courtierFilter, periodFilter, isAdmin, search, sortField, sortOrder]);
 
   // Stats - 7 statuts simplifiés
   const stats = useMemo(() => ({
@@ -559,6 +609,21 @@ const EstimationsList = () => {
                 </Select>
               )}
               
+              {/* Filtre par période */}
+              <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
+                <SelectTrigger className="w-[140px] h-7 text-xs">
+                  <CalendarDays className="h-3 w-3 mr-1" />
+                  <SelectValue placeholder="Période" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               {/* Tri */}
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
                 <SelectTrigger className="w-[100px] h-7 text-xs">
@@ -585,7 +650,7 @@ const EstimationsList = () => {
               </Button>
               
               {/* Clear filters */}
-              {(statusFilter !== 'tous' || search || courtierFilter !== 'tous') && (
+              {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous') && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -593,6 +658,7 @@ const EstimationsList = () => {
                   onClick={() => {
                     setStatusFilter('tous');
                     setCourtierFilter('tous');
+                    setPeriodFilter('tous');
                     setSearch('');
                   }}
                 >
@@ -603,11 +669,12 @@ const EstimationsList = () => {
           </div>
 
           {/* Results count */}
-          {(statusFilter !== 'tous' || search || courtierFilter !== 'tous') && (
+          {(statusFilter !== 'tous' || search || courtierFilter !== 'tous' || periodFilter !== 'tous') && (
             <p className="text-xs text-muted-foreground">
               {processedEstimations.length} résultat{processedEstimations.length > 1 ? 's' : ''}
               {statusFilter !== 'tous' && ` • Filtre: ${getStatusLabel(statusFilter).label}`}
               {courtierFilter !== 'tous' && ` • Courtier: ${courtiers.find(c => c.id === courtierFilter)?.full_name}`}
+              {periodFilter !== 'tous' && ` • ${periodOptions.find(p => p.value === periodFilter)?.label}`}
             </p>
           )}
 
