@@ -3,17 +3,16 @@ import type { EstimationStatus } from '@/types/estimation';
 
 /**
  * Statuts qui verrouillent l'estimation en lecture seule
- * Basé sur EstimationStatus = 'brouillon' | 'en_cours' | 'termine' | 'archive' | 'vendu'
+ * 7 statuts simplifiés: brouillon, validee, presentee, negociation, mandat_signe, perdu, archive
  */
 const LOCKED_STATUTS: EstimationStatus[] = [
-  'termine',
-  'archive',
-  'vendu'
+  'mandat_signe',
+  'archive'
 ];
 
 /**
  * Hook pour gérer le verrouillage des estimations
- * Une estimation avec un statut "terminé", "archivé" ou "vendu" ne peut plus être modifiée par un courtier
+ * Une estimation avec un statut "mandat_signe" ou "archivé" ne peut plus être modifiée par un courtier
  */
 export function useEstimationLock(
   statut: EstimationStatus | string | undefined,
@@ -40,8 +39,8 @@ export function useEstimationLock(
     // Les admins peuvent toujours changer
     if (isAdmin) return true;
     
-    // Brouillon et en_cours peuvent être modifiés
-    if (statut === 'brouillon' || statut === 'en_cours') return true;
+    // Seul brouillon et validee peuvent être modifiés librement
+    if (statut === 'brouillon' || statut === 'validee') return true;
     
     return false;
   }, [statut, isAdmin]);
@@ -54,24 +53,17 @@ export function useEstimationLock(
 }
 
 /**
- * Labels français pour les statuts
+ * Labels français pour les 7 statuts simplifiés
  */
 function getStatutLabel(statut: EstimationStatus): string {
-  // Import from STATUS_CONFIG for consistency
-  const labels: Partial<Record<EstimationStatus, string>> = {
+  const labels: Record<EstimationStatus, string> = {
     'brouillon': 'Brouillon',
-    'en_cours': 'En cours',
-    'a_presenter': 'À présenter',
+    'validee': 'Validée',
     'presentee': 'Présentée',
-    'reflexion': 'En réflexion',
     'negociation': 'En négociation',
-    'accord_oral': 'Accord oral',
-    'en_signature': 'En signature',
     'mandat_signe': 'Mandat signé',
     'perdu': 'Perdu',
-    'termine': 'Terminé',
-    'archive': 'Archivé',
-    'vendu': 'Vendu'
+    'archive': 'Archivé'
   };
   return labels[statut] || statut;
 }

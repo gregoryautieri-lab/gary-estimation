@@ -75,25 +75,20 @@ const sortOptions: { value: SortField; label: string; icon?: string }[] = [
   { value: 'prix', label: 'Prix' },
   { value: 'statut', label: 'Statut' }
 ];
-// Status color mapping for quick editing
+// Status color mapping for quick editing - 7 statuts simplifiés
 const statusColorMap: Record<string, { bgClass: string; color: string }> = {
   brouillon: { bgClass: 'bg-muted', color: 'text-muted-foreground' },
-  en_cours: { bgClass: 'bg-amber-100', color: 'text-amber-700' },
-  a_presenter: { bgClass: 'bg-blue-100', color: 'text-blue-700' },
+  validee: { bgClass: 'bg-indigo-100', color: 'text-indigo-700' },
   presentee: { bgClass: 'bg-purple-100', color: 'text-purple-700' },
-  reflexion: { bgClass: 'bg-yellow-100', color: 'text-yellow-700' },
   negociation: { bgClass: 'bg-orange-100', color: 'text-orange-700' },
-  accord_oral: { bgClass: 'bg-teal-100', color: 'text-teal-700' },
-  en_signature: { bgClass: 'bg-cyan-100', color: 'text-cyan-700' },
   mandat_signe: { bgClass: 'bg-emerald-100', color: 'text-emerald-700' },
-  termine: { bgClass: 'bg-emerald-100', color: 'text-emerald-700' },
   perdu: { bgClass: 'bg-red-100', color: 'text-red-700' },
   archive: { bgClass: 'bg-slate-100', color: 'text-slate-500' }
 };
 
-// Quick status options for inline editing (most common)
+// Quick status options for inline editing (7 statuts simplifiés)
 const quickStatusOptions: EstimationStatus[] = [
-  'brouillon', 'en_cours', 'a_presenter', 'presentee', 'reflexion', 'negociation'
+  'brouillon', 'validee', 'presentee', 'negociation'
 ];
 
 interface EstimationCardProps {
@@ -406,12 +401,12 @@ const EstimationsList = () => {
     return result;
   }, [estimations, statusFilter, search, sortField, sortOrder]);
 
-  // Stats
+  // Stats - 7 statuts simplifiés
   const stats = useMemo(() => ({
     total: estimations.length,
     brouillons: estimations.filter(e => e.statut === 'brouillon').length,
-    enCours: estimations.filter(e => e.statut === 'en_cours').length,
-    termines: estimations.filter(e => e.statut === 'termine').length
+    validees: estimations.filter(e => e.statut === 'validee').length,
+    mandats: estimations.filter(e => e.statut === 'mandat_signe').length
   }), [estimations]);
 
   const toggleSortOrder = () => {
@@ -451,14 +446,14 @@ const EstimationsList = () => {
                     {stats.brouillons} brouillon{stats.brouillons > 1 ? 's' : ''}
                   </Badge>
                 )}
-                {stats.enCours > 0 && (
-                  <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 hover:bg-amber-100">
-                    {stats.enCours} en cours
+                {stats.validees > 0 && (
+                  <Badge className="text-[10px] px-1.5 py-0 bg-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                    {stats.validees} validée{stats.validees > 1 ? 's' : ''}
                   </Badge>
                 )}
-                {stats.termines > 0 && (
+                {stats.mandats > 0 && (
                   <Badge className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                    {stats.termines} terminé{stats.termines > 1 ? 's' : ''}
+                    {stats.mandats} mandat{stats.mandats > 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>

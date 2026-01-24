@@ -297,22 +297,20 @@ interface StatusPipelineProps {
 }
 
 export function StatusPipeline({ currentStatus }: StatusPipelineProps) {
+  // 7 statuts simplifiés - pipeline actif
   const pipelineStatuses: EstimationStatus[] = [
-    'en_cours',
-    'a_presenter',
+    'validee',
     'presentee',
-    'reflexion',
     'negociation',
-    'accord_oral',
-    'en_signature',
     'mandat_signe'
   ];
   
   const currentOrder = STATUS_CONFIG[currentStatus]?.order || 0;
   const isLost = currentStatus === 'perdu';
   const isArchived = currentStatus === 'archive';
+  const isDraft = currentStatus === 'brouillon';
   
-  if (isLost || isArchived) {
+  if (isLost || isArchived || isDraft) {
     return (
       <div className="flex items-center gap-1">
         <StatusBadge status={currentStatus} size="sm" />
@@ -322,7 +320,7 @@ export function StatusPipeline({ currentStatus }: StatusPipelineProps) {
 
   return (
     <div className="flex items-center gap-0.5">
-      {pipelineStatuses.map((status, index) => {
+      {pipelineStatuses.map((status) => {
         const config = STATUS_CONFIG[status];
         const isPast = config.order < currentOrder;
         const isCurrent = status === currentStatus;

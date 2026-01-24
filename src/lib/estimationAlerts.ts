@@ -76,9 +76,10 @@ export function generateEstimationAlerts(estimation: EstimationData | null): Est
     });
   }
   
-  // 4. Alerte estimation ancienne
+  // 4. Alerte estimation ancienne (sauf statuts terminaux)
   const createdAt = estimation.createdAt ? new Date(estimation.createdAt) : null;
-  if (createdAt && estimation.statut !== 'termine' && estimation.statut !== 'archive') {
+  const terminalStatuts = ['mandat_signe', 'perdu', 'archive'];
+  if (createdAt && !terminalStatuts.includes(estimation.statut)) {
     const daysSince = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
     if (daysSince > 14) {
       alerts.push({

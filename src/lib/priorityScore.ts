@@ -142,27 +142,20 @@ function calculateCompletionScore(estimation: EstimationData): number {
 /**
  * Calcule le score d'engagement client basé sur le statut
  * Max: 10 points
+ * 7 statuts: brouillon, validee, presentee, negociation, mandat_signe, perdu, archive
  */
 function calculateEngagementScore(estimation: EstimationData): number {
   const statut = estimation.statut as EstimationStatus;
   
   switch (statut) {
-    case 'en_signature':
-      return 10;
-    case 'accord_oral':
-      return 9;
     case 'negociation':
-      return 7;
-    case 'reflexion':
-      return 5;
+      return 10;
     case 'presentee':
+      return 6;
+    case 'validee':
       return 4;
-    case 'a_presenter':
-      return 3;
-    case 'en_cours':
-      return 2;
     case 'brouillon':
-      return 1;
+      return 2;
     default:
       return 0;
   }
@@ -173,7 +166,7 @@ function calculateEngagementScore(estimation: EstimationData): number {
  */
 export function calculatePriorityScore(estimation: EstimationData): PriorityScore {
   // Skip pour statuts terminaux
-  const skipStatuts: EstimationStatus[] = ['mandat_signe', 'perdu', 'archive', 'termine'];
+  const skipStatuts: EstimationStatus[] = ['mandat_signe', 'perdu', 'archive'];
   if (skipStatuts.includes(estimation.statut as EstimationStatus)) {
     return {
       total: 0,

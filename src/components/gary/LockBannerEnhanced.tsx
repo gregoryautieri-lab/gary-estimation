@@ -1,9 +1,10 @@
 // ============================================
 // Bandeau de verrouillage amélioré avec modal
+// Version simplifiée: 7 statuts
 // ============================================
 
 import { useState } from 'react';
-import { Lock, Copy, AlertTriangle, FileText, Archive, Trophy, Clock } from 'lucide-react';
+import { Lock, Copy, AlertTriangle, FileText, Archive, Trophy, CheckCircle, Eye, MessageSquare, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -25,13 +26,13 @@ interface LockBannerEnhancedProps {
   className?: string;
 }
 
-const statutConfig: Partial<Record<EstimationStatus, { 
+const statutConfig: Record<EstimationStatus, { 
   icon: React.ReactNode; 
   color: string; 
   bgColor: string;
   borderColor: string;
   title: string;
-}>> = {
+}> = {
   'brouillon': { 
     icon: <FileText className="h-5 w-5" />, 
     color: 'text-gray-700', 
@@ -39,54 +40,26 @@ const statutConfig: Partial<Record<EstimationStatus, {
     borderColor: 'border-gray-300',
     title: 'Brouillon'
   },
-  'en_cours': { 
-    icon: <FileText className="h-5 w-5" />, 
-    color: 'text-blue-700', 
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-300',
-    title: 'En cours'
-  },
-  'a_presenter': { 
-    icon: <FileText className="h-5 w-5" />, 
+  'validee': { 
+    icon: <CheckCircle className="h-5 w-5" />, 
     color: 'text-indigo-700', 
     bgColor: 'bg-indigo-50',
     borderColor: 'border-indigo-300',
-    title: 'À présenter'
+    title: 'Validée'
   },
   'presentee': { 
-    icon: <Lock className="h-5 w-5" />, 
+    icon: <Eye className="h-5 w-5" />, 
     color: 'text-purple-700', 
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-300',
     title: 'Présentée'
   },
-  'reflexion': { 
-    icon: <Clock className="h-5 w-5" />, 
-    color: 'text-amber-700', 
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-300',
-    title: 'En réflexion'
-  },
   'negociation': { 
-    icon: <FileText className="h-5 w-5" />, 
+    icon: <MessageSquare className="h-5 w-5" />, 
     color: 'text-orange-700', 
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-300',
     title: 'En négociation'
-  },
-  'accord_oral': { 
-    icon: <FileText className="h-5 w-5" />, 
-    color: 'text-lime-700', 
-    bgColor: 'bg-lime-50',
-    borderColor: 'border-lime-300',
-    title: 'Accord oral'
-  },
-  'en_signature': { 
-    icon: <FileText className="h-5 w-5" />, 
-    color: 'text-emerald-700', 
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-300',
-    title: 'En signature'
   },
   'mandat_signe': { 
     icon: <Trophy className="h-5 w-5" />, 
@@ -96,18 +69,11 @@ const statutConfig: Partial<Record<EstimationStatus, {
     title: 'Mandat signé !'
   },
   'perdu': { 
-    icon: <Archive className="h-5 w-5" />, 
+    icon: <XCircle className="h-5 w-5" />, 
     color: 'text-red-700', 
     bgColor: 'bg-red-50',
     borderColor: 'border-red-300',
     title: 'Perdu'
-  },
-  'termine': { 
-    icon: <Lock className="h-5 w-5" />, 
-    color: 'text-green-700', 
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-300',
-    title: 'Estimation terminée'
   },
   'archive': { 
     icon: <Archive className="h-5 w-5" />, 
@@ -115,13 +81,6 @@ const statutConfig: Partial<Record<EstimationStatus, {
     bgColor: 'bg-slate-50',
     borderColor: 'border-slate-300',
     title: 'Archivée'
-  },
-  'vendu': { 
-    icon: <Trophy className="h-5 w-5" />, 
-    color: 'text-green-700', 
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-300',
-    title: 'Vendu !'
   }
 };
 
