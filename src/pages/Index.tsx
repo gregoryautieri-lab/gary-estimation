@@ -96,7 +96,8 @@ const Index = () => {
       const estimations = await fetchEstimations();
       setEstimationsStats({
         total: estimations.length,
-        enCours: estimations.filter(e => e.statut === 'en_cours').length
+        // 7 statuts: compter les brouillons + validees comme "en cours de travail"
+        enCours: estimations.filter(e => e.statut === 'brouillon' || e.statut === 'validee').length
       });
 
       // Fetch projects comparables

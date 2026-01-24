@@ -1,22 +1,17 @@
 // ============================================
 // GARY - Types TypeScript pour les Estimations
+// Version simplifiée : 7 statuts (migration 24.01.2026)
 // ============================================
 
-// Enums
+// Enums - 7 statuts simplifiés
 export type EstimationStatus = 
-  | 'brouillon'           // Draft en cours de saisie
-  | 'en_cours'            // En cours de finalisation
-  | 'a_presenter'         // Prête à présenter
+  | 'brouillon'           // En cours de saisie
+  | 'validee'             // Terminée, prête à présenter
   | 'presentee'           // Présentée au client
-  | 'reflexion'           // Client réfléchit
-  | 'negociation'         // Négociation prix/conditions
-  | 'accord_oral'         // Accord de principe
-  | 'en_signature'        // Documents en cours de signature
-  | 'mandat_signe'        // Mandat signé, devient actif
-  | 'perdu'               // Opportunité perdue
-  | 'termine'             // Legacy - mapped to presentee
-  | 'archive'             // Archivé
-  | 'vendu';              // Legacy - mapped to mandat_signe
+  | 'negociation'         // Discussion en cours
+  | 'mandat_signe'        // Gagné
+  | 'perdu'               // Refusé
+  | 'archive';            // Historique masqué
 
 export type TypeBien = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial';
 export type TypeMiseEnVente = 'offmarket' | 'comingsoon' | 'public';
@@ -49,23 +44,13 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     isActive: false,
     category: 'draft'
   },
-  en_cours: {
-    label: 'En cours',
-    shortLabel: 'En cours',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    icon: 'Loader',
-    order: 1,
-    isActive: true,
-    category: 'draft'
-  },
-  a_presenter: {
-    label: 'À présenter',
-    shortLabel: 'À présenter',
+  validee: {
+    label: 'Validée',
+    shortLabel: 'Validée',
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-100',
-    icon: 'Send',
-    order: 2,
+    icon: 'CheckCircle',
+    order: 1,
     isActive: true,
     category: 'active'
   },
@@ -75,17 +60,7 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
     icon: 'Eye',
-    order: 3,
-    isActive: true,
-    category: 'active'
-  },
-  reflexion: {
-    label: 'En réflexion',
-    shortLabel: 'Réflexion',
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-100',
-    icon: 'Clock',
-    order: 4,
+    order: 2,
     isActive: true,
     category: 'active'
   },
@@ -95,27 +70,7 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
     icon: 'MessageSquare',
-    order: 5,
-    isActive: true,
-    category: 'active'
-  },
-  accord_oral: {
-    label: 'Accord oral',
-    shortLabel: 'Accord',
-    color: 'text-lime-600',
-    bgColor: 'bg-lime-100',
-    icon: 'ThumbsUp',
-    order: 6,
-    isActive: true,
-    category: 'active'
-  },
-  en_signature: {
-    label: 'En signature',
-    shortLabel: 'Signature',
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-100',
-    icon: 'PenTool',
-    order: 7,
+    order: 3,
     isActive: true,
     category: 'active'
   },
@@ -124,8 +79,8 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     shortLabel: 'Signé ✓',
     color: 'text-green-600',
     bgColor: 'bg-green-100',
-    icon: 'CheckCircle',
-    order: 8,
+    icon: 'Trophy',
+    order: 4,
     isActive: true,
     category: 'won'
   },
@@ -135,19 +90,9 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     color: 'text-red-600',
     bgColor: 'bg-red-100',
     icon: 'XCircle',
-    order: 9,
+    order: 5,
     isActive: true,
     category: 'lost'
-  },
-  termine: {
-    label: 'Terminé (legacy)',
-    shortLabel: 'Terminé',
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-100',
-    icon: 'Check',
-    order: 10,
-    isActive: false,
-    category: 'won'
   },
   archive: {
     label: 'Archivé',
@@ -155,19 +100,9 @@ export const STATUS_CONFIG: Record<EstimationStatus, StatusConfig> = {
     color: 'text-slate-500',
     bgColor: 'bg-slate-100',
     icon: 'Archive',
-    order: 11,
+    order: 6,
     isActive: false,
     category: 'lost'
-  },
-  vendu: {
-    label: 'Vendu (legacy)',
-    shortLabel: 'Vendu',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    icon: 'Trophy',
-    order: 12,
-    isActive: false,
-    category: 'won'
   }
 };
 
@@ -178,19 +113,13 @@ export interface StatusTransition {
 }
 
 export const STATUS_TRANSITIONS: StatusTransition[] = [
-  { from: 'brouillon', to: ['en_cours', 'archive'] },
-  { from: 'en_cours', to: ['a_presenter', 'brouillon', 'archive'] },
-  { from: 'a_presenter', to: ['presentee', 'en_cours', 'archive'] },
-  { from: 'presentee', to: ['reflexion', 'negociation', 'accord_oral', 'perdu'] },
-  { from: 'reflexion', to: ['negociation', 'accord_oral', 'perdu', 'presentee'] },
-  { from: 'negociation', to: ['accord_oral', 'reflexion', 'perdu'], requiresComment: true },
-  { from: 'accord_oral', to: ['en_signature', 'negociation', 'perdu'] },
-  { from: 'en_signature', to: ['mandat_signe', 'negociation', 'perdu'] },
+  { from: 'brouillon', to: ['validee', 'archive'] },
+  { from: 'validee', to: ['presentee', 'brouillon', 'archive'] },
+  { from: 'presentee', to: ['negociation', 'perdu', 'archive'] },
+  { from: 'negociation', to: ['mandat_signe', 'perdu', 'presentee'], requiresComment: true },
   { from: 'mandat_signe', to: ['archive'] },
-  { from: 'perdu', to: ['archive', 'reflexion'], requiresComment: true },
-  { from: 'termine', to: ['presentee', 'archive'] },
-  { from: 'archive', to: [] },
-  { from: 'vendu', to: ['mandat_signe', 'archive'] }
+  { from: 'perdu', to: ['archive', 'presentee'], requiresComment: true },
+  { from: 'archive', to: [] }
 ];
 
 // Helper pour obtenir les transitions autorisées

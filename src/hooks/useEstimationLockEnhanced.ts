@@ -1,5 +1,6 @@
 // ============================================
 // Hook de verrouillage amélioré avec duplication
+// Version simplifiée: 7 statuts
 // ============================================
 
 import { useState, useMemo, useCallback } from 'react';
@@ -8,33 +9,27 @@ import type { EstimationStatus, EstimationData } from '@/types/estimation';
 import type { Json } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
 /**
  * Statuts qui verrouillent l'estimation en lecture seule
  */
 const LOCKED_STATUTS: EstimationStatus[] = [
-  'termine',
-  'archive',
-  'vendu'
+  'mandat_signe',
+  'archive'
 ];
 
 /**
  * Statuts possibles selon le statut actuel (transitions autorisées)
- * Note: Les nouveaux statuts utilisent STATUS_TRANSITIONS de estimation.ts
+ * 7 statuts: brouillon, validee, presentee, negociation, mandat_signe, perdu, archive
  */
-const TRANSITIONS_AUTORISEES: Partial<Record<EstimationStatus, EstimationStatus[]>> = {
-  'brouillon': ['en_cours', 'archive'],
-  'en_cours': ['brouillon', 'a_presenter', 'archive'],
-  'a_presenter': ['presentee', 'en_cours', 'archive'],
-  'presentee': ['reflexion', 'negociation', 'accord_oral', 'perdu'],
-  'reflexion': ['negociation', 'accord_oral', 'perdu', 'presentee'],
-  'negociation': ['accord_oral', 'reflexion', 'perdu'],
-  'accord_oral': ['en_signature', 'negociation', 'perdu'],
-  'en_signature': ['mandat_signe', 'negociation', 'perdu'],
+const TRANSITIONS_AUTORISEES: Record<EstimationStatus, EstimationStatus[]> = {
+  'brouillon': ['validee', 'archive'],
+  'validee': ['presentee', 'brouillon', 'archive'],
+  'presentee': ['negociation', 'perdu', 'archive'],
+  'negociation': ['mandat_signe', 'perdu', 'presentee'],
   'mandat_signe': ['archive'],
-  'perdu': ['archive', 'reflexion'],
-  'termine': ['presentee', 'archive'],
-  'archive': [],
-  'vendu': ['mandat_signe', 'archive']
+  'perdu': ['archive', 'presentee'],
+  'archive': []
 };
 
 export interface LockState {
@@ -69,7 +64,7 @@ export function useEstimationLockEnhanced(
         lockMessage: null,
         lockReason: null,
         canChangeStatut: true,
-        allowedTransitions: ['brouillon', 'en_cours', 'termine', 'archive', 'vendu']
+        allowedTransitions: ['brouillon', 'validee', 'archive']
       };
     }
 
@@ -80,16 +75,15 @@ export function useEstimationLockEnhanced(
     let allowedTransitions = TRANSITIONS_AUTORISEES[currentStatut] || [];
     if (isAdmin) {
       // Admin peut tout faire
-      allowedTransitions = ['brouillon', 'en_cours', 'termine', 'archive', 'vendu'].filter(
-        s => s !== currentStatut
-      ) as EstimationStatus[];
+      const allStatuts: EstimationStatus[] = ['brouillon', 'validee', 'presentee', 'negociation', 'mandat_signe', 'perdu', 'archive'];
+      allowedTransitions = allStatuts.filter(s => s !== currentStatut);
     }
 
     return {
       isLocked,
       lockMessage: isLocked ? getLockMessage(currentStatut) : null,
       lockReason: isLocked ? currentStatut : null,
-      canChangeStatut: isAdmin || currentStatut === 'brouillon' || currentStatut === 'en_cours',
+      canChangeStatut: isAdmin || currentStatut === 'brouillon' || currentStatut === 'validee',
       allowedTransitions
     };
   }, [statut, isAdmin]);
@@ -193,14 +187,11 @@ export function useEstimationLockEnhanced(
       return false;
     }
 
-    // Note: Le type "vendu" n'existe pas dans la DB, on utilise "archive" + metadata
-    const dbStatut = newStatut === 'vendu' ? 'archive' : newStatut;
-
     try {
       const { error } = await supabase
         .from('estimations')
         .update({ 
-          statut: dbStatut as 'brouillon' | 'en_cours' | 'termine' | 'archive',
+          statut: newStatut,
           updated_at: new Date().toISOString()
         })
         .eq('id', estimationId);
@@ -226,23 +217,17 @@ export function useEstimationLockEnhanced(
 }
 
 /**
- * Labels français pour les statuts
+ * Labels français pour les 7 statuts
  */
 export function getStatutLabel(statut: EstimationStatus): string {
-  const labels: Partial<Record<EstimationStatus, string>> = {
+  const labels: Record<EstimationStatus, string> = {
     'brouillon': 'Brouillon',
-    'en_cours': 'En cours',
-    'a_presenter': 'À présenter',
+    'validee': 'Validée',
     'presentee': 'Présentée',
-    'reflexion': 'En réflexion',
     'negociation': 'En négociation',
-    'accord_oral': 'Accord oral',
-    'en_signature': 'En signature',
     'mandat_signe': 'Mandat signé',
     'perdu': 'Perdu',
-    'termine': 'Terminé',
-    'archive': 'Archivé',
-    'vendu': 'Vendu'
+    'archive': 'Archivé'
   };
   return labels[statut] || statut;
 }
@@ -252,16 +237,10 @@ export function getStatutLabel(statut: EstimationStatus): string {
  */
 function getLockMessage(statut: EstimationStatus): string {
   switch (statut) {
-    case 'termine':
-    case 'presentee':
-      return 'Cette estimation est terminée et présentée au vendeur. Dupliquez-la pour la modifier.';
-    case 'archive':
-      return 'Cette estimation est archivée. Dupliquez-la pour créer une nouvelle version.';
-    case 'vendu':
     case 'mandat_signe':
       return 'Ce bien a un mandat signé. L\'estimation est en lecture seule.';
-    case 'perdu':
-      return 'Cette opportunité est marquée comme perdue.';
+    case 'archive':
+      return 'Cette estimation est archivée. Dupliquez-la pour créer une nouvelle version.';
     default:
       return 'Cette estimation est verrouillée.';
   }
@@ -271,20 +250,14 @@ function getLockMessage(statut: EstimationStatus): string {
  * Couleurs des badges statut
  */
 export function getStatutColor(statut: EstimationStatus): string {
-  const colors: Partial<Record<EstimationStatus, string>> = {
+  const colors: Record<EstimationStatus, string> = {
     'brouillon': 'bg-gray-100 text-gray-700 border-gray-300',
-    'en_cours': 'bg-blue-100 text-blue-700 border-blue-300',
-    'a_presenter': 'bg-indigo-100 text-indigo-700 border-indigo-300',
+    'validee': 'bg-indigo-100 text-indigo-700 border-indigo-300',
     'presentee': 'bg-purple-100 text-purple-700 border-purple-300',
-    'reflexion': 'bg-amber-100 text-amber-700 border-amber-300',
     'negociation': 'bg-orange-100 text-orange-700 border-orange-300',
-    'accord_oral': 'bg-lime-100 text-lime-700 border-lime-300',
-    'en_signature': 'bg-emerald-100 text-emerald-700 border-emerald-300',
     'mandat_signe': 'bg-green-100 text-green-700 border-green-300',
     'perdu': 'bg-red-100 text-red-700 border-red-300',
-    'termine': 'bg-green-100 text-green-700 border-green-300',
-    'archive': 'bg-slate-100 text-slate-700 border-slate-300',
-    'vendu': 'bg-green-100 text-green-700 border-green-300'
+    'archive': 'bg-slate-100 text-slate-700 border-slate-300'
   };
   return colors[statut] || 'bg-gray-100 text-gray-700 border-gray-300';
 }
@@ -293,20 +266,14 @@ export function getStatutColor(statut: EstimationStatus): string {
  * Icônes des statuts
  */
 export function getStatutIcon(statut: EstimationStatus): string {
-  const icons: Partial<Record<EstimationStatus, string>> = {
+  const icons: Record<EstimationStatus, string> = {
     'brouillon': '📝',
-    'en_cours': '🔄',
-    'a_presenter': '📤',
+    'validee': '✅',
     'presentee': '👁️',
-    'reflexion': '🤔',
     'negociation': '💬',
-    'accord_oral': '👍',
-    'en_signature': '✍️',
-    'mandat_signe': '✅',
+    'mandat_signe': '🏆',
     'perdu': '❌',
-    'termine': '✅',
-    'archive': '📦',
-    'vendu': '🏆'
+    'archive': '📦'
   };
   return icons[statut] || '📄';
 }
