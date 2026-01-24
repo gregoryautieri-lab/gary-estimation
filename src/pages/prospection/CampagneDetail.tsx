@@ -174,7 +174,7 @@ export default function CampagneDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin, isResponsableProspection, isBackOffice } = useUserRole();
+  const { isAdmin } = useUserRole();
   const { createQRCode, isCreating: isCreatingQR } = useUniqode();
 
   const { campagne, missions, support, isLoading, error, refetch, updateStatut } =
@@ -189,10 +189,7 @@ export default function CampagneDetail() {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Vérifier les permissions
-  const canEdit =
-    campagne &&
-    (campagne.courtier_id === user?.id || isAdmin || isResponsableProspection) &&
-    !isBackOffice;
+  const canEdit = campagne && (campagne.courtier_id === user?.id || isAdmin);
 
   // Calculer les statistiques
   const courriersDistribues = missions

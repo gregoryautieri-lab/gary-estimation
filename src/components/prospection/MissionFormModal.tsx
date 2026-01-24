@@ -122,7 +122,7 @@ export function MissionFormModal({
   onSuccess,
 }: MissionFormModalProps) {
   const { user } = useAuth();
-  const { isAdmin, isResponsableProspection } = useUserRole();
+  const { isAdmin } = useUserRole();
   const { create, update, delete: deleteMission, isCreating, isUpdating, isDeleting } = useMissions();
   const { etudiants } = useEtudiants({ actif_only: true });
 

@@ -222,11 +222,11 @@ function CampagneSkeleton() {
 export default function Campagnes() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { roles, isAdmin, isBackOffice, isResponsableProspection, isLoading: rolesLoading } = useUserRole();
+  const { isAdmin, isLoading: rolesLoading } = useUserRole();
   
-  const canViewAll = isAdmin || isBackOffice || isResponsableProspection;
-  const canCreate = !isBackOffice; // back_office = lecture seule
-  const canAccessAdmin = isAdmin || isResponsableProspection;
+  const canViewAll = isAdmin;
+  const canCreate = true; // All users with access can create
+  const canAccessAdmin = isAdmin;
 
   // États des filtres
   const [statusFilter, setStatusFilter] = useState<CampagneStatut | 'tous'>('tous');
@@ -349,7 +349,7 @@ export default function Campagnes() {
 
   // Vérifie si l'utilisateur peut archiver/restaurer une campagne
   const canManageCampagne = (campagne: Campagne) => {
-    return isAdmin || isResponsableProspection || campagne.courtier_id === user?.id;
+    return isAdmin || campagne.courtier_id === user?.id;
   };
 
   return (

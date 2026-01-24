@@ -59,7 +59,7 @@ const ToolCard = ({ icon, title, stats, onClick, color }: ToolCardProps) => (
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { isAdmin, isResponsableProspection, isCourtier, isBackOffice } = useUserRole();
+  const { isAdmin, isCourtier } = useUserRole();
   const { fetchEstimations, createEstimation, loading: creatingEstimation } = useEstimationPersistence();
   const { fetchProjects } = useProjectsComparables();
   

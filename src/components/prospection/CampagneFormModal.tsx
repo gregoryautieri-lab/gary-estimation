@@ -72,13 +72,13 @@ interface CampagneFormModalProps {
 
 export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: CampagneFormModalProps) {
   const { user } = useAuth();
-  const { isAdmin, isResponsableProspection, isBackOffice } = useUserRole();
+  const { isAdmin } = useUserRole();
   const { supports, isLoading: supportsLoading } = useSupportsProspection();
   const { createQRCode, isCreating: isCreatingQR } = useUniqode();
   const queryClient = useQueryClient();
 
   const isEditMode = !!campagne;
-  const canViewAll = isAdmin || isResponsableProspection;
+  const canViewAll = isAdmin;
 
   // State pour la date de fin calculée (dimanche de la semaine)
   const [dateFin, setDateFin] = useState<Date | null>(null);
@@ -86,9 +86,9 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
   // Vérifier les permissions
   const canEdit = useMemo(() => {
     if (!campagne) return true; // Création
-    if (isAdmin || isResponsableProspection) return true;
+    if (isAdmin) return true;
     return campagne.courtier_id === user?.id;
-  }, [campagne, isAdmin, isResponsableProspection, user?.id]);
+  }, [campagne, isAdmin, user?.id]);
 
   // Récupérer les courtiers (profiles)
   const { data: courtiers = [], isLoading: courtiersLoading } = useQuery({
@@ -350,24 +350,6 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
     );
   }
 
-  // Back office = lecture seule
-  if (isBackOffice && !isAdmin) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <div className="flex flex-col items-center gap-4 py-8">
-            <AlertCircle className="h-12 w-12 text-muted-foreground" />
-            <p className="text-center text-muted-foreground">
-              Accès en lecture seule. Vous ne pouvez pas créer ou modifier de campagnes.
-            </p>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Fermer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   const activeSupports = supports.filter(s => s.actif);
 

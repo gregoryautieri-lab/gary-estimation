@@ -159,17 +159,17 @@ function AppWithWarning() {
         <Route
           path="/admin/prospection"
           element={
-            <RoleBasedRoute allowedRoles={['admin', 'responsable_prospection']}>
+            <RoleBasedRoute allowedRoles={['admin']}>
               <AdminProspection />
             </RoleBasedRoute>
           }
         />
         
-        {/* Prospection - accessible aux courtiers, admins, back_office, responsable_prospection */}
+        {/* Prospection - accessible aux admins et courtiers */}
         <Route
           path="/campagnes"
           element={
-            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
+            <RoleBasedRoute allowedRoles={['admin', 'courtier']}>
               <Campagnes />
             </RoleBasedRoute>
           }
@@ -177,7 +177,7 @@ function AppWithWarning() {
         <Route
           path="/campagnes/:id"
           element={
-            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
+            <RoleBasedRoute allowedRoles={['admin', 'courtier']}>
               <CampagneDetail />
             </RoleBasedRoute>
           }
@@ -185,7 +185,7 @@ function AppWithWarning() {
         <Route
           path="/prospection/planning"
           element={
-            <RoleBasedRoute allowedRoles={['admin', 'courtier', 'back_office', 'responsable_prospection']}>
+            <RoleBasedRoute allowedRoles={['admin', 'courtier']}>
               <PlanningProspection />
             </RoleBasedRoute>
           }
