@@ -43,6 +43,7 @@ function rowToEstimation(row: {
   vendeur_nom: string | null;
   vendeur_email: string | null;
   vendeur_telephone: string | null;
+  campagne_origin_code: string | null;
   identification: Json;
   caracteristiques: Json;
   analyse_terrain: Json;
@@ -125,6 +126,9 @@ function rowToEstimation(row: {
     timeline: { ...defTime, ...(row.timeline as object || {}) } as Timeline,
     etapesCompletees: row.etapes_completees || [],
     notesLibres: row.notes_libres || undefined,
+    campagneOriginCode: row.campagne_origin_code || undefined,
+    // Déduire sourceEstimation depuis campagne_origin_code
+    sourceEstimation: row.campagne_origin_code ? 'prospection' : undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -146,6 +150,7 @@ type InsertData = {
   vendeur_nom: string | null;
   vendeur_email: string | null;
   vendeur_telephone: string | null;
+  campagne_origin_code: string | null;
   identification: Json;
   caracteristiques: Json;
   analyse_terrain: Json;
@@ -173,6 +178,7 @@ function estimationToInsert(data: Partial<EstimationData>, userId: string): Inse
     vendeur_nom: data.vendeurNom || null,
     vendeur_email: data.vendeurEmail || null,
     vendeur_telephone: data.vendeurTelephone || null,
+    campagne_origin_code: data.campagneOriginCode || null,
     identification: (data.identification || defIdent) as unknown as Json,
     caracteristiques: (data.caracteristiques || defCarac) as unknown as Json,
     analyse_terrain: (data.analyseTerrain || defAnalyse) as unknown as Json,
@@ -216,6 +222,8 @@ function estimationToUpdate(data: Partial<EstimationData>) {
   if (data.timeline !== undefined) update.timeline = data.timeline as unknown as Json;
   if (data.etapesCompletees !== undefined) update.etapes_completees = data.etapesCompletees;
   if (data.notesLibres !== undefined) update.notes_libres = data.notesLibres;
+  // Source / Campagne : toujours envoyer campagne_origin_code (même null pour effacer)
+  if (data.campagneOriginCode !== undefined) update.campagne_origin_code = data.campagneOriginCode || null;
 
   return update;
 }
