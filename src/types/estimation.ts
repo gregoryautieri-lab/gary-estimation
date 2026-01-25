@@ -15,6 +15,15 @@ export type EstimationStatus =
 
 export type TypeBien = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial';
 export type TypeMiseEnVente = 'offmarket' | 'comingsoon' | 'public';
+export type SourceEstimation = 'direct' | 'prospection' | 'partenaire' | 'siteweb' | 'autre';
+
+export const SOURCE_ESTIMATION_LABELS: Record<SourceEstimation, string> = {
+  direct: 'Direct',
+  prospection: 'Prospection',
+  partenaire: 'Partenaire',
+  siteweb: 'Site web',
+  autre: 'Autre'
+};
 export type NiveauContrainte = 'faible' | 'moyenne' | 'forte' | 'critique';
 export type NiveauCoordination = 'legere' | 'active' | 'achat_souhaite' | 'achat_envisageable' | 'vente_seule';
 
@@ -975,6 +984,10 @@ export interface EstimationData {
   courtierNom?: string;
   courtierTelephone?: string; // Téléphone du courtier depuis son profil
   statut: EstimationStatus;
+  
+  // Source de l'estimation (pour tracking prospection)
+  sourceEstimation?: SourceEstimation;
+  campagneOriginCode?: string; // Code campagne si source = 'prospection'
   
   // Champs clés
   typeBien?: TypeBien;

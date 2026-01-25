@@ -26,9 +26,10 @@ import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
 import { useEstimationLock } from '@/hooks/useEstimationLock';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { useCadastreLookup } from '@/hooks/useCadastreLookup';
-import { ChevronRight, Save, Loader2, MapPin } from 'lucide-react';
-import type { EstimationData, Identification, MapState, CadastreData } from '@/types/estimation';
-import { defaultIdentification, defaultEstimation } from '@/types/estimation';
+import { useCampagnes } from '@/hooks/useCampagnes';
+import { ChevronRight, Save, Loader2, MapPin, Megaphone } from 'lucide-react';
+import type { EstimationData, Identification, MapState, CadastreData, SourceEstimation } from '@/types/estimation';
+import { defaultIdentification, defaultEstimation, SOURCE_ESTIMATION_LABELS } from '@/types/estimation';
 import { AddressAutocomplete } from '@/components/address/AddressAutocomplete';
 import { LocationPreview } from '@/components/maps/LocationPreview';
 import { CadastreMap } from '@/components/maps/CadastreMap';
@@ -191,10 +192,19 @@ const Module1Identification = () => {
   const { saveLocal } = useOfflineSync();
   const { fetchCadastre, loading: cadastreLoading } = useCadastreLookup();
   
+  // Récupérer les campagnes actives (non archivées) pour le sélecteur source
+  const { campagnes: activeCampagnes, isLoading: campagnesLoading } = useCampagnes({ 
+    includeArchived: false 
+  });
+  
   const [estimation, setEstimation] = useState<EstimationData | null>(null);
   const [identification, setIdentification] = useState<Identification>(defaultIdentification);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  
+  // Source de l'estimation (local state, synced with estimation)
+  const [sourceEstimation, setSourceEstimation] = useState<SourceEstimation | ''>('');
+  const [selectedCampagneCode, setSelectedCampagneCode] = useState<string>('');
   
   // Ref pour éviter de déclencher le cadastre plusieurs fois
   const cadastreFetchedRef = useRef<string | null>(null);
@@ -214,6 +224,7 @@ const Module1Identification = () => {
     delay: 2000,
     onSave: async () => {
       if (!id || isLocked) return;
+      const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
       const dataToSave = {
         identification,
         vendeurNom: identification.vendeur.nom,
@@ -221,7 +232,9 @@ const Module1Identification = () => {
         vendeurTelephone: identification.vendeur.telephone,
         adresse: identification.adresse.rue,
         codePostal: identification.adresse.codePostal,
-        localite: identification.adresse.localite
+        localite: identification.adresse.localite,
+        sourceEstimation: sourceEstimation || undefined,
+        campagneOriginCode: campagneCode || undefined
       };
       await updateEstimation(id, dataToSave);
     },
@@ -270,6 +283,15 @@ const Module1Identification = () => {
         },
         proximites: ident.proximites || defaultIdentification.proximites
       });
+      
+      // Charger les infos de source
+      if (data.campagneOriginCode) {
+        setSourceEstimation('prospection');
+        setSelectedCampagneCode(data.campagneOriginCode);
+      } else if (data.sourceEstimation) {
+        setSourceEstimation(data.sourceEstimation);
+        setSelectedCampagneCode('');
+      }
     }
   };
 
@@ -404,6 +426,9 @@ const Module1Identification = () => {
     if (!id || isLocked) return;
     setSaving(true);
     
+    // Déterminer le code campagne à sauvegarder
+    const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
+    
     const dataToSave = {
       identification,
       vendeurNom: identification.vendeur.nom,
@@ -411,7 +436,10 @@ const Module1Identification = () => {
       vendeurTelephone: identification.vendeur.telephone,
       adresse: identification.adresse.rue,
       codePostal: identification.adresse.codePostal,
-      localite: identification.adresse.localite
+      localite: identification.adresse.localite,
+      // Source de l'estimation
+      sourceEstimation: sourceEstimation || undefined,
+      campagneOriginCode: campagneCode || undefined
     };
     
     // Sauvegarde locale immédiate (offline-first)
@@ -425,6 +453,22 @@ const Module1Identification = () => {
     if (goNext && updated) {
       navigate(`/estimation/${id}/2`);
     }
+  };
+  
+  // Handler pour changement de source
+  const handleSourceChange = (newSource: SourceEstimation | '') => {
+    setSourceEstimation(newSource);
+    // Si on quitte "prospection", vider le code campagne
+    if (newSource !== 'prospection') {
+      setSelectedCampagneCode('');
+    }
+    scheduleSave();
+  };
+  
+  // Handler pour changement de campagne
+  const handleCampagneChange = (code: string) => {
+    setSelectedCampagneCode(code);
+    scheduleSave();
   };
   
   const handleDuplicate = async () => {
@@ -497,6 +541,64 @@ const Module1Identification = () => {
             }}
             disabled={isLocked}
           />
+        </FormSection>
+
+        {/* Source de l'estimation */}
+        <FormSection icon="📣" title="Source de l'estimation">
+          <FormRow label="Comment le vendeur nous a-t-il contactés ?">
+            <Select
+              value={sourceEstimation}
+              onValueChange={(value) => handleSourceChange(value as SourceEstimation | '')}
+              disabled={isLocked}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner la source..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SOURCE_ESTIMATION_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormRow>
+          
+          {/* Dropdown campagne si source = prospection */}
+          {sourceEstimation === 'prospection' && (
+            <FormRow label="Campagne de prospection">
+              <Select
+                value={selectedCampagneCode}
+                onValueChange={handleCampagneChange}
+                disabled={isLocked || campagnesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={campagnesLoading ? "Chargement..." : "Sélectionner une campagne..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeCampagnes
+                    .filter(c => c.code) // S'assurer qu'il y a un code
+                    .map(campagne => (
+                      <SelectItem key={campagne.id} value={campagne.code || ''}>
+                        <div className="flex items-center gap-2">
+                          <Megaphone className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">{campagne.code}</span>
+                          <span className="text-muted-foreground">- {campagne.commune}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  {activeCampagnes.length === 0 && !campagnesLoading && (
+                    <SelectItem value="_none" disabled>
+                      Aucune campagne active
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {selectedCampagneCode && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cette estimation sera comptabilisée dans les statistiques de la campagne.
+                </p>
+              )}
+            </FormRow>
+          )}
         </FormSection>
         
         {/* Vendeur */}
