@@ -18,7 +18,7 @@ interface PresentationCoverProps {
   courtierNom?: string;
 }
 
-// Labels lisibles pour les sous-types (affichage français propre)
+// Labels lisibles pour les sous-types (clés = valeurs stockées en DB)
 const SOUS_TYPE_LABELS: Record<string, string> = {
   // Appartements
   standard: 'Appartement',
@@ -27,14 +27,15 @@ const SOUS_TYPE_LABELS: Record<string, string> = {
   loft: 'Loft',
   studio: 'Studio',
   penthouse: 'Penthouse',
-  // Maisons
-  villa: 'Villa',
-  villa_individuelle: 'Villa individuelle',
+  rez_jardin: 'Rez-de-jardin',
+  hotel_particulier: 'Hôtel particulier',
+  // Maisons - clés exactes du formulaire Module2
+  villa: 'Villa individuelle',
   villa_mitoyenne: 'Villa mitoyenne',
   villa_jumelee: 'Villa jumelée',
-  propriete: 'Propriété',
-  ferme: 'Ferme',
   chalet: 'Chalet',
+  fermette: 'Fermette',
+  maison_village: 'Maison de village',
 };
 
 // Fallback par type de bien
