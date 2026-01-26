@@ -728,6 +728,14 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   const contexte = identification.contexte || {};
   const carac = estimation.caracteristiques as any || {};
   const pre = (estimation as any).preEstimation || (estimation as any).pre_estimation || {};
+  
+  // 🔍 DEBUG TEMPORAIRE - À SUPPRIMER
+  console.log('🔍 PDF DEBUG - estimation keys:', Object.keys(estimation));
+  console.log('🔍 PDF DEBUG - preEstimation:', (estimation as any).preEstimation);
+  console.log('🔍 PDF DEBUG - pre_estimation:', (estimation as any).pre_estimation);
+  console.log('🔍 PDF DEBUG - pre object:', JSON.stringify(pre, null, 2));
+  console.log('🔍 PDF DEBUG - pourcOffmarket:', pre.pourcOffmarket, '| pourcComingsoon:', pre.pourcComingsoon, '| pourcPublic:', pre.pourcPublic);
+  
   const strat = (estimation as any).strategie || {};
   const bien = identification.bien || {};
   
