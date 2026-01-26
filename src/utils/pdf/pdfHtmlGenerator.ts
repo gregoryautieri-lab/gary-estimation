@@ -1142,10 +1142,17 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   
   html += '<div style="display:flex;gap:10px;">';
   
+  // Pré-calculer les prix avec totalVenale (identique à useEstimationCalcul.ts)
+  const arrondir5000 = (val: number): number => Math.ceil(val / 5000) * 5000;
+  const prixOffmarket = arrondir5000(totalVenale * (1 + (pre.pourcOffmarket ?? 15) / 100));
+  const prixComingSoon = arrondir5000(totalVenale * (1 + (pre.pourcComingsoon ?? 10) / 100));
+  const prixPublic = arrondir5000(totalVenale * (1 + (pre.pourcPublic ?? 6) / 100));
+  
   trajectoires.forEach((traj) => {
     const statut = getStatut(traj.id);
     const isPointDepart = statut.label === 'Point de départ stratégique';
-    const objectifValeur = Math.ceil(totalVenaleArrondi * (1 + traj.pourc / 100) / 5000) * 5000;
+    const objectifValeur = traj.id === 'offmarket' ? prixOffmarket : 
+                           traj.id === 'comingsoon' ? prixComingSoon : prixPublic;
     
     html += `<div style="flex:1;background:white;border-radius:6px;border:${isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb'};overflow:hidden;display:flex;flex-direction:column;">`;
     
