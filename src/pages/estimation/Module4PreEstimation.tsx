@@ -325,6 +325,7 @@ export default function Module4PreEstimation() {
         // NOUVEAU: Stocker les valeurs calculées pour synchronisation PDF
         totalVenaleCalcule: calcul.totalVenale,
         totalVenaleArrondiCalcule: calcul.totalVenaleArrondi,
+        cubageCalcule: calcul.cubage,
       },
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
@@ -355,6 +356,7 @@ export default function Module4PreEstimation() {
         // NOUVEAU: Stocker les valeurs calculées pour synchronisation PDF
         totalVenaleCalcule: calcul.totalVenale,
         totalVenaleArrondiCalcule: calcul.totalVenaleArrondi,
+        cubageCalcule: calcul.cubage,
       },
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
