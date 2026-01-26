@@ -5,6 +5,33 @@
 
 import { EstimationData } from "@/types/estimation";
 
+// ==================== HELPERS ====================
+/**
+ * Format distance for PDF - handles both numeric and string values
+ * The distance may already include "m" or "km" from the module
+ */
+function formatDistanceForPdf(distance: string | number | undefined): string {
+  if (distance === undefined || distance === null || distance === '') return '—';
+  
+  const distStr = String(distance).trim();
+  
+  // If it already contains a unit (m or km), return as-is
+  if (distStr.includes('km') || distStr.match(/\d\s*m$/)) {
+    return distStr;
+  }
+  
+  // If it's a pure number, format it
+  const numVal = parseFloat(distStr);
+  if (!isNaN(numVal)) {
+    if (numVal >= 1000) {
+      return (numVal / 1000).toFixed(1) + ' km';
+    }
+    return numVal + ' m';
+  }
+  
+  return distStr;
+}
+
 // ==================== LOGOS SVG ====================
 export const logoWhite = '<svg viewBox="0 0 1372 309"><g fill="#FFFFFF"><path d="M12,156.2C12,72.9,73.2,9.4,162.1,9.4c58.5,0,102.7,25.5,127,62l-42.8,27.8c-15.7-26.5-44.7-44.1-84.2-44.1c-57.8,0-96.3,43.4-96.3,101.1c0,58.1,38.6,101.9,96.3,101.9c47.2,0,81-26.3,89.6-68.5h-92.5v-43.9h151c0,93.3-57.2,157.4-148.1,157.4C73.2,303,12,239.5,12,156.2z"/><path d="M505.7,15.2h57l114.6,282.1h-53.5L594.4,223H474l-29.4,74.3h-53.3L505.7,15.2z M577.9,178.5L534.3,67.7l-43.8,110.7H577.9z"/><path d="M787.6,15.2h100.4c69.1,0,101.1,32.2,101.1,80.2c0,40.1-26.1,71-76,77.3l110.3,124.5h-63.1L854.7,175.8h-16.5v121.5h-50.7V15.2z M883.7,134.1c34.7,0,51.4-13.2,51.4-38.2c0-24.9-16.7-38.2-51.4-38.2h-45.5v76.4H883.7z"/><path d="M1192.1,177.1l-112.3-162h56.6l81.2,119.5l81.2-119.5h56.4l-112.4,162v120.1h-50.7V177.1z"/></g></svg>';
 
@@ -2773,7 +2800,8 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   
   // Arrêt bus/tram
   if (arret) {
-    const arretDistance = arret.distance >= 1000 ? (arret.distance / 1000).toFixed(1) + ' km' : arret.distance + ' m';
+    // Distance is already a string with unit from the module (e.g., "126 m" or "1.3 km")
+    const arretDistance = formatDistanceForPdf(arret.distance);
     html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:8px;display:flex;align-items:flex-start;gap:6px;">';
     html += `<div style="width:24px;height:24px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;flex-shrink:0;">${iconBus}</div>`;
     html += '<div style="flex:1;min-width:0;">';
@@ -2788,7 +2816,8 @@ function generateMapPage(estimation: EstimationData, pageNum: number = 9, totalP
   
   // Gare
   if (gare) {
-    const gareDistance = gare.distance >= 1000 ? (gare.distance / 1000).toFixed(1) + ' km' : gare.distance + ' m';
+    // Distance is already a string with unit from the module (e.g., "1.3 km")
+    const gareDistance = formatDistanceForPdf(gare.distance);
     const gareTemps = gare.temps;
     const gareMode = gare.mode === 'voiture' ? 'en voiture' : 'à pied';
     html += '<div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:6px;padding:8px;display:flex;align-items:flex-start;gap:6px;">';
