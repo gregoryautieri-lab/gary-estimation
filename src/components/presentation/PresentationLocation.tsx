@@ -14,13 +14,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { PresentationLocationMap } from '@/components/presentation/PresentationLocationMap';
 import type { Identification } from '@/types/estimation';
 
 interface PresentationLocationProps {
   identification: Identification;
   isLuxe?: boolean;
+  // Clé Google Maps chargée par le parent (PresentationPage)
+  googleMapsApiKey?: string | null;
+  googleMapsLoading?: boolean;
 }
 
 // Catégories de proximités
@@ -104,7 +106,9 @@ function useStaticMap(coordinates: { lat: number; lng: number } | undefined) {
 
 export function PresentationLocation({
   identification,
-  isLuxe = false
+  isLuxe = false,
+  googleMapsApiKey,
+  googleMapsLoading = false
 }: PresentationLocationProps) {
   // Données adresse
   const adresse = identification?.adresse;
@@ -114,9 +118,6 @@ export function PresentationLocation({
   const canton = adresse?.canton || 'Genève';
   const coordinates = adresse?.coordinates;
   const cadastre = adresse?.cadastreData;
-  
-  // Clé Google Maps (carte dynamique)
-  const { apiKey, loading: apiKeyLoading, error: apiKeyError } = useGoogleMapsKey();
 
   // Proximités
   const proximites = identification?.proximites || [];
@@ -145,13 +146,13 @@ export function PresentationLocation({
             <p className="text-white text-lg font-medium">{rue}</p>
             <p className="text-white/50">{codePostal} {localite}</p>
           </div>
-        ) : apiKeyLoading ? (
+        ) : googleMapsLoading ? (
           <div className="h-full flex items-center justify-center bg-gray-800">
             <Loader2 className="h-8 w-8 animate-spin text-white/50" />
           </div>
-        ) : apiKey ? (
+        ) : googleMapsApiKey ? (
           <PresentationLocationMap
-            apiKey={apiKey}
+            apiKey={googleMapsApiKey}
             center={coordinates}
             isLuxe={isLuxe}
             addressLabel={`${rue} ${codePostal} ${localite}`.trim()}
@@ -162,9 +163,6 @@ export function PresentationLocation({
             <p className="text-white/70 text-sm">Clé Google Maps indisponible</p>
             <p className="text-white text-lg font-medium">{rue}</p>
             <p className="text-white/50">{codePostal} {localite}</p>
-            {apiKeyError && (
-              <p className="text-red-400/60 text-xs mt-2">{apiKeyError}</p>
-            )}
           </div>
         )}
       </div>

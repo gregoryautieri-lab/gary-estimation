@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { 
   Photo, 
   TypeMiseEnVente, 
@@ -77,6 +78,9 @@ const SECTIONS: { id: Section; label: string }[] = [
 export default function PresentationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Charger l'API Google Maps UNE SEULE FOIS au niveau parent
+  const { apiKey: googleMapsApiKey, loading: googleMapsLoading } = useGoogleMapsKey();
   
   const [estimation, setEstimation] = useState<PresentationEstimation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -449,6 +453,8 @@ export default function PresentationPage() {
             <PresentationLocation 
               identification={estimation.identification}
               isLuxe={isLuxe}
+              googleMapsApiKey={googleMapsApiKey}
+              googleMapsLoading={googleMapsLoading}
             />
           )}
           {currentSection === 'etat' && (
