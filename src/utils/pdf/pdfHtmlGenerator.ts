@@ -1152,6 +1152,11 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   
   // Pré-calculer les prix avec totalVenale (identique à useEstimationCalcul.ts)
   const arrondir5000 = (val: number): number => Math.ceil(val / 5000) * 5000;
+
+  // 🔍 DEBUG TEMPORAIRE - BASE DE CALCUL (À SUPPRIMER)
+  console.log('🔍 PDF BASE - totalVenale:', totalVenale);
+  console.log('🔍 PDF BASE - totalVenaleArrondi:', totalVenaleArrondi);
+
   const prixOffmarket = arrondir5000(totalVenale * (1 + (pre.pourcOffmarket ?? 15) / 100));
   const prixComingSoon = arrondir5000(totalVenale * (1 + (pre.pourcComingsoon ?? 10) / 100));
   const prixPublic = arrondir5000(totalVenale * (1 + (pre.pourcPublic ?? 6) / 100));
