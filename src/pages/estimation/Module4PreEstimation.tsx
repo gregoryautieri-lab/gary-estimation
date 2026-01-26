@@ -317,7 +317,10 @@ export default function Module4PreEstimation() {
   const handleAutoSave = useCallback(async () => {
     if (!id || !estimation || !initialLoadDone.current) return;
     
-    await updateEstimation(id, {
+    // 🟡 DEBUG: Vérifier la sauvegarde auto
+    console.log('🟡 AUTOSAVE - cubageCalcule:', calcul.cubage);
+    
+    const updates = {
       preEstimation: {
         ...preEstRef.current,
         prixEntre: calcul.prixEntreCalcule.toString(),
@@ -330,7 +333,11 @@ export default function Module4PreEstimation() {
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
       prixFinal: calcul.prixMiseEnVente,
-    }, true); // silent = true
+    };
+    
+    console.log('🟡 AUTOSAVE - payload preEstimation:', JSON.stringify(updates.preEstimation, null, 2));
+    
+    await updateEstimation(id, updates, true); // silent = true
   }, [id, estimation, updateEstimation, calcul.prixEntreCalcule, calcul.prixEtCalcule, calcul.prixMiseEnVente, calcul.totalVenale, calcul.totalVenaleArrondi]);
 
   const { scheduleSave, isSaving: autoSaving } = useAutoSave({
@@ -348,7 +355,10 @@ export default function Module4PreEstimation() {
     if (!id || !estimation) return;
     setSaving(true);
     
-    const success = await updateEstimation(id, {
+    // 🟡 DEBUG: Vérifier la sauvegarde manuelle
+    console.log('🟡 SAVE - cubageCalcule:', calcul.cubage);
+    
+    const updates = {
       preEstimation: {
         ...preEst,
         prixEntre: calcul.prixEntreCalcule.toString(),
@@ -361,7 +371,11 @@ export default function Module4PreEstimation() {
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
       prixFinal: calcul.prixMiseEnVente,
-    }, false);
+    };
+    
+    console.log('🟡 SAVE - payload preEstimation:', JSON.stringify(updates.preEstimation, null, 2));
+    
+    const success = await updateEstimation(id, updates, false);
     
     setSaving(false);
     
