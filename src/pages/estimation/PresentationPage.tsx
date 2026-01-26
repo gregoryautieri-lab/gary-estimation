@@ -89,6 +89,7 @@ export default function PresentationPage() {
   const [currentSection, setCurrentSection] = useState<Section>('cover');
   const [copied, setCopied] = useState(false);
   const [courtierTelephone, setCourtierTelephone] = useState<string | null>(null);
+  const [courtierNom, setCourtierNom] = useState<string | null>(null);
   
   // Touch handling pour swipe
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -156,16 +157,17 @@ export default function PresentationPage() {
           
           setEstimation(mapped);
           
-          // Récupérer le téléphone du courtier depuis son profil
+          // Récupérer le téléphone et nom du courtier depuis son profil
           if (data.courtier_id) {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('telephone')
+              .select('telephone, full_name')
               .eq('user_id', data.courtier_id)
-              .single();
+              .maybeSingle();
             
-            if (profileData?.telephone) {
-              setCourtierTelephone(profileData.telephone);
+            if (profileData) {
+              setCourtierTelephone(profileData.telephone || null);
+              setCourtierNom(profileData.full_name || null);
             }
           }
         }
@@ -448,6 +450,7 @@ export default function PresentationPage() {
               caracteristiques={estimation.caracteristiques}
               isLuxe={isLuxe}
               onNext={goToNextSection}
+              courtierNom={courtierNom || undefined}
             />
           )}
           {currentSection === 'bien' && (
