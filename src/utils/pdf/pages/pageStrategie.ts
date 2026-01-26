@@ -330,6 +330,9 @@ function generateTrajectoiresSection(
     const isPointDepart = statut.label === 'Point de départ stratégique';
     const objectifValeur = traj.id === 'offmarket' ? prixOffmarket : 
                            traj.id === 'comingsoon' ? prixComingSoon : prixPublic;
+
+    // 🔍 DEBUG TEMPORAIRE - PRIX TRAJECTOIRES (À SUPPRIMER)
+    console.log(`🔍 PDF PRIX - ${traj.id}: ${objectifValeur} (pourc: ${traj.pourc}%)`);
     
     html += '<div style="flex:1;background:white;border-radius:6px;border:' + (isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb') + ';overflow:hidden;">';
     
