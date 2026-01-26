@@ -16,8 +16,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CommissionFormModal } from "@/components/commissions/CommissionFormModal";
 import { ObjectivesModal } from "@/components/commissions/ObjectivesModal";
 
-// Liste des courtiers (agents commerciaux)
-export const COURTIERS_LIST = ["Steven", "Fred", "Guive", "Michel", "Véronique", "Greg"];
+// Liste des courtiers (agents commerciaux) - utiliser les prénoms complets
+export const COURTIERS_LIST = ["Steven", "Frédéric", "Guive", "Michel", "Véronique", "Greg"];
 
 // Personnes qui reçoivent une part mais ne sont PAS des courtiers (leur part ne "consomme" pas de CA)
 const NON_COURTIERS = ["Gregory", "Jared", "Florie"];
