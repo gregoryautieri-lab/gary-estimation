@@ -729,13 +729,6 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   const carac = estimation.caracteristiques as any || {};
   const pre = (estimation as any).preEstimation || (estimation as any).pre_estimation || {};
   
-  // 🔍 DEBUG TEMPORAIRE - À SUPPRIMER
-  console.log('🔍 PDF DEBUG - estimation keys:', Object.keys(estimation));
-  console.log('🔍 PDF DEBUG - preEstimation:', (estimation as any).preEstimation);
-  console.log('🔍 PDF DEBUG - pre_estimation:', (estimation as any).pre_estimation);
-  console.log('🔍 PDF DEBUG - pre object:', JSON.stringify(pre, null, 2));
-  console.log('🔍 PDF DEBUG - pourcOffmarket:', pre.pourcOffmarket, '| pourcComingsoon:', pre.pourcComingsoon, '| pourcPublic:', pre.pourcPublic);
-  
   const strat = (estimation as any).strategie || {};
   const bien = identification.bien || {};
   
@@ -789,10 +782,19 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   const valeurAmenagement = surfaceAmenagement * prixM2Amenagement;
   const valeurAnnexes = (pre.annexes || []).reduce((sum: number, a: any) => sum + (parseFloat(a.prix) || 0), 0);
   
-  const totalVenaleAppart = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
-  const totalVenaleMaison = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
-  const totalVenale = isAppartement ? totalVenaleAppart : totalVenaleMaison;
-  const totalVenaleArrondi = Math.ceil(totalVenale / 5000) * 5000;
+  // Calcul fallback si les valeurs ne sont pas stockées (anciennes estimations)
+  const totalVenaleAppartFallback = valeurSurface + valeurPlaceInt + valeurPlaceExt + valeurBox + valeurCave + valeurLignesSupp;
+  const totalVenaleMaisonFallback = valeurTerrain + valeurCubage + valeurAmenagement + valeurAnnexes;
+  const totalVenaleFallback = isAppartement ? totalVenaleAppartFallback : totalVenaleMaisonFallback;
+  
+  // OPTION A: Utiliser les valeurs calculées stockées (synchronisées avec l'UI)
+  // Si elles existent dans preEstimation, les utiliser. Sinon, fallback sur le recalcul.
+  const totalVenale = (typeof pre.totalVenaleCalcule === 'number' && pre.totalVenaleCalcule > 0)
+    ? pre.totalVenaleCalcule
+    : totalVenaleFallback;
+  const totalVenaleArrondi = (typeof pre.totalVenaleArrondiCalcule === 'number' && pre.totalVenaleArrondiCalcule > 0)
+    ? pre.totalVenaleArrondiCalcule
+    : Math.ceil(totalVenale / 5000) * 5000;
   
   // === PROJET POST-VENTE ===
   const projetPV = identification.projetPostVente || {};
@@ -1150,12 +1152,8 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   
   html += '<div style="display:flex;gap:10px;">';
   
-  // Pré-calculer les prix avec totalVenale (identique à useEstimationCalcul.ts)
+  // Pré-calculer les prix avec totalVenale (synchronisé avec useEstimationCalcul.ts)
   const arrondir5000 = (val: number): number => Math.ceil(val / 5000) * 5000;
-
-  // 🔍 DEBUG TEMPORAIRE - BASE DE CALCUL (À SUPPRIMER)
-  console.log('🔍 PDF BASE - totalVenale:', totalVenale);
-  console.log('🔍 PDF BASE - totalVenaleArrondi:', totalVenaleArrondi);
 
   const prixOffmarket = arrondir5000(totalVenale * (1 + (pre.pourcOffmarket ?? 15) / 100));
   const prixComingSoon = arrondir5000(totalVenale * (1 + (pre.pourcComingsoon ?? 10) / 100));
@@ -1166,10 +1164,6 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
     const isPointDepart = statut.label === 'Point de départ stratégique';
     const objectifValeur = traj.id === 'offmarket' ? prixOffmarket : 
                            traj.id === 'comingsoon' ? prixComingSoon : prixPublic;
-
-    // 🔍 DEBUG TEMPORAIRE - PRIX TRAJECTOIRES (À SUPPRIMER)
-    console.log(`🔍 PDF PRIX - ${traj.id}: ${objectifValeur} (pourc: ${traj.pourc}%)`);
-    
     html += `<div style="flex:1;background:white;border-radius:6px;border:${isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb'};overflow:hidden;display:flex;flex-direction:column;">`;
     
     // Header trajectoire - compact

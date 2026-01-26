@@ -760,6 +760,12 @@ export interface PreEstimation {
   valeurVenale?: string;
   valeurRendement?: string;
   valeurGageCalculee?: string;
+  
+  // NOUVEAU: Valeurs calculées stockées pour synchronisation PDF
+  // Ces valeurs sont calculées par useEstimationCalcul et sauvegardées
+  // pour garantir que le PDF utilise exactement les mêmes prix
+  totalVenaleCalcule?: number;
+  totalVenaleArrondiCalcule?: number;
 }
 
 // ============================================

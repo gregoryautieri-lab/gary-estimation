@@ -322,12 +322,15 @@ export default function Module4PreEstimation() {
         ...preEstRef.current,
         prixEntre: calcul.prixEntreCalcule.toString(),
         prixEt: calcul.prixEtCalcule.toString(),
+        // NOUVEAU: Stocker les valeurs calculées pour synchronisation PDF
+        totalVenaleCalcule: calcul.totalVenale,
+        totalVenaleArrondiCalcule: calcul.totalVenaleArrondi,
       },
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
       prixFinal: calcul.prixMiseEnVente,
     }, true); // silent = true
-  }, [id, estimation, updateEstimation, calcul.prixEntreCalcule, calcul.prixEtCalcule, calcul.prixMiseEnVente]);
+  }, [id, estimation, updateEstimation, calcul.prixEntreCalcule, calcul.prixEtCalcule, calcul.prixMiseEnVente, calcul.totalVenale, calcul.totalVenaleArrondi]);
 
   const { scheduleSave, isSaving: autoSaving } = useAutoSave({
     delay: 1500,
@@ -349,6 +352,9 @@ export default function Module4PreEstimation() {
         ...preEst,
         prixEntre: calcul.prixEntreCalcule.toString(),
         prixEt: calcul.prixEtCalcule.toString(),
+        // NOUVEAU: Stocker les valeurs calculées pour synchronisation PDF
+        totalVenaleCalcule: calcul.totalVenale,
+        totalVenaleArrondiCalcule: calcul.totalVenaleArrondi,
       },
       prixMin: calcul.prixEntreCalcule,
       prixMax: calcul.prixEtCalcule,
