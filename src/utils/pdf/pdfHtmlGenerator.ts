@@ -2130,9 +2130,10 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
     'standard': 'Standard', 'standing': 'Standing', 'attique': 'Attique', 
     'duplex': 'Duplex/Triplex', 'sousplex': 'Sousplex', 'loft': 'Loft', 
     'studio': 'Studio', 'rez_jardin': 'Rez-jardin', 'hotel_particulier': 'Hôtel particulier',
-    'villa_individuelle': 'Villa individuelle', 'villa_mitoyenne': 'Villa mitoyenne',
-    'villa_jumelee': 'Villa jumelée', 'maison_village': 'Maison de village',
-    'chalet': 'Chalet', 'ferme_rustico': 'Ferme/Rustico', 'maison_architecte': "Maison d'architecte",
+    'villa': 'Villa individuelle', 'villa_individuelle': 'Villa individuelle', 
+    'villa_mitoyenne': 'Villa mitoyenne', 'villa_jumelee': 'Villa jumelée', 
+    'maison_village': 'Maison de village', 'chalet': 'Chalet', 
+    'ferme_rustico': 'Ferme/Rustico', 'maison_architecte': "Maison d'architecte",
     'chateau': 'Château', 'pied_dans_eau': 'Pied dans l\'eau'
   };
   
