@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { useEstimationCalcul, useLuxMode } from '@/hooks/useEstimationCalcul';
+import { calculateCapitalVisibilite } from '@/utils/pdf/pdfCalculs';
 import { 
   Photo, 
   TypeMiseEnVente, 
@@ -270,6 +272,35 @@ export default function PresentationPage() {
     );
   }
 
+  // ========================================
+  // CALCULS CORRECTS (comme le PDF)
+  // ========================================
+  
+  // Calcul via le hook useEstimationCalcul
+  const calcul = useEstimationCalcul(
+    estimation.caracteristiques,
+    estimation.preEstimation
+  );
+  
+  // Valeur vénale calculée correctement
+  const totalVenaleCalcule = calcul.totalVenaleArrondi;
+  
+  // Mode luxe calculé correctement (comme le PDF)
+  const luxModeResult = useLuxMode(
+    estimation.caracteristiques,
+    estimation.identification?.contexte || null,
+    estimation.identification?.historique || null,
+    totalVenaleCalcule
+  );
+  const isLuxe = luxModeResult.isLux;
+  
+  // Capital visibilité calculé
+  const capitalResult = calculateCapitalVisibilite(
+    estimation.identification?.historique || {},
+    totalVenaleCalcule
+  );
+  const capitalVisibiliteCalcule = capitalResult.capitalPct;
+  
   // Extraire les données
   const photos = estimation.photos;
   
@@ -284,12 +315,6 @@ export default function PresentationPage() {
     : estimation.caracteristiques?.surfacePPE;
   const surface = typeof surfaceRaw === 'number' ? surfaceRaw : parseFloat(String(surfaceRaw || '0'));
   
-  const prixMinRaw = estimation.preEstimation?.prixEntre;
-  const prixMaxRaw = estimation.preEstimation?.prixEt;
-  const prixMin = typeof prixMinRaw === 'number' ? prixMinRaw : parseFloat(String(prixMinRaw || '0'));
-  const prixMax = typeof prixMaxRaw === 'number' ? prixMaxRaw : parseFloat(String(prixMaxRaw || '0'));
-  const prixFinal = estimation.prixFinal || Math.round((prixMin + prixMax) / 2);
-  
   const coordinates = estimation.identification?.adresse?.coordinates || null;
   const pointsForts = estimation.analyseTerrain?.pointsForts || [];
   const vendeurNom = estimation.identification?.vendeur?.nom || '';
@@ -303,27 +328,10 @@ export default function PresentationPage() {
     ? pitchGenere.pitchComplet || ''
     : estimation.strategiePitch?.pitchCustom || '';
   
-  // Type de mise en vente - dérivé des canaux actifs
-  const canauxActifs = estimation.strategiePitch?.canauxActifs || [];
-  let typeMiseEnVente: TypeMiseEnVente = 'public';
-  if (canauxActifs.includes('offmarket') && !canauxActifs.includes('immoscout')) {
-    typeMiseEnVente = 'offmarket';
-  } else if (canauxActifs.includes('reseaux_sociaux') && !canauxActifs.includes('immoscout')) {
-    typeMiseEnVente = 'comingsoon';
-  }
-  
-  // Capital visibilité - nombre direct
-  const capitalValue = estimation.strategiePitch?.capitalVisibilite || 100;
-  const capitalVisibilite = {
-    value: typeof capitalValue === 'number' ? capitalValue : 100,
-    label: capitalValue >= 80 ? 'Capital préservé' : capitalValue >= 50 ? 'Capital modéré' : 'Capital faible',
-    color: capitalValue >= 80 ? 'green' : capitalValue >= 50 ? 'yellow' : 'red'
-  };
+  // Type de mise en vente - lecture directe (pas déduction)
+  const typeMiseEnVente: TypeMiseEnVente = estimation.preEstimation?.typeMiseEnVente || 'public';
   
   const proximites = estimation.identification?.proximites || [];
-  
-  // Mode luxe basé sur le prix
-  const isLuxe = prixFinal >= 3000000;
 
   // Construire les phases pour la timeline
   const dateDebutStr = estimation.strategiePitch?.dateDebut;
@@ -473,7 +481,7 @@ export default function PresentationPage() {
             <PresentationMarche 
               identification={estimation.identification}
               preEstimation={estimation.preEstimation}
-              prixRecommande={prixFinal}
+              prixRecommande={totalVenaleCalcule}
               analyseTerrain={estimation.analyseTerrain}
             />
           )}
@@ -483,8 +491,10 @@ export default function PresentationPage() {
               caracteristiques={estimation.caracteristiques}
               preEstimation={estimation.preEstimation}
               strategie={estimation.strategiePitch}
-              totalVenale={prixFinal}
+              totalVenale={totalVenaleCalcule}
               courtierTelephone={courtierTelephone || undefined}
+              capitalVisibilite={capitalVisibiliteCalcule}
+              isLuxe={isLuxe}
             />
           )}
           {currentSection === 'prix' && (
@@ -494,7 +504,7 @@ export default function PresentationPage() {
               analyseTerrain={estimation.analyseTerrain}
               typeBien={typeBien}
               typeMiseEnVente={typeMiseEnVente}
-              totalVenale={prixFinal}
+              totalVenale={totalVenaleCalcule}
               isLuxe={isLuxe}
             />
           )}
