@@ -766,6 +766,7 @@ export interface PreEstimation {
   // pour garantir que le PDF utilise exactement les mêmes prix
   totalVenaleCalcule?: number;
   totalVenaleArrondiCalcule?: number;
+  cubageCalcule?: number; // Cubage calculé par UI (prioritaire sur cubageManuel)
 }
 
 // ============================================
