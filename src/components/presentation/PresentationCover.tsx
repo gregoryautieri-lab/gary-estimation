@@ -15,37 +15,43 @@ interface PresentationCoverProps {
   caracteristiques: Caracteristiques;
   isLuxe?: boolean;
   onNext: () => void;
+  courtierNom?: string;
 }
 
-// Labels pour les types de bien
-const TYPE_BIEN_LABELS: Record<string, string> = {
-  appartement: 'APPARTEMENT',
-  maison: 'MAISON',
-  terrain: 'TERRAIN',
-  immeuble: 'IMMEUBLE',
-  commercial: 'COMMERCIAL'
+// Labels lisibles pour les sous-types (affichage français propre)
+const SOUS_TYPE_LABELS: Record<string, string> = {
+  // Appartements
+  standard: 'Appartement',
+  duplex: 'Duplex',
+  attique: 'Attique',
+  loft: 'Loft',
+  studio: 'Studio',
+  penthouse: 'Penthouse',
+  // Maisons
+  villa: 'Villa',
+  villa_individuelle: 'Villa individuelle',
+  villa_mitoyenne: 'Villa mitoyenne',
+  villa_jumelee: 'Villa jumelée',
+  propriete: 'Propriété',
+  ferme: 'Ferme',
+  chalet: 'Chalet',
 };
 
-// Labels pour les sous-types
-const SOUS_TYPE_LABELS: Record<string, string> = {
-  standard: 'STANDARD',
-  duplex: 'DUPLEX',
-  attique: 'ATTIQUE',
-  loft: 'LOFT',
-  studio: 'STUDIO',
-  villa: 'VILLA',
-  villa_individuelle: 'VILLA INDIVIDUELLE',
-  villa_mitoyenne: 'VILLA MITOYENNE',
-  villa_jumelle: 'VILLA JUMELLE',
-  ferme: 'FERME',
-  chalet: 'CHALET'
+// Fallback par type de bien
+const TYPE_BIEN_FALLBACK: Record<string, string> = {
+  appartement: 'Appartement',
+  maison: 'Villa',
+  terrain: 'Terrain',
+  immeuble: 'Immeuble',
+  commercial: 'Local commercial'
 };
 
 export function PresentationCover({
   identification,
   caracteristiques,
   isLuxe = false,
-  onNext
+  onNext,
+  courtierNom
 }: PresentationCoverProps) {
   // Extraire les données
   const typeBien = caracteristiques?.typeBien || 'appartement';
@@ -78,10 +84,10 @@ export function PresentationCover({
     return `${etage}e`;
   };
   
-  // Badge type
-  const typeBienLabel = TYPE_BIEN_LABELS[typeBien] || typeBien.toUpperCase();
-  const sousTypeLabel = sousType ? SOUS_TYPE_LABELS[sousType] || sousType.toUpperCase() : '';
-  const badgeText = sousTypeLabel ? `${typeBienLabel} • ${sousTypeLabel}` : typeBienLabel;
+  // Label du type de bien : sous-type exact ou fallback
+  const typeLabel = sousType && SOUS_TYPE_LABELS[sousType] 
+    ? SOUS_TYPE_LABELS[sousType] 
+    : TYPE_BIEN_FALLBACK[typeBien] || 'Bien immobilier';
   
   // Date du jour
   const dateEstimation = format(new Date(), "d MMMM yyyy", { locale: fr });
@@ -132,11 +138,21 @@ export function PresentationCover({
 
   return (
     <div 
-      className="h-full w-full flex flex-col items-center justify-center px-6 cursor-pointer"
+      className="h-full w-full flex flex-col items-center justify-center px-6 cursor-pointer relative"
       style={{ backgroundColor: '#1a2e35' }}
       onClick={onNext}
     >
-      {/* Badge Type de Bien */}
+      {/* Logo GARY - position absolue en haut à gauche */}
+      <div className="absolute top-6 left-6 z-20">
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">G</span>
+          </div>
+          <span className="text-white font-bold text-xl tracking-wide">GARY</span>
+        </div>
+      </div>
+
+      {/* Badge Type de Bien - sous-type exact */}
       <div className="mb-8">
         <span 
           className={cn(
@@ -144,7 +160,7 @@ export function PresentationCover({
             isLuxe ? "text-amber-400" : "text-white/60"
           )}
         >
-          {badgeText}
+          {typeLabel}
         </span>
       </div>
       
@@ -207,6 +223,14 @@ export function PresentationCover({
       <p className="text-sm text-white/30 mb-8">
         Estimation du {dateEstimation}
       </p>
+      
+      {/* Nom du courtier */}
+      {courtierNom && (
+        <div className="absolute bottom-20 left-0 right-0 text-center z-20">
+          <p className="text-white/60 text-sm">Votre conseiller</p>
+          <p className="text-white font-semibold text-lg">{courtierNom}</p>
+        </div>
+      )}
       
       {/* Indicateur Navigation */}
       <div 
