@@ -425,11 +425,13 @@ function generateCaracteristiquesPage(estimation: EstimationData, pageNum: numbe
   const identification = estimation.identification as any || {};
   const caracteristiques = estimation.caracteristiques as any || {};
   const analyseTerrain = estimation.analyseTerrain as any || {};
+  const preEstimation = estimation.preEstimation as any || {};
   
   const bien = identification.bien || {};
   const contexte = identification.contexte || {};
   const carac = caracteristiques;
   const analyse = analyseTerrain;
+  const pre = preEstimation;
   const proximites = identification.proximites || [];
   
   const isAppartement = estimation.typeBien === 'appartement';
@@ -553,7 +555,8 @@ function generateCaracteristiquesPage(estimation: EstimationData, pageNum: numbe
     html += '</div>';
   } else {
     // Maison
-    const cubage = surfaceHabMaison * 3;
+    // Cubage : priorité cubageCalcule (UI) > cubageManuel > fallback
+    const cubage = parseNum(pre.cubageCalcule) || parseNum(pre.cubageManuel) || parseNum(carac.cubageManuel) || surfaceHabMaison * 3;
     const diffMaison = carac.diffusionMaison;
     let diffMaisonDisplay = '–';
     if (diffMaison) {
