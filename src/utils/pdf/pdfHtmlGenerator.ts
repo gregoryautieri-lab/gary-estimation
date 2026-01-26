@@ -1145,7 +1145,7 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   trajectoires.forEach((traj) => {
     const statut = getStatut(traj.id);
     const isPointDepart = statut.label === 'Point de départ stratégique';
-    const objectifValeur = Math.round(totalVenaleArrondi * (1 + traj.pourc / 100) / 5000) * 5000;
+    const objectifValeur = Math.ceil(totalVenaleArrondi * (1 + traj.pourc / 100) / 5000) * 5000;
     
     html += `<div style="flex:1;background:white;border-radius:6px;border:${isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb'};overflow:hidden;display:flex;flex-direction:column;">`;
     
