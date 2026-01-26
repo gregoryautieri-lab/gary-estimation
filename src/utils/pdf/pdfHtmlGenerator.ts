@@ -2104,12 +2104,12 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
 function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: number = 7, totalPages: number = 9): string {
   const identification = estimation.identification as any || {};
   const vendeur = identification.vendeur || {};
-  const bien = identification.bien || {};
+  const adresseData = identification.adresse || {};
   const contexte = identification.contexte || {};
   const carac = (estimation as any).caracteristiques || {};
   
-  const isAppartement = bien.type === 'appartement' || carac.typeBien === 'appartement';
-  const isMaison = bien.type === 'maison' || carac.typeBien === 'maison';
+  const isAppartement = estimation.typeBien === 'appartement' || carac.typeBien === 'appartement';
+  const isMaison = estimation.typeBien === 'maison' || carac.typeBien === 'maison';
   
   // Calcul surface pondérée
   const surfacePPE = parseFloat(carac.surfacePPE) || 0;
@@ -2137,18 +2137,22 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
   };
   
   const zoneLabels: Record<string, string> = {
-    '5': 'Zone 5 (Villa)', '4BP': 'Zone 4B protégée', '4B': 'Zone 4B', 
-    '4A': 'Zone 4A', '3': 'Zone 3', '2': 'Zone 2', '1': 'Zone 1',
+    'villa': 'Zone 5 (Villa)', '5': 'Zone 5 (Villa)', '4BP': 'Zone 4B protégée', '4B': 'Zone 4B', 
+    '4A': 'Zone 4A', '3': 'Zone 3', 'mixte': 'Zone 3 (Mixte)', '2': 'Zone 2', '1': 'Zone 1',
     'ZD': 'Zone développement', 'agricole': 'Agricole', 'industrielle': 'Industrielle', 'autre': 'Autre'
   };
   
   const buanderieLabels: Record<string, string> = { 'privee': 'Privée', 'commune': 'Commune', 'aucune': 'Aucune' };
   
   const motifLabels: Record<string, string> = {
-    'succession': 'Succession', 'divorce': 'Divorce', 'demenagement': 'Déménagement',
-    'agrandissement': 'Agrandissement', 'reduction': 'Réduction surface', 
-    'investissement': 'Investissement', 'financier': 'Raisons financières',
-    'travail': 'Mutation professionnelle', 'retraite': 'Retraite', 'autre': 'Autre'
+    'succession': 'Succession', 'divorce': 'Divorce/Séparation', 'separation': 'Séparation/Divorce',
+    'demenagement': 'Déménagement', 'agrandissement': 'Agrandissement', 'reduction': 'Réduction surface', 
+    'investissement': 'Investissement', 'financier': 'Raisons financières', 'difficultes_financieres': 'Difficultés financières',
+    'travail': 'Mutation professionnelle', 'retraite': 'Retraite', 'changement_vie': 'Changement de vie', 'autre': 'Autre'
+  };
+  
+  const occupationLabels: Record<string, string> = {
+    'libre': 'Libre', 'loue': 'Loué', 'occupe_vendeur': 'Occupé par le vendeur', 'occupe_proprietaire': 'Occupé propriétaire'
   };
   
   const prioriteLabels: Record<string, string> = {
@@ -2210,9 +2214,9 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
   html += '<div class="annexe-section">';
   html += `<div class="annexe-title">${ico('mapPin', 12, '#FF4539')} Localisation</div>`;
   html += '<div class="annexe-grid-3">';
-  html += `<div class="annexe-item"><div class="annexe-item-label">Adresse</div><div class="annexe-item-value">${annexeVal(bien.adresse)}</div></div>`;
-  html += `<div class="annexe-item"><div class="annexe-item-label">Code postal</div><div class="annexe-item-value">${annexeVal(bien.codePostal)}</div></div>`;
-  html += `<div class="annexe-item"><div class="annexe-item-label">Localité</div><div class="annexe-item-value">${annexeVal(bien.localite)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Adresse</div><div class="annexe-item-value">${annexeVal(adresseData.rue || estimation.adresse)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Code postal</div><div class="annexe-item-value">${annexeVal(adresseData.codePostal || estimation.codePostal)}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Localité</div><div class="annexe-item-value">${annexeVal(adresseData.localite || estimation.localite)}</div></div>`;
   html += '</div></div>';
   
   // === SECTION CONTEXTE ===
@@ -2224,9 +2228,11 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
   html += `<div class="annexe-item"><div class="annexe-item-label">Priorité</div><div class="annexe-item-value">${annexeVal(prioriteLabels[contexte.prioriteVendeur])}</div></div>`;
   html += `<div class="annexe-item"><div class="annexe-item-label">Confidentialité</div><div class="annexe-item-value">${annexeVal(confidentLabels[contexte.confidentialite])}</div></div>`;
   html += '</div>';
-  // Occupation
-  const occupationText = contexte.statutOccupation === 'libre' ? 'Libre' : 
-    (contexte.statutOccupation === 'loue' ? 'Loué' + (contexte.finBailMois && contexte.finBailAnnee ? ' (fin: ' + contexte.finBailMois + '/' + contexte.finBailAnnee + ')' : '') : '—');
+  // Occupation - avec mapping complet
+  let occupationText = occupationLabels[contexte.statutOccupation] || contexte.statutOccupation || '—';
+  if (contexte.statutOccupation === 'loue' && contexte.finBailMois && contexte.finBailAnnee) {
+    occupationText += ` (fin: ${contexte.finBailMois}/${contexte.finBailAnnee})`;
+  }
   html += '<div class="annexe-grid-2" style="margin-top:6px;">';
   html += `<div class="annexe-item"><div class="annexe-item-label">Occupation</div><div class="annexe-item-value">${occupationText}</div></div>`;
   html += '</div></div>';
@@ -2254,7 +2260,7 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
   // Type et sous-type
   html += '<div class="annexe-grid">';
   html += `<div class="annexe-item"><div class="annexe-item-label">Type</div><div class="annexe-item-value">${isAppartement ? 'Appartement' : (isMaison ? 'Maison' : '—')}</div></div>`;
-  html += `<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">${annexeVal(sousTypeLabels[carac.sousType])}</div></div>`;
+  html += `<div class="annexe-item"><div class="annexe-item-label">Sous-type</div><div class="annexe-item-value">${annexeVal(sousTypeLabels[carac.sousType] || carac.sousType)}</div></div>`;
   html += `<div class="annexe-item"><div class="annexe-item-label">Année construction</div><div class="annexe-item-value">${annexeVal(carac.anneeConstruction)}</div></div>`;
   html += `<div class="annexe-item"><div class="annexe-item-label">Rénovation</div><div class="annexe-item-value">${annexeVal(carac.anneeRenovation)}</div></div>`;
   html += '</div>';
@@ -2277,7 +2283,7 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
     html += `<div class="annexe-item"><div class="annexe-item-label">Surface terrain</div><div class="annexe-item-value">${annexeVal(carac.surfaceTerrain, ' m²')}</div></div>`;
     html += `<div class="annexe-item"><div class="annexe-item-label">N° parcelle</div><div class="annexe-item-value">${annexeVal(carac.numeroParcelle)}</div></div>`;
     html += '</div><div class="annexe-grid" style="margin-top:6px;">';
-    html += `<div class="annexe-item"><div class="annexe-item-label">Zone</div><div class="annexe-item-value">${annexeVal(zoneLabels[carac.zone])}</div></div>`;
+    html += `<div class="annexe-item"><div class="annexe-item-label">Zone</div><div class="annexe-item-value">${annexeVal(zoneLabels[carac.zone] || carac.zone)}</div></div>`;
     html += `<div class="annexe-item"><div class="annexe-item-label">Niveaux</div><div class="annexe-item-value">${annexeVal(carac.nombreNiveaux)}</div></div>`;
   }
   html += '</div>';
