@@ -32,6 +32,8 @@ interface PresentationStrategieProps {
   strategie: StrategiePitch;
   totalVenale: number;
   courtierTelephone?: string; // Téléphone du courtier depuis son profil
+  capitalVisibilite?: number; // Capital visibilité calculé (0-100)
+  isLuxe?: boolean; // Mode luxe calculé
 }
 
 // Icônes des phases
@@ -103,8 +105,10 @@ export function PresentationStrategie({
   strategie,
   totalVenale,
   courtierTelephone,
+  capitalVisibilite: capitalVisibiliteProp,
+  isLuxe: isLuxeProp,
 }: PresentationStrategieProps) {
-  // Calcul luxMode
+  // Calcul luxMode - utiliser la prop si fournie, sinon calculer
   const carac = caracteristiques || {} as Caracteristiques;
   const contexte = identification?.contexte || {};
   const historique = identification?.historique || {};
@@ -113,7 +117,8 @@ export function PresentationStrategie({
   const surfaceHab = parseNumber(isAppartement ? carac.surfacePPE : carac.surfaceHabitableMaison);
   const surfaceTerrainVal = parseNumber(carac.surfaceTerrain);
   
-  const { luxMode } = calculateLuxMode(
+  // Utiliser la prop isLuxe si fournie, sinon calculer
+  const luxMode = isLuxeProp !== undefined ? isLuxeProp : calculateLuxMode(
     carac as any,
     contexte as any,
     historique as any,
@@ -122,12 +127,12 @@ export function PresentationStrategie({
     surfaceHab,
     surfaceTerrainVal,
     roundTo5000(totalVenale)
-  );
+  ).luxMode;
   
   const copy = getLuxCopy(luxMode);
   
-  // Capital visibilité
-  const capitalValue = strategie?.capitalVisibilite ?? 100;
+  // Capital visibilité - utiliser la prop si fournie, sinon lire depuis strategie
+  const capitalValue = capitalVisibiliteProp !== undefined ? capitalVisibiliteProp : (strategie?.capitalVisibilite ?? 100);
   const capitalConfig = getCapitalConfig(capitalValue);
   
   // Détection si bien déjà diffusé (pour alerte recalibrage)
