@@ -248,6 +248,24 @@ export default function PresentationPage() {
     navigate(`/estimation/${id}/5`);
   };
 
+  // ========================================
+  // CALCULS CORRECTS - Hooks AVANT les early returns
+  // ========================================
+  
+  // Calcul via le hook useEstimationCalcul (toujours appelé)
+  const calcul = useEstimationCalcul(
+    estimation?.caracteristiques || null,
+    estimation?.preEstimation || null
+  );
+  
+  // Mode luxe calculé correctement (toujours appelé)
+  const luxModeResult = useLuxMode(
+    estimation?.caracteristiques || null,
+    estimation?.identification?.contexte || null,
+    estimation?.identification?.historique || null,
+    calcul.totalVenaleArrondi
+  );
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-gray-900 flex items-center justify-center">
@@ -272,29 +290,11 @@ export default function PresentationPage() {
     );
   }
 
-  // ========================================
-  // CALCULS CORRECTS (comme le PDF)
-  // ========================================
-  
-  // Calcul via le hook useEstimationCalcul
-  const calcul = useEstimationCalcul(
-    estimation.caracteristiques,
-    estimation.preEstimation
-  );
-  
-  // Valeur vénale calculée correctement
+  // Valeurs calculées (après vérification que estimation existe)
   const totalVenaleCalcule = calcul.totalVenaleArrondi;
-  
-  // Mode luxe calculé correctement (comme le PDF)
-  const luxModeResult = useLuxMode(
-    estimation.caracteristiques,
-    estimation.identification?.contexte || null,
-    estimation.identification?.historique || null,
-    totalVenaleCalcule
-  );
   const isLuxe = luxModeResult.isLux;
   
-  // Capital visibilité calculé
+  // Capital visibilité calculé (pas un hook, peut être après le if)
   const capitalResult = calculateCapitalVisibilite(
     estimation.identification?.historique || {},
     totalVenaleCalcule
