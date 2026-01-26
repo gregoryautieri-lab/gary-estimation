@@ -176,7 +176,7 @@ export function generateStrategiePage(
   }
   
   // Trajectoires
-  html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenaleArrondi, luxResult.luxMode, historique as any, copy);
+  html += generateTrajectoiresSection(trajectoires, typeMV, valeurs.totalVenale, preEstimation, luxResult.luxMode, historique as any, copy);
   
   // Capital visibilité
   html += generateCapitalSection(capitalResult, historique as any, copy);
@@ -297,7 +297,8 @@ function generateTimelineSection(
 function generateTrajectoiresSection(
   trajList: any[], 
   typeMV: string, 
-  totalVenaleArrondi: number, 
+  totalVenale: number, 
+  preEstimation: any,
   isLux: boolean,
   historique: any,
   copy: any
@@ -313,6 +314,12 @@ function generateTrajectoiresSection(
     return {label: 'Activable', style: 'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;'};
   };
   
+  // Pré-calculer les prix avec totalVenale (identique à useEstimationCalcul.ts)
+  const arrondir5000 = (val: number): number => Math.ceil(val / 5000) * 5000;
+  const prixOffmarket = arrondir5000(totalVenale * (1 + (preEstimation.pourcOffmarket ?? 15) / 100));
+  const prixComingSoon = arrondir5000(totalVenale * (1 + (preEstimation.pourcComingsoon ?? 10) / 100));
+  const prixPublic = arrondir5000(totalVenale * (1 + (preEstimation.pourcPublic ?? 6) / 100));
+  
   let html = '<div style="padding:12px 24px;background:#f8fafc;">';
   html += '<div style="font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:5px;">' + ico('compass', 12, '#9ca3af') + (isLux ? 'Choisissez votre scénario' : 'Choisissez votre point de départ') + '</div>';
   
@@ -321,7 +328,8 @@ function generateTrajectoiresSection(
   trajList.forEach((traj) => {
     const statut = getStatut(traj.id);
     const isPointDepart = statut.label === 'Point de départ stratégique';
-    const objectifValeur = Math.ceil(totalVenaleArrondi * (1 + traj.pourc / 100) / 5000) * 5000;
+    const objectifValeur = traj.id === 'offmarket' ? prixOffmarket : 
+                           traj.id === 'comingsoon' ? prixComingSoon : prixPublic;
     
     html += '<div style="flex:1;background:white;border-radius:6px;border:' + (isPointDepart ? '2px solid #1a2e35' : '1px solid #e5e7eb') + ';overflow:hidden;">';
     
