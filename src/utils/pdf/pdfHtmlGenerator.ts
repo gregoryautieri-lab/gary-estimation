@@ -2275,7 +2275,9 @@ function generateAnnexeTechnique1Page(estimation: EstimationData, pageNum: numbe
       html += '<div class="annexe-prox">';
       html += `<span style="font-size:14px;">${p.icone || '📍'}</span>`;
       html += `<span style="font-size:9px;color:#1a2e35;flex:1;">${p.libelle}</span>`;
-      if (p.distance) html += `<span style="font-size:9px;color:#6b7280;">${p.distance} m</span>`;
+      if (p.distance !== undefined && p.distance !== null && p.distance !== '') {
+        html += `<span style="font-size:9px;color:#6b7280;">${formatDistanceForPdf(p.distance)}</span>`;
+      }
       html += '</div>';
     });
     html += '</div>';
