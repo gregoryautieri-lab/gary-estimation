@@ -20,15 +20,20 @@ import {
   TreePine,
   Waves,
   Building2,
-  Gauge
+  Gauge,
+  Box,
+  Hammer,
+  Leaf,
+  MapPin
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Caracteristiques, Identification } from '@/types/estimation';
+import type { Caracteristiques, Identification, PreEstimation } from '@/types/estimation';
 
 interface PresentationCharacteristicsProps {
   identification: Identification;
   caracteristiques: Caracteristiques;
+  preEstimation?: PreEstimation;
   isLuxe?: boolean;
 }
 
@@ -83,6 +88,7 @@ const VITRAGE_LABELS: Record<string, string> = {
 export function PresentationCharacteristics({
   identification,
   caracteristiques,
+  preEstimation,
   isLuxe = false
 }: PresentationCharacteristicsProps) {
   const typeBien = caracteristiques?.typeBien || 'appartement';
@@ -96,7 +102,11 @@ export function PresentationCharacteristics({
   
   // Header data
   const anneeConstruction = caracteristiques?.anneeConstruction;
+  const anneeRenovation = caracteristiques?.anneeRenovation;
   const sousType = caracteristiques?.sousType || '';
+  
+  // Zone cadastrale (depuis adresse.cadastreData ou caracteristiques.zone)
+  const zoneCadastrale = identification?.adresse?.cadastreData?.zone || caracteristiques?.zone;
   
   // Métriques principales
   const surface = isMaison 
@@ -121,7 +131,13 @@ export function PresentationCharacteristics({
   // Config maison
   const nombreNiveaux = parseNum(caracteristiques?.nombreNiveaux);
   const surfaceTerrain = parseNum(caracteristiques?.surfaceTerrain);
-  const piscine = caracteristiques?.piscine;
+  const piscine = Boolean(caracteristiques?.piscine) && String(caracteristiques?.piscine) !== 'non';
+  
+  // Cubage pour maisons (depuis preEstimation ou calcul)
+  const surfaceHabMaison = parseNum(caracteristiques?.surfaceHabitableMaison);
+  const cubageCalcule = parseNum(preEstimation?.cubageCalcule);
+  const cubageManuel = parseNum(preEstimation?.cubageManuel);
+  const cubage = cubageManuel || cubageCalcule || (isMaison && surfaceHabMaison > 0 ? Math.round(surfaceHabMaison * 3) : 0);
   
   // Équipements techniques
   const chauffage = caracteristiques?.chauffage || '';
@@ -249,13 +265,19 @@ export function PresentationCharacteristics({
                 {surfaceTerrain > 0 && (
                   <ConfigRow icon={<TreePine className="h-4 w-4" />} label="Surface terrain" value={`${surfaceTerrain} m²`} isLuxe={isLuxe} />
                 )}
-                <ConfigRow 
-                  icon={<Waves className="h-4 w-4" />} 
-                  label="Piscine" 
-                  value={piscine} 
-                  isBoolean 
-                  isLuxe={isLuxe} 
-                />
+                {cubage > 0 && (
+                  <ConfigRow icon={<Box className="h-4 w-4" />} label="Cubage SIA" value={`${cubage.toLocaleString('fr-CH')} m³`} isLuxe={isLuxe} />
+                )}
+                {/* Piscine : affiché uniquement si présente */}
+                {piscine && (
+                  <ConfigRow 
+                    icon={<Waves className="h-4 w-4" />} 
+                    label="Piscine" 
+                    value={true} 
+                    isBoolean 
+                    isLuxe={isLuxe} 
+                  />
+                )}
               </>
             ) : (
               // Config Appartement
@@ -287,8 +309,49 @@ export function PresentationCharacteristics({
           </div>
         </div>
 
-        {/* 5. Équipements techniques */}
-        {(chauffage || vitrage || cecb || chargesMensuelles > 0) && (
+        {/* 5. Infos techniques : construction, rénovation, CECB, zone */}
+        <div>
+          <h3 className="text-white/60 text-sm font-medium mb-3 uppercase tracking-wide">Informations techniques</h3>
+          <div className="space-y-2">
+            {/* Année construction */}
+            {anneeConstruction && (
+              <ConfigRow icon={<Calendar className="h-4 w-4" />} label="Construction" value={String(anneeConstruction)} isLuxe={isLuxe} />
+            )}
+            {/* Année rénovation */}
+            {anneeRenovation && (
+              <ConfigRow icon={<Hammer className="h-4 w-4" />} label="Rénové en" value={String(anneeRenovation)} isLuxe={isLuxe} />
+            )}
+            {/* CECB avec badge coloré */}
+            {cecb && (
+              <div className={cn(
+                "flex items-center justify-between px-4 py-3 rounded-lg",
+                isLuxe ? "bg-amber-500/5 border border-amber-500/10" : "bg-white/5 border border-white/5"
+              )}>
+                <div className="flex items-center gap-3">
+                  <Leaf className={isLuxe ? "text-amber-400 h-4 w-4" : "text-white/50 h-4 w-4"} />
+                  <span className="text-white/70">CECB</span>
+                </div>
+                <Badge className={cn(
+                  "font-bold text-white border-0",
+                  cecb.toUpperCase() === 'A' && "bg-green-500",
+                  cecb.toUpperCase() === 'B' && "bg-green-400",
+                  cecb.toUpperCase() === 'C' && "bg-yellow-500",
+                  cecb.toUpperCase() === 'D' && "bg-orange-400",
+                  ['E', 'F', 'G'].includes(cecb.toUpperCase()) && "bg-red-500",
+                )}>
+                  {cecb.toUpperCase()}
+                </Badge>
+              </div>
+            )}
+            {/* Zone cadastrale */}
+            {zoneCadastrale && (
+              <ConfigRow icon={<MapPin className="h-4 w-4" />} label="Zone" value={zoneCadastrale} isLuxe={isLuxe} />
+            )}
+          </div>
+        </div>
+
+        {/* 6. Équipements techniques */}
+        {(chauffage || vitrage || chargesMensuelles > 0) && (
           <div>
             <h3 className="text-white/60 text-sm font-medium mb-3 uppercase tracking-wide">Équipements</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -305,14 +368,6 @@ export function PresentationCharacteristics({
                   icon={<Layers className="h-4 w-4" />} 
                   label="Vitrage" 
                   value={VITRAGE_LABELS[vitrage] || vitrage} 
-                  isLuxe={isLuxe} 
-                />
-              )}
-              {cecb && (
-                <TechCard 
-                  icon={<Gauge className="h-4 w-4" />} 
-                  label="CECB" 
-                  value={cecb.toUpperCase()} 
                   isLuxe={isLuxe} 
                 />
               )}

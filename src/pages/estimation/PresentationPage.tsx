@@ -457,6 +457,7 @@ export default function PresentationPage() {
             <PresentationCharacteristics 
               identification={estimation.identification}
               caracteristiques={estimation.caracteristiques}
+              preEstimation={estimation.preEstimation}
               isLuxe={isLuxe}
             />
           )}
