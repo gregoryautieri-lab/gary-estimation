@@ -305,6 +305,7 @@ interface CaracSurfaces {
 
 interface PreEstimationCubage {
   cubageManuel?: string | number;
+  cubageCalcule?: number;
 }
 
 export function calculateSurfaces(
@@ -329,8 +330,8 @@ export function calculateSurfaces(
     surfaceTerrasse * 0.33 +
     surfaceJardin * 0.1;
 
-  // Cubage
-  const cubage = parseNumber(preEstimation.cubageManuel) || surfaceUtile * 3.1;
+  // Cubage - priorité: cubageCalcule (UI) > cubageManuel > fallback
+  const cubage = parseNumber(preEstimation.cubageCalcule) || parseNumber(preEstimation.cubageManuel) || surfaceUtile * 3.1;
 
   // Calculs maison
   const nbNiveaux = parseInt(String(carac.nombreNiveaux || 1)) || 1;
