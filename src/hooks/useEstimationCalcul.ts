@@ -190,6 +190,9 @@ export function useEstimationCalcul(
     const cubageManuel = parseNum(preEst.cubageManuel);
     const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
     
+    // 🔵 DEBUG: Vérifier le calcul cubage dans l'UI
+    console.log('🔵 UI CALCUL - cubageAuto:', cubageAuto, '| cubageManuel:', cubageManuel, '| cubage final:', cubage);
+    
     // Surface aménagement (sous-sol) pour valorisation
     const surfaceAmenagement = surfaceSousSol;
     

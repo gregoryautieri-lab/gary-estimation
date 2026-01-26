@@ -765,7 +765,11 @@ function generateTrajectoiresPage(estimation: EstimationData, pageNum: number = 
   const prixM2Amenagement = parseNum(pre.prixM2Amenagement);
   
   const surfaceUtile = parseNum(carac.surfaceUtile);
-  const cubage = parseNum(pre.cubageManuel) || (surfaceUtile * 3.1);
+  // 🔴 DEBUG PDF (section 1 - lignes ~768)
+  console.log('🔴 PDF SECTION1 - pre.cubageCalcule:', pre.cubageCalcule);
+  console.log('🔴 PDF SECTION1 - pre.cubageManuel:', pre.cubageManuel);
+  const cubage = parseNum(pre.cubageCalcule) || parseNum(pre.cubageManuel) || (surfaceUtile * 3.1);
+  console.log('🔴 PDF SECTION1 - cubage final:', cubage);
   const nbNiveaux = parseInt(carac.nombreNiveaux) || 1;
   const surfaceAuSol = nbNiveaux > 0 ? surfaceHabMaison / nbNiveaux : 0;
   const surfaceAmenagement = Math.max(0, surfaceTerrain - surfaceAuSol);
@@ -1611,7 +1615,12 @@ function generateMethodologiePage(estimation: EstimationData, pageNum: number = 
   const cubageCombles = comblesType === 'amenageables' ? empriseAuSolEstimee * HAUTEUR_COMBLES : 0;
   const cubageAuto = cubageHorsSol + cubageSousSol + cubageCombles;
   const cubageManuel = parseFloat(pre.cubageManuel) || 0;
-  const cubage = cubageManuel > 0 ? cubageManuel : cubageAuto;
+  // 🔴 DEBUG PDF (section 2 - ligne ~1614) - Priorité: cubageCalcule > cubageManuel > cubageAuto
+  console.log('🔴 PDF SECTION2 - pre.cubageCalcule:', pre.cubageCalcule);
+  console.log('🔴 PDF SECTION2 - pre.cubageManuel:', pre.cubageManuel);
+  console.log('🔴 PDF SECTION2 - cubageAuto recalculé:', cubageAuto);
+  const cubage = parseFloat(pre.cubageCalcule) || (cubageManuel > 0 ? cubageManuel : cubageAuto);
+  console.log('🔴 PDF SECTION2 - cubage final utilisé:', cubage);
   
   // === PRIX AVEC VÉTUSTÉ (CRUCIAL) ===
   const prixM2 = parseFloat(pre.prixM2) || 0;
