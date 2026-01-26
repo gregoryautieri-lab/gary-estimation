@@ -225,15 +225,19 @@ const Module1Identification = () => {
     onSave: async () => {
       if (!id || isLocked) return;
       const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
+      // Inclure sourceContact dans identification pour persistance
+      const identificationWithSource = {
+        ...identification,
+        sourceContact: sourceEstimation || undefined
+      };
       const dataToSave = {
-        identification,
+        identification: identificationWithSource,
         vendeurNom: identification.vendeur.nom,
         vendeurEmail: identification.vendeur.email,
         vendeurTelephone: identification.vendeur.telephone,
         adresse: identification.adresse.rue,
         codePostal: identification.adresse.codePostal,
         localite: identification.adresse.localite,
-        sourceEstimation: sourceEstimation || undefined,
         campagneOriginCode: campagneCode || undefined
       };
       await updateEstimation(id, dataToSave);
@@ -284,11 +288,15 @@ const Module1Identification = () => {
         proximites: ident.proximites || defaultIdentification.proximites
       });
       
-      // Charger les infos de source
+      // Charger les infos de source depuis identification.sourceContact
       if (data.campagneOriginCode) {
         setSourceEstimation('prospection');
         setSelectedCampagneCode(data.campagneOriginCode);
+      } else if (ident.sourceContact) {
+        setSourceEstimation(ident.sourceContact as SourceEstimation);
+        setSelectedCampagneCode('');
       } else if (data.sourceEstimation) {
+        // Fallback legacy
         setSourceEstimation(data.sourceEstimation);
         setSelectedCampagneCode('');
       }
@@ -429,16 +437,20 @@ const Module1Identification = () => {
     // Déterminer le code campagne à sauvegarder
     const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
     
+    // Inclure sourceContact dans identification pour persistance
+    const identificationWithSource = {
+      ...identification,
+      sourceContact: sourceEstimation || undefined
+    };
+    
     const dataToSave = {
-      identification,
+      identification: identificationWithSource,
       vendeurNom: identification.vendeur.nom,
       vendeurEmail: identification.vendeur.email,
       vendeurTelephone: identification.vendeur.telephone,
       adresse: identification.adresse.rue,
       codePostal: identification.adresse.codePostal,
       localite: identification.adresse.localite,
-      // Source de l'estimation
-      sourceEstimation: sourceEstimation || undefined,
       campagneOriginCode: campagneCode || undefined
     };
     
