@@ -159,7 +159,8 @@ export default function AdminCommissions() {
   // Commissions filtrées (pour la liste détaillée)
   const filteredCommissions = useMemo(() => {
     return allCommissionsYear.filter((c) => {
-      if (filterCourtier !== "all" && c.courtier_principal !== filterCourtier) return false;
+      // Comparaison par prénom (le filtre contient "Steven", le champ contient "Steven Bourg")
+      if (filterCourtier !== "all" && !c.courtier_principal.toLowerCase().startsWith(filterCourtier.toLowerCase())) return false;
       if (filterStatut !== "all" && c.statut !== filterStatut) return false;
       return true;
     });
