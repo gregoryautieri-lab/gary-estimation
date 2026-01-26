@@ -74,7 +74,7 @@ export function generateCaracteristiquesPage(
   if (isAppartement) {
     html += generateAppartementGrid(carac, surfaces, vueDisplay, chaufLabels, diffMap);
   } else if (isMaison) {
-    html += generateMaisonGrid(carac, surfaces, vueDisplay, chaufLabels, diffMap);
+    html += generateMaisonGrid(carac, surfaces, vueDisplay, chaufLabels, diffMap, preEstimation);
   }
   
   html += '</div>';
@@ -147,15 +147,19 @@ function generateAppartementGrid(carac: any, surfaces: any, vueDisplay: string, 
   return html;
 }
 
-function generateMaisonGrid(carac: any, surfaces: any, vueDisplay: string, chaufLabels: Record<string, string>, diffMap: Record<string, string>): string {
+function generateMaisonGrid(carac: any, surfaces: any, vueDisplay: string, chaufLabels: Record<string, string>, diffMap: Record<string, string>, preEstimation: any): string {
   let html = '';
+  
+  // Cubage : priorité cubageCalcule (UI) > cubageManuel > fallback
+  const parseNum = (v: any) => parseFloat(String(v || '').replace(/[^\d.-]/g, '')) || 0;
+  const cubageDisplay = parseNum(preEstimation?.cubageCalcule) || parseNum(carac?.cubageManuel) || surfaces.cubage;
   
   // Ligne 1 - Surfaces
   html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
   html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:4px;padding:10px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">Surface habitable</div><div style="font-size:15px;font-weight:700;color:#1a2e35;">' + (carac.surfaceHabitableMaison || '—') + ' m²</div></div>';
   html += '<div style="background:#fafafa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;border-left:3px solid #111827;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">Surface terrain</div><div style="font-size:15px;font-weight:700;color:#111827;">' + surfaces.surfaceTerrain.toFixed(0) + ' m²</div></div>';
   html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:4px;padding:10px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">Niveaux</div><div style="font-size:15px;font-weight:700;color:#1a2e35;">' + (carac.nombreNiveaux || '—') + '</div></div>';
-  html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:4px;padding:10px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">Cubage</div><div style="font-size:15px;font-weight:700;color:#1a2e35;">' + surfaces.cubage.toFixed(0) + ' m³</div></div>';
+  html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:4px;padding:10px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:3px;">Cubage</div><div style="font-size:15px;font-weight:700;color:#1a2e35;">' + Math.round(cubageDisplay) + ' m³</div></div>';
   html += '</div>';
   
   // Ligne 2 - Équipements
