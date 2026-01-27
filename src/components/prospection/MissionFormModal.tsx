@@ -71,6 +71,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ZoneDrawer } from '@/components/prospection/ZoneDrawer';
+import { MissionValidationModal } from '@/components/prospection/MissionValidationModal';
 import type { GeoJsonPolygon } from '@/hooks/useZoneCapture';
 import type { Mission, MissionStatut } from '@/types/prospection';
 
@@ -136,6 +137,10 @@ export function MissionFormModal({
     imageUrl: null,
     geoJson: null,
   });
+
+  // State pour le modal de validation
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [pendingMissionForValidation, setPendingMissionForValidation] = useState<Mission | null>(null);
 
   // Récupérer les courtiers (profiles)
   const { data: courtiers = [] } = useQuery({
@@ -211,6 +216,36 @@ export function MissionFormModal({
 
   const onSubmit = async (values: MissionFormValues) => {
     try {
+      // Si on passe en "terminée" et que la mission n'est pas encore validée, ouvrir le modal de validation
+      const isChangingToTerminee = values.statut === 'terminee' && mission?.statut !== 'terminee';
+      const isAlreadyValidated = mission?.strava_validated === true;
+      
+      if (isEditMode && isChangingToTerminee && !isAlreadyValidated) {
+        // Sauvegarder d'abord les autres modifications
+        const payload: Record<string, unknown> = {
+          campagne_id: campagneId,
+          date: format(values.date, 'yyyy-MM-dd'),
+          etudiant_id: values.assignee_type === 'etudiant' ? values.etudiant_id : null,
+          courtier_id: values.assignee_type === 'courtier' ? values.courtier_id : null,
+          secteur_nom: values.secteur_nom || null,
+          courriers_prevu: values.courriers_prevu,
+          courriers_distribues: values.courriers_distribues,
+          // Ne pas changer le statut encore - le modal de validation le fera
+          statut: mission.statut,
+          notes: values.notes || null,
+          zone_image_url: zoneData.imageUrl || mission?.zone_image_url || null,
+          zone_geojson: zoneData.geoJson || mission?.zone_geojson || null,
+        };
+        
+        update({ id: mission.id, ...payload } as Parameters<typeof update>[0]);
+        
+        // Ouvrir le modal de validation
+        setPendingMissionForValidation(mission);
+        setShowValidationModal(true);
+        onOpenChange(false);
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         campagne_id: campagneId,
         date: format(values.date, 'yyyy-MM-dd'),
@@ -253,6 +288,7 @@ export function MissionFormModal({
   const hasStravaData = mission && (mission.strava_temps || mission.strava_distance_km || mission.strava_vitesse_moy);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-lg max-h-[90vh] overflow-y-auto"
@@ -727,5 +763,24 @@ export function MissionFormModal({
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Modal de validation - s'ouvre quand on passe en "terminée" */}
+    {pendingMissionForValidation && (
+      <MissionValidationModal
+        open={showValidationModal}
+        onOpenChange={(open) => {
+          setShowValidationModal(open);
+          if (!open) {
+            setPendingMissionForValidation(null);
+          }
+        }}
+        mission={pendingMissionForValidation}
+        onSuccess={() => {
+          setPendingMissionForValidation(null);
+          onSuccess?.();
+        }}
+      />
+    )}
+  </>
   );
 }
