@@ -2,15 +2,17 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Mail, ClipboardList, Plus, ArrowLeft, LayoutGrid, List, CheckCircle2, CalendarDays, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Mail, ClipboardList, Plus, ArrowLeft, LayoutGrid, List, CheckCircle2, CalendarDays, HelpCircle, Download } from 'lucide-react';
 import { format, addWeeks, subWeeks, startOfWeek, addDays, isToday } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { usePlanningMissions, type PlanningMission } from '@/hooks/usePlanningMissions';
 import { useProspectionAlertes } from '@/hooks/useProspectionAlertes';
 import { MissionPlanningCard } from '@/components/prospection/MissionPlanningCard';
 import { AlertesProspection } from '@/components/prospection/AlertesProspection';
 import { CreateMissionModal } from '@/components/prospection/CreateMissionModal';
 import { MissionFormModal } from '@/components/prospection/MissionFormModal';
+import { exportToExcel, type MissionExportRow } from '@/utils/exportExcel';
 import type { Mission } from '@/types/prospection';
 
 const JOURS_SEMAINE = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -70,6 +72,40 @@ export default function PlanningProspection() {
     return `${debut} - ${fin}`;
   }, [currentWeekStart]);
 
+  // Fonction d'export des missions
+  const handleExportMissions = () => {
+    if (missions.length === 0) {
+      toast.error('Aucune mission à exporter');
+      return;
+    }
+
+    const exportData: MissionExportRow[] = missions.map((m) => {
+      const assigneName = m.etudiant 
+        ? `${m.etudiant.prenom} ${m.etudiant.nom || ''}`.trim()
+        : m.courtier_id ? 'Courtier' : 'Non assigné';
+      const typeAssigne = m.etudiant_id ? 'Étudiant' : m.courtier_id ? 'Courtier' : '-';
+      
+      return {
+        'Code campagne': m.campagne?.code || '-',
+        'Date': m.date ? format(new Date(m.date), 'dd.MM.yyyy') : '-',
+        'Commune': m.campagne?.commune || '-',
+        'Secteur': m.secteur_nom || '-',
+        'Assigné à': assigneName,
+        'Type assigné': typeAssigne,
+        'Statut': m.statut === 'terminee' ? 'Terminée' : m.statut === 'en_cours' ? 'En cours' : m.statut === 'annulee' ? 'Annulée' : 'Prévue',
+        'Courriers prévus': m.courriers_prevu,
+        'Courriers distribués': m.courriers_distribues || 0,
+        'Temps Strava': '-', // Non disponible dans la vue planning
+        'Distance (km)': '-',
+        'Vitesse moy (km/h)': '-',
+        'Validation Strava': '-',
+      };
+    });
+
+    exportToExcel(exportData, 'prospection-missions', 'Missions');
+    toast.success(`${missions.length} mission(s) exportée(s)`);
+  };
+
   return (
     <>
       <div className="min-h-screen bg-background">
@@ -87,6 +123,16 @@ export default function PlanningProspection() {
 
               {/* Toggle vue + Navigation semaine + bouton nouvelle mission */}
               <div className="flex items-center gap-2">
+                {/* Bouton Export */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleExportMissions}
+                  disabled={missions.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
                 <div className="flex items-center border rounded-lg overflow-hidden">
                   <Button
                     variant={viewMode === 'grille' ? 'default' : 'ghost'}
