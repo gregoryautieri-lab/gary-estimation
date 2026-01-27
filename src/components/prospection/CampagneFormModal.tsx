@@ -34,6 +34,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
+import { CommuneHistoryPanel } from './CommuneHistoryPanel';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -134,6 +135,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
   const nbFlyers = watch('nb_flyers');
   const coutUnitaireCourrier = watch('cout_unitaire_courrier');
   const coutUnitaireFlyer = watch('cout_unitaire_flyer');
+  const communeValue = watch('commune');
 
   // Auto-update cout_unitaire_courrier quand le support change (uniquement en mode création)
   useEffect(() => {
@@ -432,6 +434,11 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
                 <p className="text-xs text-destructive">{errors.commune.message}</p>
               )}
             </div>
+
+            {/* Historique commune - Panneau contextuel */}
+            {!isEditMode && communeValue && (
+              <CommuneHistoryPanel commune={communeValue} />
+            )}
 
             {/* Type de message */}
             <div className="space-y-2">
