@@ -57,11 +57,9 @@ export function PresentationCTA({
             Discutons ensemble
           </Button>
           
-          <Button
-            variant="outline"
-            size="lg"
+          <button
             className={cn(
-              "w-full h-14 text-base rounded-2xl gap-3",
+              "w-full h-14 text-base rounded-2xl gap-3 inline-flex items-center justify-center font-medium transition-colors border bg-transparent",
               isLuxe 
                 ? "border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
                 : "border-white/20 text-white hover:bg-white/10"
@@ -69,7 +67,7 @@ export function PresentationCTA({
           >
             <HelpCircle className="h-5 w-5" />
             J'ai des questions
-          </Button>
+          </button>
         </div>
         
         {/* Actions contact */}
