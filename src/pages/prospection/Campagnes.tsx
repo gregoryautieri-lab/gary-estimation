@@ -45,6 +45,7 @@ import {
   Megaphone,
   Settings2,
   CalendarDays,
+  BarChart3,
   Archive,
   RotateCcw,
   MessageSquare,
@@ -383,6 +384,15 @@ export default function Campagnes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton Dashboard */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/prospection/dashboard')}
+            >
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Stats
+            </Button>
             {/* Bouton Planning */}
             <Button 
               variant="outline" 
