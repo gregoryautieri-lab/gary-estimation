@@ -137,7 +137,7 @@ export default function ProspectionMap() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border px-4 py-3 flex items-center gap-3 sticky top-0 bg-background z-50">
         <Button variant="ghost" size="icon" onClick={() => navigate('/campagnes')}>
