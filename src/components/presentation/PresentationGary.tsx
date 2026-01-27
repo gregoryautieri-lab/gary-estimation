@@ -39,14 +39,6 @@ export function PresentationGary({
   const projetPostVente = identification?.projetPostVente;
   const typeMiseEnVente: TypeMiseEnVente = preEstimation?.typeMiseEnVente || 'public';
   
-  // 🔍 DEBUG SLIDE 5
-  console.log('🔍 DEBUG SLIDE 5:', {
-    historique: identification?.historique,
-    dejaDiffuse: identification?.historique?.dejaDiffuse,
-    typeofDejaDiffuse: typeof identification?.historique?.dejaDiffuse,
-    isStrictTrue: identification?.historique?.dejaDiffuse === true
-  });
-  
   // Flags contextuels
   const isConfidentiel = typeMiseEnVente === 'offmarket';
   const isComingSoon = typeMiseEnVente === 'comingsoon';
@@ -71,7 +63,7 @@ export function PresentationGary({
         subtitle: 'Discrétion et efficacité pour votre projet'
       };
     }
-    if (dejaDiffuse) {
+    if (dejaDiffuse === true) {
       return {
         title: 'Une nouvelle approche',
         subtitle: 'Reconstruire la valeur perçue de votre bien'
@@ -191,8 +183,8 @@ export function PresentationGary({
           )}
           style={{ animationDelay: '100ms' }}
         >
-          <p className="text-white/80 leading-relaxed text-sm md:text-base">
-            {dejaDiffuse 
+        <p className="text-white/80 leading-relaxed text-sm md:text-base">
+            {dejaDiffuse === true
               ? 'Votre bien a déjà été exposé au marché. Notre mission : reconstruire son attractivité par une approche différenciante et un repositionnement stratégique.'
               : isLuxe 
                 ? 'GARY accompagne les propriétaires de biens d\'exception avec une conviction : le capital-visibilité de votre bien est un actif précieux qui mérite une gouvernance sur mesure.'
