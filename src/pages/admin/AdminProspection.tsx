@@ -13,7 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SupportFormModal } from '@/components/admin/SupportFormModal';
-import { EtudiantFormModal } from '@/components/admin/EtudiantFormModal';
+import { EtudiantFormModal, type EtudiantInitialValues } from '@/components/admin/EtudiantFormModal';
+import { ImportEtudiantsModal } from '@/components/admin/ImportEtudiantsModal';
 
 import { 
   ArrowLeft, 
@@ -22,7 +23,8 @@ import {
   ToggleLeft, 
   ToggleRight,
   Package,
-  Users
+  Users,
+  Download,
 } from 'lucide-react';
 
 import type { SupportProspection, Etudiant } from '@/types/prospection';
@@ -40,6 +42,8 @@ export default function AdminProspection() {
   const [selectedSupport, setSelectedSupport] = useState<SupportProspection | null>(null);
   const [etudiantModalOpen, setEtudiantModalOpen] = useState(false);
   const [selectedEtudiant, setSelectedEtudiant] = useState<Etudiant | null>(null);
+  const [etudiantInitialValues, setEtudiantInitialValues] = useState<EtudiantInitialValues | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Check permissions
   if (roleLoading) {
@@ -85,11 +89,24 @@ export default function AdminProspection() {
 
   const handleEditEtudiant = (etudiant: Etudiant) => {
     setSelectedEtudiant(etudiant);
+    setEtudiantInitialValues(null);
     setEtudiantModalOpen(true);
   };
 
   const handleNewEtudiant = () => {
     setSelectedEtudiant(null);
+    setEtudiantInitialValues(null);
+    setEtudiantModalOpen(true);
+  };
+
+  const handleImportEtudiant = (user: { user_id: string; full_name: string | null; email: string | null; telephone: string | null }) => {
+    setSelectedEtudiant(null);
+    setEtudiantInitialValues({
+      prenom: user.full_name || '',
+      email: user.email || '',
+      tel: user.telephone || '',
+      user_id: user.user_id,
+    });
     setEtudiantModalOpen(true);
   };
 
@@ -239,10 +256,21 @@ export default function AdminProspection() {
                     Gérez les étudiants et leurs salaires
                   </CardDescription>
                 </div>
-                <Button onClick={handleNewEtudiant} size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Ajouter
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => setImportModalOpen(true)} 
+                    size="sm" 
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Importer
+                  </Button>
+                  <Button onClick={handleNewEtudiant} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Ajouter
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {etudiantsLoading ? (
@@ -335,6 +363,12 @@ export default function AdminProspection() {
         open={etudiantModalOpen}
         onOpenChange={setEtudiantModalOpen}
         etudiant={selectedEtudiant}
+        initialValues={etudiantInitialValues}
+      />
+      <ImportEtudiantsModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onSelectUser={handleImportEtudiant}
       />
     </div>
   );
