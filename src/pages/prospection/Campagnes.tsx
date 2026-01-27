@@ -47,9 +47,11 @@ import {
   CalendarDays,
   Archive,
   RotateCcw,
+  MessageSquare,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
+import { getTypeMessageLabel } from '@/constants/typeMessageOptions';
 
 // Types pour les filtres
 type PeriodFilter = 'month' | '3months' | 'year' | 'all';
@@ -158,6 +160,12 @@ function CampagneRow({
           <Badge variant="outline" className="text-[10px]">
             {campagne.type_bien}
           </Badge>
+          {campagne.type_message && (
+            <Badge variant="secondary" className="text-[10px] truncate max-w-[120px]">
+              <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+              {getTypeMessageLabel(campagne.type_message)}
+            </Badge>
+          )}
           <span className="flex items-center gap-1">
             <Mail className="h-3 w-3" />
             {campagne.nb_courriers}
