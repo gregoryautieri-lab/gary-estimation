@@ -12,3 +12,4 @@ export { PresentationCover } from './PresentationCover';
 export { PresentationCharacteristics } from './PresentationCharacteristics';
 export { PresentationLocation } from './PresentationLocation';
 export { PresentationActions } from './PresentationActions';
+export { PresentationCTA } from './PresentationCTA';
