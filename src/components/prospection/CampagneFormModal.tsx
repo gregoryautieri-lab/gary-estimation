@@ -27,6 +27,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
@@ -37,6 +39,7 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 import { COMMUNES_GENEVE } from '@/constants/communesGeneve';
+import { TYPE_MESSAGE_GROUPS } from '@/constants/typeMessageOptions';
 import type { Campagne, TypeBienProspection } from '@/types/prospection';
 
 // ============ SCHEMA ZOD ============
@@ -44,6 +47,7 @@ import type { Campagne, TypeBienProspection } from '@/types/prospection';
 const campagneSchema = z.object({
   courtier_id: z.string().min(1, 'Le courtier est obligatoire'),
   commune: z.string().min(1, 'La commune est obligatoire'),
+  type_message: z.string().min(1, 'Le type de message est obligatoire'),
   type_bien: z.enum(['PPE', 'Villa', 'Mixte'] as const, {
     required_error: 'Le type de bien est obligatoire',
   }),
@@ -109,6 +113,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
     defaultValues: {
       courtier_id: '',
       commune: '',
+      type_message: '',
       type_bien: 'Mixte',
       support_id: '',
       nb_courriers: 0,
@@ -149,6 +154,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
         reset({
           courtier_id: campagne.courtier_id,
           commune: campagne.commune,
+          type_message: campagne.type_message || '',
           type_bien: campagne.type_bien,
           support_id: campagne.support_id,
           nb_courriers: campagne.nb_courriers,
@@ -172,6 +178,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
         reset({
           courtier_id: canViewAll ? '' : user?.id || '',
           commune: '',
+          type_message: '',
           type_bien: 'Mixte',
           support_id: '',
           nb_courriers: 0,
@@ -216,6 +223,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
       const payload = {
         courtier_id: data.courtier_id,
         commune: data.commune,
+        type_message: data.type_message,
         type_bien: data.type_bien,
         support_id: data.support_id,
         nb_courriers: data.nb_courriers,
@@ -284,6 +292,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
       const payload = {
         courtier_id: data.courtier_id,
         commune: data.commune,
+        type_message: data.type_message,
         type_bien: data.type_bien,
         support_id: data.support_id,
         nb_courriers: data.nb_courriers,
@@ -421,6 +430,37 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
               />
               {errors.commune && (
                 <p className="text-xs text-destructive">{errors.commune.message}</p>
+              )}
+            </div>
+
+            {/* Type de message */}
+            <div className="space-y-2">
+              <Label htmlFor="type_message">Type de message *</Label>
+              <Controller
+                name="type_message"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="type_message">
+                      <SelectValue placeholder="Sélectionner le type de message" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPE_MESSAGE_GROUPS.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.type_message && (
+                <p className="text-xs text-destructive">{errors.type_message.message}</p>
               )}
             </div>
 

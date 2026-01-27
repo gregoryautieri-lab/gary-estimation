@@ -41,6 +41,7 @@ export type Database = {
           statut: Database["public"]["Enums"]["campagne_statut"]
           support_id: string
           type_bien: Database["public"]["Enums"]["type_bien_prospection"]
+          type_message: string | null
           uniqode_id: string | null
           updated_at: string
         }
@@ -70,6 +71,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["campagne_statut"]
           support_id: string
           type_bien?: Database["public"]["Enums"]["type_bien_prospection"]
+          type_message?: string | null
           uniqode_id?: string | null
           updated_at?: string
         }
@@ -99,6 +101,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["campagne_statut"]
           support_id?: string
           type_bien?: Database["public"]["Enums"]["type_bien_prospection"]
+          type_message?: string | null
           uniqode_id?: string | null
           updated_at?: string
         }

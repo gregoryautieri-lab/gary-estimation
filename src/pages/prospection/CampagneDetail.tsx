@@ -26,6 +26,7 @@ import {
   Copy,
   Loader2,
   RefreshCw,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,7 @@ import { MissionFormModal } from '@/components/prospection/MissionFormModal';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getTypeMessageLabel } from '@/constants/typeMessageOptions';
 import {
   CAMPAGNE_STATUT_LABELS,
   CAMPAGNE_STATUT_COLORS,
@@ -446,6 +448,13 @@ export default function CampagneDetail() {
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <p>{TYPE_BIEN_PROSPECTION_LABELS[campagne.type_bien]}</p>
               </div>
+
+              {campagne.type_message && (
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <p>{getTypeMessageLabel(campagne.type_message)}</p>
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-muted-foreground" />

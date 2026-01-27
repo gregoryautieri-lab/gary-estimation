@@ -43,6 +43,7 @@ export interface Campagne {
   support_id: string;
   commune: string;
   secteurs: string[] | null;
+  type_message: string | null;
   type_bien: TypeBienProspection;
   nb_courriers: number;
   nb_flyers: number;
