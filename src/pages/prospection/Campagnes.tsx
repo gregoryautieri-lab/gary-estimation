@@ -49,6 +49,7 @@ import {
   Archive,
   RotateCcw,
   MessageSquare,
+  MapIcon,
 } from 'lucide-react';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
@@ -384,6 +385,15 @@ export default function Campagnes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton Carte */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/prospection/carte')}
+            >
+              <MapIcon className="h-4 w-4 mr-1" />
+              Carte
+            </Button>
             {/* Bouton Dashboard */}
             <Button 
               variant="outline" 
