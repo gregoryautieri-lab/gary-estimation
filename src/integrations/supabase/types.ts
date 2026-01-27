@@ -898,6 +898,39 @@ export type Database = {
         }
         Relationships: []
       }
+      types_messages_prospection: {
+        Row: {
+          actif: boolean
+          created_at: string
+          groupe: string
+          id: string
+          label: string
+          ordre: number
+          updated_at: string
+          valeur: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          groupe: string
+          id?: string
+          label: string
+          ordre?: number
+          updated_at?: string
+          valeur: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          groupe?: string
+          id?: string
+          label?: string
+          ordre?: number
+          updated_at?: string
+          valeur?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
