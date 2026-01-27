@@ -656,6 +656,29 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
             {/* URL QR */}
             <div className="space-y-2">
               <Label htmlFor="qr_destination_url">URL de destination du QR code</Label>
+              
+              {/* Boutons rapides URLs prédéfinies */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setValue('qr_destination_url', 'https://gary.ch/estimer/')}
+                >
+                  gary.ch/estimer
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setValue('qr_destination_url', 'https://www.instagram.com/gary_realestate/')}
+                >
+                  Instagram GARY
+                </Button>
+              </div>
+
               <Controller
                 name="qr_destination_url"
                 control={control}
@@ -663,7 +686,7 @@ export function CampagneFormModal({ open, onOpenChange, campagne, onSuccess }: C
                   <Input
                     id="qr_destination_url"
                     type="url"
-                    placeholder="https://instagram.com/gary, https://gary.ch/estimateur..."
+                    placeholder="https://gary.ch/estimer/ ou URL personnalisée..."
                     {...field}
                   />
                 )}
