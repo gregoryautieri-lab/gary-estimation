@@ -523,6 +523,12 @@ export default function PresentationPage() {
               vendeurTelephone={vendeurTelephone}
               vendeurEmail={vendeurEmail}
               isLuxe={isLuxe}
+              typeMiseEnVente={typeMiseEnVente}
+              phaseDurees={phaseDurees}
+              dateDebut={dateDebut}
+              courtierNom={courtierNom || undefined}
+              historique={estimation.identification?.historique}
+              capitalVisibilite={capitalVisibiliteCalcule}
             />
           )}
         </div>
