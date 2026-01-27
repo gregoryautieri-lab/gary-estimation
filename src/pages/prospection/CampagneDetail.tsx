@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUniqode, useQRStats } from '@/hooks/useUniqode';
 import { CampagneFormModal } from '@/components/prospection/CampagneFormModal';
+import { CostSynthesisCard } from '@/components/prospection/CostSynthesisCard';
 import { MissionFormModal } from '@/components/prospection/MissionFormModal';
 import { BottomNav } from '@/components/gary/BottomNav';
 import { toast } from 'sonner';
@@ -562,6 +563,12 @@ export default function CampagneDetail() {
               className="col-span-2"
             />
           </div>
+
+          {/* Synthèse des coûts */}
+          <CostSynthesisCard 
+            campagneId={campagne.id} 
+            coutSupports={Number(campagne.cout_total) || 0} 
+          />
 
           {/* QR Scans Graph */}
           <Card>
