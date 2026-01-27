@@ -489,6 +489,7 @@ export default function PresentationPage() {
               preEstimation={estimation.preEstimation}
               prixRecommande={totalVenaleCalcule}
               analyseTerrain={estimation.analyseTerrain}
+              isLuxe={isLuxe}
             />
           )}
           {currentSection === 'strategie' && (

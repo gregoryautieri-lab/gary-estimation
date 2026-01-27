@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from "@react-google-maps/api";
 import { useGoogleMapsKey } from "@/hooks/useGoogleMapsKey";
-import { Loader2, MapPin, CheckCircle2, Circle, Star } from "lucide-react";
-import { Comparable, PreEstimation, Identification } from "@/types/estimation";
+import { Loader2, MapPin, CheckCircle2, Circle, Star, TrendingUp } from "lucide-react";
+import { Comparable, PreEstimation, Identification, AnalyseTerrain } from "@/types/estimation";
 import { formatPriceCHF } from "@/hooks/useEstimationCalcul";
 import { geocodeAddress } from "@/lib/api/comparables";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 // Table des coordonnées moyennes par NPA (Genève + Vaud limitrophe)
 const NPA_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -109,7 +110,8 @@ interface PresentationMarcheProps {
   identification: Identification;
   preEstimation: PreEstimation;
   prixRecommande: number;
-  analyseTerrain?: { pointsForts?: string[] };
+  analyseTerrain?: AnalyseTerrain;
+  isLuxe?: boolean;
 }
 
 // Extraire le NPA d'une adresse
@@ -268,9 +270,9 @@ function MarketMap({
             {selectedMarker.prix > 0 && (
               <p className="font-bold text-base text-gray-900">{formatPriceCHF(selectedMarker.prix)}</p>
             )}
-            {selectedMarker.surface && selectedMarker.prixM2 && (
+            {selectedMarker.surface && (
               <p className="text-xs text-gray-500">
-                {selectedMarker.surface} m² • {selectedMarker.prixM2.toLocaleString('fr-CH')} CHF/m²
+                {selectedMarker.surface} m²
               </p>
             )}
             {selectedMarker.dateInfo && (
@@ -283,7 +285,7 @@ function MarketMap({
   );
 }
 
-// Composant card comparable
+// Composant card comparable - SANS prix/m²
 function ComparableCard({
   marker,
   type,
@@ -318,17 +320,14 @@ function ComparableCard({
             )}
           </div>
         </div>
-        {marker.prixM2 && (
+        {marker.surface && (
           <div className="text-right">
-            <p className="text-xs text-white/60">{marker.prixM2.toLocaleString('fr-CH')}</p>
-            <p className="text-[10px] text-white/40">CHF/m²</p>
+            <p className="text-xs text-white/60">{marker.surface} m²</p>
           </div>
         )}
       </div>
-      {(marker.surface || marker.dateInfo) && (
+      {marker.dateInfo && (
         <p className="text-xs text-white/50 mt-1">
-          {marker.surface && `${marker.surface} m²`}
-          {marker.surface && marker.dateInfo && " • "}
           {marker.dateInfo}
         </p>
       )}
@@ -342,6 +341,7 @@ export function PresentationMarche({
   preEstimation,
   prixRecommande,
   analyseTerrain,
+  isLuxe = false,
 }: PresentationMarcheProps) {
   const { apiKey, loading: apiLoading, error: apiError } = useGoogleMapsKey();
   const [principalMarker, setPrincipalMarker] = useState<MarkerData | null>(null);
@@ -457,9 +457,7 @@ export function PresentationMarche({
   }, [comparablesVendus, comparablesEnVente]);
 
   // Calculer la synthèse de positionnement
-  const getSynthese = () => {
-    if (!hasComparables) return null;
-    
+  const getPositionData = () => {
     const allPrices = [
       ...vendusMarkers.map(m => m.prix),
       ...enVenteMarkers.map(m => m.prix),
@@ -467,16 +465,34 @@ export function PresentationMarche({
     
     if (allPrices.length === 0) return null;
     
-    const moyenne = allPrices.reduce((a, b) => a + b, 0) / allPrices.length;
-    const ecart = ((prixRecommande - moyenne) / moyenne) * 100;
+    const sorted = [...allPrices].sort((a, b) => a - b);
+    const minPrix = sorted[0];
+    const maxPrix = sorted[sorted.length - 1];
+    const mediane = sorted[Math.floor(sorted.length / 2)] || 0;
+    const range = maxPrix - minPrix;
     
-    if (ecart > 10) {
-      const pointsForts = analyseTerrain?.pointsForts?.slice(0, 2).join(', ') || 'ses atouts';
-      return `Positionnement premium, justifié par ${pointsForts}`;
-    } else if (ecart < -10) {
-      return "Positionnement attractif pour une vente rapide";
+    // Position du bien recommandé (en %)
+    const position = range > 0 
+      ? Math.min(100, Math.max(0, ((prixRecommande - minPrix) / range) * 100))
+      : 50;
+    
+    return { minPrix, maxPrix, mediane, position, allPrices };
+  };
+
+  const getSynthese = () => {
+    if (!hasComparables) return null;
+    
+    const posData = getPositionData();
+    if (!posData) return null;
+    
+    const { mediane } = posData;
+    
+    if (prixRecommande > mediane * 1.15) {
+      return "Votre bien se positionne dans le segment premium du marché";
+    } else if (prixRecommande > mediane * 0.95) {
+      return "Votre bien se positionne dans la moyenne haute du marché";
     } else {
-      return "Positionnement cohérent avec le marché local";
+      return "Votre bien offre un positionnement attractif sur le marché";
     }
   };
 
@@ -506,7 +522,8 @@ export function PresentationMarche({
   }
 
   const synthese = getSynthese();
-
+  const positionData = getPositionData();
+  const totalComparables = vendusMarkers.length + enVenteMarkers.length;
   return (
     <div className="h-full flex flex-col p-4 overflow-hidden">
       {/* Header */}
@@ -580,12 +597,23 @@ export function PresentationMarche({
           </div>
         ) : (
           <>
+            {/* Header avec compteur */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wide flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Transactions analysées
+              </h3>
+              <Badge variant="outline" className="text-white/60 border-white/20">
+                {totalComparables} analysées
+              </Badge>
+            </div>
+
             {/* Transactions récentes */}
             {vendusMarkers.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="bg-green-500/20 text-green-400 text-xs font-medium px-2 py-0.5 rounded">
-                    Transactions récentes
+                    Vendus récemment
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -599,11 +627,6 @@ export function PresentationMarche({
                   ))}
                 </div>
               </div>
-            )}
-            {vendusMarkers.length === 0 && (
-              <p className="text-white/40 text-sm text-center py-2">
-                Aucune transaction récente renseignée
-              </p>
             )}
 
             {/* Actuellement en vente */}
@@ -626,19 +649,61 @@ export function PresentationMarche({
                 </div>
               </div>
             )}
-            {enVenteMarkers.length === 0 && comparablesEnVente.length === 0 && (
-              <p className="text-white/40 text-sm text-center py-2">
-                Aucun bien concurrent identifié
-              </p>
-            )}
           </>
         )}
       </div>
 
-      {/* Synthèse positionnement */}
-      {synthese && (
-        <div className="mt-4 p-3 bg-white/5 border-l-4 border-primary rounded-r-lg">
-          <p className="text-white text-sm">{synthese}</p>
+      {/* Positionnement visuel */}
+      {prixRecommande > 0 && positionData && (
+        <div className="mt-4 p-4 rounded-lg bg-white/5">
+          <p className="text-white/60 text-sm mb-3">Positionnement de votre bien</p>
+          
+          <div className="relative">
+            {/* Barre de fond */}
+            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className={cn(
+                  "h-full rounded-full",
+                  isLuxe 
+                    ? "bg-gradient-to-r from-amber-500/50 to-amber-400/50" 
+                    : "bg-gradient-to-r from-emerald-500/50 to-primary/50"
+                )}
+                style={{ width: '100%' }}
+              />
+            </div>
+            
+            {/* Marqueur du bien */}
+            <div 
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-white shadow-lg",
+                isLuxe ? "bg-amber-500" : "bg-primary"
+              )}
+              style={{ left: `calc(${positionData.position}% - 10px)` }}
+            />
+            
+            {/* Labels min/max */}
+            <div className="flex justify-between mt-2 text-xs text-white/40">
+              <span>{formatPriceCHF(positionData.minPrix)}</span>
+              <span>{formatPriceCHF(positionData.maxPrix)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conclusion */}
+      {synthese && prixRecommande > 0 && positionData && (
+        <div className={cn(
+          "mt-4 p-4 rounded-lg text-center",
+          isLuxe 
+            ? "bg-amber-500/10 border border-amber-500/20" 
+            : "bg-primary/10 border border-primary/20"
+        )}>
+          <p className={cn(
+            "font-medium",
+            isLuxe ? "text-amber-300" : "text-white"
+          )}>
+            {synthese}
+          </p>
         </div>
       )}
     </div>
