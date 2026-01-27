@@ -20,6 +20,7 @@ import {
 import { ArrowLeft, Wallet, Download, Trash2, Check, Lock, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { usePaies, Paie, PaieFormData } from '@/hooks/usePaies';
 import { 
   useSalairesCalcul, 
@@ -28,6 +29,7 @@ import {
   getPeriodeActuelle,
   getPeriodeDates
 } from '@/hooks/useSalairesCalcul';
+import { exportToExcel, type SalaireExportRow } from '@/utils/exportExcel';
 
 interface SalaireRow {
   etudiantId: string;
@@ -183,6 +185,27 @@ export default function AdminSalaires() {
   // Période label pour le header
   const periodeLabel = periodes.find(p => p.value === periode)?.label || periode;
 
+  // Fonction d'export des salaires
+  const handleExportSalaires = () => {
+    if (rows.length === 0) {
+      toast.error('Aucune donnée à exporter');
+      return;
+    }
+
+    const exportData: SalaireExportRow[] = rows.map((r) => ({
+      'Période': periodeLabel,
+      'Étudiant': r.etudiantNom,
+      'Nb missions': r.totalMissions,
+      'Total heures': formatHeures(r.totalHeures),
+      'Taux horaire (CHF)': r.salaireHoraire,
+      'Montant brut (CHF)': r.montantTotal,
+      'Statut': r.paie ? (r.paie.statut === 'payee' ? 'Payée' : r.paie.statut === 'validee' ? 'Validée' : 'Brouillon') : 'Non figée',
+    }));
+
+    exportToExcel(exportData, 'prospection-salaires', 'Salaires');
+    toast.success(`${rows.length} ligne(s) exportée(s)`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
       {/* Header */}
@@ -223,19 +246,15 @@ export default function AdminSalaires() {
                   ))}
                 </SelectContent>
               </Select>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    disabled
-                    className="h-9 text-sm text-slate-400"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export PDF
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Export à venir</TooltipContent>
-              </Tooltip>
+              <Button
+                variant="outline"
+                onClick={handleExportSalaires}
+                disabled={rows.length === 0}
+                className="h-9 text-sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
             </div>
           </div>
         </div>

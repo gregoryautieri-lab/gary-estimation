@@ -50,10 +50,12 @@ import {
   RotateCcw,
   MessageSquare,
   MapIcon,
+  Download,
 } from 'lucide-react';
+import { exportToExcel, type CampagneExportRow } from '@/utils/exportExcel';
+import { getTypeMessageLabel } from '@/constants/typeMessageOptions';
 import type { Campagne, CampagneStatut } from '@/types/prospection';
 import { CAMPAGNE_STATUT_LABELS, CAMPAGNE_STATUT_COLORS } from '@/types/prospection';
-import { getTypeMessageLabel } from '@/constants/typeMessageOptions';
 
 // Types pour les filtres
 type PeriodFilter = 'month' | '3months' | 'year' | 'all';
@@ -362,6 +364,33 @@ export default function Campagnes() {
     return isAdmin || campagne.courtier_id === user?.id;
   };
 
+  // Fonction d'export des campagnes
+  const handleExportCampagnes = () => {
+    if (filteredCampagnes.length === 0) {
+      toast.error('Aucune campagne à exporter');
+      return;
+    }
+
+    const exportData: CampagneExportRow[] = filteredCampagnes.map((c) => ({
+      'Code': c.code || '-',
+      'Date création': c.created_at ? new Date(c.created_at).toLocaleDateString('fr-CH') : '-',
+      'Statut': CAMPAGNE_STATUT_LABELS[c.statut] || c.statut,
+      'Courtier': c.courtier_name || '-',
+      'Commune': c.commune,
+      'Type de bien': c.type_bien,
+      'Type de message': c.type_message ? getTypeMessageLabel(c.type_message) : '-',
+      'Support': c.support?.nom || '-',
+      'Nb courriers': c.nb_courriers,
+      'Nb flyers': c.nb_flyers,
+      'Coût supports (CHF)': c.cout_total,
+      'Scans QR': c.scans_count,
+      'Notes': c.notes || '',
+    }));
+
+    exportToExcel(exportData, 'prospection-campagnes', 'Campagnes');
+    toast.success(`${filteredCampagnes.length} campagne(s) exportée(s)`);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -385,6 +414,16 @@ export default function Campagnes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton Export */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleExportCampagnes}
+              disabled={filteredCampagnes.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
             {/* Bouton Carte */}
             <Button 
               variant="outline" 
