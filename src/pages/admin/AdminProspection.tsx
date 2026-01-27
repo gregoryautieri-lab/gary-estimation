@@ -54,16 +54,7 @@ export default function AdminProspection() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
-        <p className="text-muted-foreground text-center">
-          Vous n'avez pas accès à cette page.
-        </p>
-        <Button onClick={() => navigate('/')}>Retour au dashboard</Button>
-      </div>
-    );
-  }
+  // Lecture seule pour non-admins (les boutons d'action sont masqués via isAdmin)
 
   // Handlers
   const handleEditSupport = (support: SupportProspection) => {
@@ -168,10 +159,12 @@ export default function AdminProspection() {
                     Configurez les supports de distribution et leurs tarifs
                   </CardDescription>
                 </div>
-                <Button onClick={handleNewSupport} size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Ajouter
-                </Button>
+                {isAdmin && (
+                  <Button onClick={handleNewSupport} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Ajouter
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {supportsLoading ? (
@@ -192,7 +185,7 @@ export default function AdminProspection() {
                         <TableHead className="text-right">Tarif (CHF)</TableHead>
                         <TableHead className="hidden sm:table-cell">Description</TableHead>
                         <TableHead className="text-center">Statut</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -213,30 +206,32 @@ export default function AdminProspection() {
                               {support.actif ? 'Actif' : 'Inactif'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditSupport(support)}
-                                title="Modifier"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleToggleSupport(support)}
-                                title={support.actif ? 'Désactiver' : 'Activer'}
-                              >
-                                {support.actif ? (
-                                  <ToggleRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                ) : (
-                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {isAdmin && (
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditSupport(support)}
+                                  title="Modifier"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleToggleSupport(support)}
+                                  title={support.actif ? 'Désactiver' : 'Activer'}
+                                >
+                                  {support.actif ? (
+                                    <ToggleRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                  ) : (
+                                    <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -256,21 +251,23 @@ export default function AdminProspection() {
                     Gérez les étudiants et leurs salaires
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => setImportModalOpen(true)} 
-                    size="sm" 
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Importer
-                  </Button>
-                  <Button onClick={handleNewEtudiant} size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Ajouter
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      onClick={() => setImportModalOpen(true)} 
+                      size="sm" 
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Importer
+                    </Button>
+                    <Button onClick={handleNewEtudiant} size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Ajouter
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 {etudiantsLoading ? (
@@ -292,7 +289,7 @@ export default function AdminProspection() {
                         <TableHead className="hidden md:table-cell">Téléphone</TableHead>
                         <TableHead className="text-right">Salaire (CHF/h)</TableHead>
                         <TableHead className="text-center">Statut</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -318,30 +315,32 @@ export default function AdminProspection() {
                               {etudiant.actif ? 'Actif' : 'Inactif'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditEtudiant(etudiant)}
-                                title="Modifier"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleToggleEtudiant(etudiant)}
-                                title={etudiant.actif ? 'Désactiver' : 'Activer'}
-                              >
-                                {etudiant.actif ? (
-                                  <ToggleRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                ) : (
-                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {isAdmin && (
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditEtudiant(etudiant)}
+                                  title="Modifier"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleToggleEtudiant(etudiant)}
+                                  title={etudiant.actif ? 'Désactiver' : 'Activer'}
+                                >
+                                  {etudiant.actif ? (
+                                    <ToggleRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                  ) : (
+                                    <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

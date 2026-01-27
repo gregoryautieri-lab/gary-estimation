@@ -226,7 +226,7 @@ export default function Campagnes() {
   
   const canViewAll = isAdmin;
   const canCreate = true; // All users with access can create
-  const canAccessAdmin = isAdmin;
+  const canAccessAdmin = true; // Tous peuvent accéder en lecture
 
   // États des filtres
   const [statusFilter, setStatusFilter] = useState<CampagneStatut | 'tous'>('tous');
