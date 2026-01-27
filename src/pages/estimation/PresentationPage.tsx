@@ -479,6 +479,8 @@ export default function PresentationPage() {
           {currentSection === 'gary' && (
             <PresentationGary 
               isLuxe={isLuxe}
+              identification={estimation.identification}
+              preEstimation={estimation.preEstimation}
             />
           )}
           {currentSection === 'marche' && (
