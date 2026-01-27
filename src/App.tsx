@@ -33,6 +33,7 @@ import AdminProspection from "./pages/admin/AdminProspection";
 import Campagnes from "./pages/prospection/Campagnes";
 import CampagneDetail from "./pages/prospection/CampagneDetail";
 import PlanningProspection from "./pages/prospection/PlanningProspection";
+import ProspectionDashboard from "./pages/prospection/ProspectionDashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -187,6 +188,14 @@ function AppWithWarning() {
           element={
             <RoleBasedRoute allowedRoles={['admin', 'courtier']}>
               <PlanningProspection />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/prospection/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={['admin', 'courtier']}>
+              <ProspectionDashboard />
             </RoleBasedRoute>
           }
         />
