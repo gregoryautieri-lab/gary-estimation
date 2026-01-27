@@ -42,17 +42,28 @@ const etudiantSchema = z.object({
 
 type EtudiantFormValues = z.infer<typeof etudiantSchema>;
 
+// ============ TYPES ============
+
+export interface EtudiantInitialValues {
+  prenom?: string;
+  nom?: string;
+  email?: string;
+  tel?: string;
+  user_id?: string | null;
+}
+
 // ============ PROPS ============
 
 interface EtudiantFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   etudiant?: Etudiant | null;
+  initialValues?: EtudiantInitialValues | null;
 }
 
 // ============ COMPONENT ============
 
-export function EtudiantFormModal({ open, onOpenChange, etudiant }: EtudiantFormModalProps) {
+export function EtudiantFormModal({ open, onOpenChange, etudiant, initialValues }: EtudiantFormModalProps) {
   const { etudiants, create, update, isCreating, isUpdating } = useEtudiants();
   const isEditMode = !!etudiant;
 
@@ -108,6 +119,7 @@ export function EtudiantFormModal({ open, onOpenChange, etudiant }: EtudiantForm
   useEffect(() => {
     if (open) {
       if (etudiant) {
+        // Mode édition
         reset({
           prenom: etudiant.prenom,
           nom: etudiant.nom || '',
@@ -117,7 +129,23 @@ export function EtudiantFormModal({ open, onOpenChange, etudiant }: EtudiantForm
           actif: etudiant.actif,
           user_id: etudiant.user_id,
         });
+      } else if (initialValues) {
+        // Mode import avec pré-remplissage
+        const nameParts = (initialValues.prenom || '').split(' ');
+        const prenom = nameParts[0] || '';
+        const nom = nameParts.slice(1).join(' ') || initialValues.nom || '';
+        
+        reset({
+          prenom: prenom,
+          nom: nom,
+          email: initialValues.email || '',
+          tel: initialValues.tel || '',
+          salaire_horaire: 18.00,
+          actif: true,
+          user_id: initialValues.user_id || null,
+        });
       } else {
+        // Mode création vierge
         reset({
           prenom: '',
           nom: '',
@@ -129,7 +157,7 @@ export function EtudiantFormModal({ open, onOpenChange, etudiant }: EtudiantForm
         });
       }
     }
-  }, [open, etudiant, reset]);
+  }, [open, etudiant, initialValues, reset]);
 
   const onSubmit = async (data: EtudiantFormValues) => {
     // Vérifier unicité de l'email (hors étudiant actuel)
