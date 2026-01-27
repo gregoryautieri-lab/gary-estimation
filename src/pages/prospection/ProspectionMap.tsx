@@ -83,10 +83,20 @@ function ZonePolygon({ zone, onSelect }: { zone: ZoneData; onSelect: (zone: Zone
     });
   };
 
-  // GeoJSON peut être un objet ou déjà un FeatureCollection
-  const geoJsonData = typeof zone.zone_geojson === 'string' 
+  // GeoJSON peut être un objet brut (Polygon) ou déjà un Feature/FeatureCollection
+  // react-leaflet GeoJSON attend un Feature ou FeatureCollection
+  let geoJsonData = typeof zone.zone_geojson === 'string' 
     ? JSON.parse(zone.zone_geojson) 
     : zone.zone_geojson;
+
+  // Si c'est une géométrie brute (Polygon, MultiPolygon), wrapper en Feature
+  if (geoJsonData.type === 'Polygon' || geoJsonData.type === 'MultiPolygon') {
+    geoJsonData = {
+      type: 'Feature',
+      properties: {},
+      geometry: geoJsonData,
+    };
+  }
 
   return (
     <GeoJSON
