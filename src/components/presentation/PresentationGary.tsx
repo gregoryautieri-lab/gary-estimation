@@ -39,10 +39,19 @@ export function PresentationGary({
   const projetPostVente = identification?.projetPostVente;
   const typeMiseEnVente: TypeMiseEnVente = preEstimation?.typeMiseEnVente || 'public';
   
+  // 🔍 DEBUG SLIDE 5
+  console.log('🔍 DEBUG SLIDE 5:', {
+    historique: identification?.historique,
+    dejaDiffuse: identification?.historique?.dejaDiffuse,
+    typeofDejaDiffuse: typeof identification?.historique?.dejaDiffuse,
+    isStrictTrue: identification?.historique?.dejaDiffuse === true
+  });
+  
   // Flags contextuels
   const isConfidentiel = typeMiseEnVente === 'offmarket';
   const isComingSoon = typeMiseEnVente === 'comingsoon';
   const isUrgent = contexte?.horizon === 'urgent' || contexte?.urgence === true;
+  // STRICT CHECK: only true if dejaDiffuse is boolean true
   const dejaDiffuse = historique?.dejaDiffuse === true;
   const hasProjetAchat = projetPostVente?.nature === 'achat' || 
     projetPostVente?.niveauCoordination === 'achat_souhaite' || 
