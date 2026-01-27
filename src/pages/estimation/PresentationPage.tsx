@@ -41,10 +41,11 @@ import { PresentationCondition } from '@/components/presentation/PresentationCon
 import { PresentationMarche } from '@/components/presentation/PresentationMarche';
 import { PresentationStrategie } from '@/components/presentation/PresentationStrategie';
 import { PresentationGary } from '@/components/presentation/PresentationGary';
+import { PresentationCTA } from '@/components/presentation/PresentationCTA';
 
-// Types pour les sections - Nouvel ordre en 9 écrans
-// 1. Couverture → 2. Le Bien → 3. Localisation → 4. État → 5. Qui est GARY → 6. Marché → 7. Stratégie → 8. Prix → 9. Prochaines étapes
-type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'gary' | 'marche' | 'strategie' | 'prix' | 'next';
+// Types pour les sections - 10 écrans
+// 1. Couverture → 2. Le Bien → 3. Localisation → 4. État → 5. Qui est GARY → 6. Marché → 7. Stratégie → 8. Prix → 9. Prochaines étapes → 10. CTA
+type Section = 'cover' | 'bien' | 'localisation' | 'etat' | 'gary' | 'marche' | 'strategie' | 'prix' | 'next' | 'cta';
 
 // Type local simplifié pour la page presentation
 interface PresentationEstimation {
@@ -64,7 +65,7 @@ interface PresentationEstimation {
   strategiePitch: StrategiePitch;
 }
 
-// Nouvel ordre des sections (9 écrans)
+// Ordre des sections (10 écrans)
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'cover', label: 'Couverture' },
   { id: 'bien', label: 'Le Bien' },
@@ -75,6 +76,7 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: 'strategie', label: 'Stratégie' },
   { id: 'prix', label: 'Prix' },
   { id: 'next', label: 'Prochaines étapes' },
+  { id: 'cta', label: 'Discutons' },
 ];
 
 export default function PresentationPage() {
@@ -529,6 +531,16 @@ export default function PresentationPage() {
               courtierNom={courtierNom || undefined}
               historique={estimation.identification?.historique}
               capitalVisibilite={capitalVisibiliteCalcule}
+            />
+          )}
+          {currentSection === 'cta' && (
+            <PresentationCTA 
+              vendeurNom={vendeurNom}
+              vendeurPrenom={vendeurPrenom}
+              vendeurTelephone={vendeurTelephone}
+              vendeurEmail={vendeurEmail}
+              courtierNom={courtierNom || undefined}
+              isLuxe={isLuxe}
             />
           )}
         </div>
