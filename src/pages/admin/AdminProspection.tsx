@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSupportsProspection } from '@/hooks/useSupportsProspection';
 import { useEtudiants } from '@/hooks/useEtudiants';
+import { useTypesMessages, type TypeMessage } from '@/hooks/useTypesMessages';
 
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SupportFormModal } from '@/components/admin/SupportFormModal';
 import { EtudiantFormModal, type EtudiantInitialValues } from '@/components/admin/EtudiantFormModal';
 import { ImportEtudiantsModal } from '@/components/admin/ImportEtudiantsModal';
+import { TypeMessageFormModal } from '@/components/admin/TypeMessageFormModal';
 
 import { 
   ArrowLeft, 
@@ -25,6 +27,8 @@ import {
   Package,
   Users,
   Download,
+  MessageSquare,
+  Trash2,
 } from 'lucide-react';
 
 import type { SupportProspection, Etudiant } from '@/types/prospection';
@@ -36,6 +40,13 @@ export default function AdminProspection() {
 
   const { supports, isLoading: supportsLoading, update: updateSupport } = useSupportsProspection();
   const { etudiants, isLoading: etudiantsLoading, toggleActif } = useEtudiants();
+  const { 
+    typesMessages, 
+    groupedTypes, 
+    isLoading: typesLoading, 
+    toggleActif: toggleTypeActif,
+    delete: deleteTypeMessage,
+  } = useTypesMessages();
 
   // Modals state
   const [supportModalOpen, setSupportModalOpen] = useState(false);
@@ -44,6 +55,8 @@ export default function AdminProspection() {
   const [selectedEtudiant, setSelectedEtudiant] = useState<Etudiant | null>(null);
   const [etudiantInitialValues, setEtudiantInitialValues] = useState<EtudiantInitialValues | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [typeMessageModalOpen, setTypeMessageModalOpen] = useState(false);
+  const [selectedTypeMessage, setSelectedTypeMessage] = useState<TypeMessage | null>(null);
 
   // Check permissions
   if (roleLoading) {
@@ -138,7 +151,7 @@ export default function AdminProspection() {
         </div>
 
         <Tabs defaultValue="supports" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="supports" className="gap-2">
               <Package className="h-4 w-4" />
               Supports
@@ -146,6 +159,10 @@ export default function AdminProspection() {
             <TabsTrigger value="etudiants" className="gap-2">
               <Users className="h-4 w-4" />
               Étudiants
+            </TabsTrigger>
+            <TabsTrigger value="types-messages" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Messages
             </TabsTrigger>
           </TabsList>
 
@@ -349,6 +366,123 @@ export default function AdminProspection() {
               </CardContent>
             </Card>
           </TabsContent>
+          {/* ONGLET TYPES DE MESSAGES */}
+          <TabsContent value="types-messages">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-lg">Types de messages</CardTitle>
+                  <CardDescription>
+                    Gérez les types de messages disponibles pour les campagnes
+                  </CardDescription>
+                </div>
+                {isAdmin && (
+                  <Button 
+                    onClick={() => {
+                      setSelectedTypeMessage(null);
+                      setTypeMessageModalOpen(true);
+                    }} 
+                    size="sm" 
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajouter
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {typesLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                ) : Object.keys(groupedTypes).length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucun type de message configuré
+                  </p>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(groupedTypes).map(([groupe, types]) => (
+                      <div key={groupe}>
+                        <h3 className="font-semibold text-sm text-muted-foreground mb-2">{groupe}</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Libellé</TableHead>
+                              <TableHead className="hidden sm:table-cell">Valeur technique</TableHead>
+                              <TableHead className="text-center">Statut</TableHead>
+                              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {types.map((type) => (
+                              <TableRow 
+                                key={type.id}
+                                className={!type.actif ? 'opacity-50' : ''}
+                              >
+                                <TableCell className="font-medium">{type.label}</TableCell>
+                                <TableCell className="hidden sm:table-cell text-muted-foreground font-mono text-xs">
+                                  {type.valeur}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant={type.actif ? 'default' : 'secondary'}>
+                                    {type.actif ? 'Actif' : 'Inactif'}
+                                  </Badge>
+                                </TableCell>
+                                {isAdmin && (
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          setSelectedTypeMessage(type);
+                                          setTypeMessageModalOpen(true);
+                                        }}
+                                        title="Modifier"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => toggleTypeActif({ id: type.id, actif: !type.actif })}
+                                        title={type.actif ? 'Désactiver' : 'Activer'}
+                                      >
+                                        {type.actif ? (
+                                          <ToggleRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        ) : (
+                                          <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          if (confirm(`Supprimer "${type.label}" ?`)) {
+                                            deleteTypeMessage(type.id);
+                                          }
+                                        }}
+                                        title="Supprimer"
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -368,6 +502,11 @@ export default function AdminProspection() {
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
         onSelectUser={handleImportEtudiant}
+      />
+      <TypeMessageFormModal
+        open={typeMessageModalOpen}
+        onOpenChange={setTypeMessageModalOpen}
+        typeMessage={selectedTypeMessage}
       />
     </div>
   );
