@@ -58,12 +58,8 @@ export function PresentationCTA({
           </Button>
           
           <button
-            className={cn(
-              "w-full h-14 text-base rounded-2xl gap-3 inline-flex items-center justify-center font-medium transition-colors border bg-transparent",
-              isLuxe 
-                ? "border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
-                : "border-white/20 text-white hover:bg-white/10"
-            )}
+            className="w-full h-14 text-base rounded-2xl gap-3 inline-flex items-center justify-center font-medium transition-colors border border-white/30 text-white/90 hover:bg-white/10"
+            style={{ backgroundColor: 'transparent' }}
           >
             <HelpCircle className="h-5 w-5" />
             J'ai des questions
