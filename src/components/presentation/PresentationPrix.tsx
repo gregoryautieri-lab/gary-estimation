@@ -1,14 +1,12 @@
 // ============================================
 // Écran 8 : Objectif de Valorisation (Prix)
+// Corrections critiques : label synchronisé, icône, référence vénale
 // ============================================
 
 import React, { useState } from 'react';
 import { 
   ChevronDown, 
   ChevronUp,
-  Building2, 
-  TrendingUp, 
-  Landmark,
   Home,
   Car,
   Warehouse,
@@ -17,12 +15,15 @@ import {
   Hammer,
   Plus,
   Target,
-  Sparkles,
-  Check
+  Check,
+  Lock,
+  Megaphone,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEstimationCalcul } from '@/hooks/useEstimationCalcul';
 import type { Caracteristiques, PreEstimation, AnalyseTerrain, TypeMiseEnVente } from '@/types/estimation';
+import type { LucideIcon } from 'lucide-react';
 
 interface PresentationPrixProps {
   caracteristiques: Caracteristiques;
@@ -43,9 +44,9 @@ function formatCHF(value: number): string {
   }).format(value).replace(/\s/g, "'");
 }
 
-// Arrondir à 5000
+// Arrondir à 5000 (ceil pour prix affichés)
 function roundTo5000(value: number): number {
-  return Math.round(value / 5000) * 5000;
+  return Math.ceil(value / 5000) * 5000;
 }
 
 // Ligne de détail valorisation
@@ -100,6 +101,42 @@ const TRAJECTOIRE_NOMS: Record<string, string> = {
   public: 'Public',
 };
 
+// Icônes selon trajectoire
+const TRAJECTOIRE_ICONS: Record<string, LucideIcon> = {
+  offmarket: Lock,
+  comingsoon: Megaphone,
+  public: Globe,
+};
+
+// Mapping des points forts en français
+const TAGS_LABELS: Record<string, string> = {
+  lumineux: 'Lumineux',
+  renove_recemment: 'Rénové récemment',
+  beaux_volumes: 'Beaux volumes',
+  vue_lac: 'Vue lac',
+  vue_degagee: 'Vue dégagée',
+  vue_panoramique: 'Vue panoramique',
+  terrasse: 'Grande terrasse',
+  jardin: 'Jardin privatif',
+  piscine: 'Piscine',
+  calme: 'Environnement calme',
+  standing: 'Standing élevé',
+  parking: 'Parking',
+  cave: 'Cave privative',
+  fitness: 'Salle de fitness',
+  ascenseur: 'Ascenseur',
+  cheminee: 'Cheminée',
+  parquet: 'Parquet',
+  cuisine_equipee: 'Cuisine équipée',
+  proche_transports: 'Proche transports',
+  proche_ecoles: 'Proche écoles',
+  proche_commerces: 'Proche commerces',
+};
+
+function formatPointFort(tag: string): string {
+  return TAGS_LABELS[tag] || tag.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+}
+
 export function PresentationPrix({ 
   caracteristiques, 
   preEstimation,
@@ -111,11 +148,10 @@ export function PresentationPrix({
 }: PresentationPrixProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   
-  // Calculs via le hook
+  // Calculs via le hook (backup si totalVenale = 0)
   const calcul = useEstimationCalcul(caracteristiques, preEstimation);
   
   const isAppartement = typeBien === 'appartement';
-  const isMaison = typeBien === 'maison';
   
   // Pourcentages par trajectoire
   const pourcOffmarket = preEstimation?.pourcOffmarket ?? 15;
@@ -125,27 +161,21 @@ export function PresentationPrix({
   // Prix de base (valeur vénale)
   const basePrice = totalVenale > 0 ? totalVenale : calcul.totalVenaleArrondi;
   
-  // Prix hero selon trajectoire sélectionnée
+  // Pourcentage selon trajectoire sélectionnée
   const pourcentageObjectif = 
     typeMiseEnVente === 'offmarket' ? pourcOffmarket :
     typeMiseEnVente === 'comingsoon' ? pourcComingsoon : pourcPublic;
   
+  // Prix hero selon trajectoire
   const prixHero = roundTo5000(basePrice * (1 + pourcentageObjectif / 100));
   
   // Fourchette de négociation (prix hero = prix affiché, vente attendue = -0% à -5%)
   const prixVenteMin = roundTo5000(prixHero * 0.95);
   const prixVenteMax = prixHero;
   
-  // Prix au m² (ou m³ pour maison)
-  const prixUnitaire = isAppartement 
-    ? calcul.prixM2Ajuste 
-    : calcul.prixM3Ajuste;
-  const unitLabel = isAppartement ? 'm²' : 'm³';
-  
   // Points forts du bien (depuis analyseTerrain)
   const pointsForts: string[] = [];
   
-  // Récupérer depuis analyseTerrain
   if (analyseTerrain?.pointsForts && Array.isArray(analyseTerrain.pointsForts)) {
     pointsForts.push(...analyseTerrain.pointsForts.slice(0, 5));
   }
@@ -153,7 +183,7 @@ export function PresentationPrix({
   // Fallback avec des points génériques si rien
   if (pointsForts.length === 0) {
     if (caracteristiques?.vue) pointsForts.push(`Vue ${caracteristiques.vue}`);
-    if (caracteristiques?.piscine) pointsForts.push('Piscine');
+    if (caracteristiques?.piscine && String(caracteristiques.piscine) !== 'non') pointsForts.push('Piscine');
     if (caracteristiques?.parkingInterieur && parseInt(caracteristiques.parkingInterieur) > 0) {
       pointsForts.push('Parking intérieur');
     }
@@ -161,9 +191,10 @@ export function PresentationPrix({
     if (caracteristiques?.fitness) pointsForts.push('Salle de fitness');
   }
 
-  // Label trajectoire
+  // Label et icône trajectoire
   const labelTrajectoire = TRAJECTOIRE_LABELS[typeMiseEnVente] || TRAJECTOIRE_LABELS.public;
   const nomTrajectoire = TRAJECTOIRE_NOMS[typeMiseEnVente] || TRAJECTOIRE_NOMS.public;
+  const IconTrajectoire = TRAJECTOIRE_ICONS[typeMiseEnVente] || Globe;
 
   return (
     <div className="h-full overflow-auto p-6 md:p-8">
@@ -171,7 +202,10 @@ export function PresentationPrix({
         
         {/* Titre */}
         <div className="text-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">
+          <h1 className={cn(
+            "text-2xl md:text-3xl font-bold",
+            isLuxe ? "text-amber-100" : "text-white"
+          )}>
             {isLuxe ? 'Objectif de Valorisation' : 'Notre Recommandation'}
           </h1>
           <p className="text-white/60 mt-2">
@@ -179,15 +213,24 @@ export function PresentationPrix({
           </p>
         </div>
         
-        {/* Hero Prix avec label trajectoire */}
+        {/* Hero Prix avec animation et badge trajectoire */}
         <div className="text-center py-8 md:py-12 animate-fade-in">
-          {/* Label trajectoire */}
-          <p className="text-white/50 text-sm md:text-base mb-4">
-            {labelTrajectoire}
-          </p>
+          {/* Badge trajectoire avec icône */}
+          <div className={cn(
+            "inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6",
+            isLuxe 
+              ? "bg-amber-500/20 text-amber-300" 
+              : "bg-primary/20 text-primary"
+          )}>
+            <IconTrajectoire className="h-5 w-5" />
+            <span className="font-semibold">{labelTrajectoire}</span>
+          </div>
           
-          {/* Prix Hero principal */}
-          <div className="mb-4">
+          {/* Prix Hero principal avec glow effect en mode luxe */}
+          <div className={cn(
+            "mb-4",
+            isLuxe && "drop-shadow-[0_0_30px_rgba(251,191,36,0.3)]"
+          )}>
             <span className={cn(
               "text-5xl md:text-6xl lg:text-7xl font-bold",
               isLuxe ? "text-amber-400" : "text-primary"
@@ -196,12 +239,10 @@ export function PresentationPrix({
             </span>
           </div>
           
-          {/* Prix au m² */}
-          {prixUnitaire > 0 && (
-            <p className="text-white/40 text-base md:text-lg">
-              soit CHF {formatCHF(prixUnitaire)} / {unitLabel}
-            </p>
-          )}
+          {/* Référence valeur vénale */}
+          <p className="text-white/40 text-sm">
+            Valeur vénale : CHF {formatCHF(basePrice)} → +{pourcentageObjectif}%
+          </p>
         </div>
 
         {/* Fourchette de négociation */}
@@ -241,39 +282,52 @@ export function PresentationPrix({
           </p>
         </div>
 
-        {/* Card Rappel Trajectoire */}
+        {/* Card Rappel Trajectoire améliorée */}
         <div 
-          className="animate-fade-in rounded-xl p-5 bg-white/5 border border-white/10"
+          className={cn(
+            "animate-fade-in rounded-xl p-5 border",
+            isLuxe 
+              ? "bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-500/30" 
+              : "bg-white/5 border-primary/30"
+          )}
           style={{ animationDelay: '0.2s' }}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-4">
             <div className={cn(
-              "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+              "h-12 w-12 rounded-full flex items-center justify-center shrink-0",
               isLuxe ? "bg-amber-500/20" : "bg-primary/20"
             )}>
               <Target className={cn(
-                "h-5 w-5",
+                "h-6 w-6",
                 isLuxe ? "text-amber-400" : "text-primary"
               )} />
             </div>
             <div>
-              <p className="text-white font-medium">
-                Point de départ recommandé : <span className={isLuxe ? "text-amber-400" : "text-primary"}>{nomTrajectoire}</span>
+              <p className="text-white font-semibold text-lg mb-1">
+                Scénario : <span className={isLuxe ? "text-amber-400" : "text-primary"}>
+                  {nomTrajectoire}
+                </span>
               </p>
-              <p className="text-white/60 text-sm mt-1">
-                Objectif de valorisation : <span className="font-semibold text-white">+{pourcentageObjectif}%</span> par rapport à la valeur de base
+              <p className="text-white/60 text-sm">
+                Prix affiché stratégique permettant une marge de négociation maîtrisée.
+              </p>
+              <p className="text-white/40 text-xs mt-2">
+                Fourchette de vente attendue : CHF {formatCHF(prixVenteMin)} - {formatCHF(prixVenteMax)}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Points forts / Atouts */}
+        {/* Points forts / Atouts avec formatage */}
         {pointsForts.length > 0 && (
           <div 
             className="animate-fade-in"
             style={{ animationDelay: '0.3s' }}
           >
-            <h2 className="text-lg font-semibold text-white mb-4">
+            <h2 className={cn(
+              "text-lg font-semibold mb-4",
+              isLuxe ? "text-amber-100" : "text-white"
+            )}>
               {isLuxe ? 'Éléments de valeur' : 'Atouts qui justifient cette valorisation'}
             </h2>
             <div className="space-y-2">
@@ -286,7 +340,7 @@ export function PresentationPrix({
                     "h-4 w-4 shrink-0",
                     isLuxe ? "text-amber-400" : "text-primary"
                   )} />
-                  <span className="text-white/80 text-sm">{point}</span>
+                  <span className="text-white/80 text-sm">{formatPointFort(point)}</span>
                 </div>
               ))}
             </div>
