@@ -384,6 +384,17 @@ export default function Campagnes() {
               <CalendarDays className="h-4 w-4 mr-1" />
               Planning
             </Button>
+            {/* Bouton Salaires - Admin only */}
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/salaires')}
+              >
+                <Wallet className="h-4 w-4 mr-1" />
+                Salaires
+              </Button>
+            )}
             {canAccessAdmin && (
               <Button 
                 variant="outline" 
