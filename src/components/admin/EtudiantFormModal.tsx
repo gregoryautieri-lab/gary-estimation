@@ -262,7 +262,7 @@ export function EtudiantFormModal({ open, onOpenChange, etudiant, initialValues 
             <Input
               id="salaire_horaire"
               type="number"
-              step="0.50"
+              step="0.01"
               min="1"
               {...register('salaire_horaire', { valueAsNumber: true })}
             />
