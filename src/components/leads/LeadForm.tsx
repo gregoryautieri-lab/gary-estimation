@@ -203,6 +203,7 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
           created_by: user?.id || null,
           estimation_id: null,
           converti_at: null,
+          rdv_date: null,
         });
         toast({ title: 'Succès', description: 'Lead créé avec succès' });
         navigate('/leads');

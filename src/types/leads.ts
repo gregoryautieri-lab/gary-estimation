@@ -35,11 +35,12 @@ export interface Lead {
   email: string | null;
   telephone: string | null;
   type_demande: 'estimation' | 'a_qualifier';
-  statut: 'nouveau' | 'en_cours' | 'converti' | 'perdu';
+  statut: 'nouveau' | 'contacte' | 'rdv_planifie' | 'converti' | 'perdu' | 'en_cours'; // en_cours pour rétrocompat
   perdu_raison: string | null;
   assigned_to: string | null;
   assigned_user?: { full_name: string | null; email: string | null };
   rappel_date: string | null;
+  rdv_date: string | null;
   estimation_id: string | null;
   converti_at: string | null;
   bien_adresse: string | null;
@@ -71,11 +72,28 @@ export const LEAD_SOURCE_OPTIONS: { value: LeadSource; label: string }[] = [
 ];
 
 export const LEAD_STATUT_OPTIONS: { value: LeadStatut; label: string; color: string }[] = [
-  { value: 'nouveau', label: 'Nouveau', color: 'bg-blue-100 text-blue-800' },
-  { value: 'en_cours', label: 'En cours', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'converti', label: 'Converti', color: 'bg-green-100 text-green-800' },
+  { value: 'nouveau', label: 'Nouveau', color: 'bg-green-100 text-green-800' },
+  { value: 'contacte', label: 'Contacté', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'rdv_planifie', label: 'RDV planifié', color: 'bg-orange-100 text-orange-800' },
+  { value: 'converti', label: 'Converti', color: 'bg-blue-100 text-blue-800' },
   { value: 'perdu', label: 'Perdu', color: 'bg-red-100 text-red-800' },
 ];
+
+// Configuration des statuts avec couleurs pour les badges
+export const LEAD_STATUT_CONFIG: Record<LeadStatut, { label: string; color: string }> = {
+  nouveau: { label: 'Nouveau', color: 'bg-green-500' },
+  contacte: { label: 'Contacté', color: 'bg-yellow-500' },
+  rdv_planifie: { label: 'RDV planifié', color: 'bg-orange-500' },
+  converti: { label: 'Converti', color: 'bg-blue-500' },
+  perdu: { label: 'Perdu', color: 'bg-red-500' },
+  en_cours: { label: 'Contacté', color: 'bg-yellow-500' }, // Rétrocompat → traité comme contacte
+};
+
+// Helper pour normaliser les statuts (rétrocompat en_cours → contacte)
+export const normalizeLeadStatut = (statut: string): LeadStatut => {
+  if (statut === 'en_cours') return 'contacte';
+  return statut as LeadStatut;
+};
 
 export const LEAD_TYPE_DEMANDE_OPTIONS: { value: LeadTypeDemande; label: string }[] = [
   { value: 'estimation', label: 'Estimation' },
