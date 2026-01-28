@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Inbox, Plus, Search, Eye, Package, Smartphone, Phone, 
-  Users, Handshake, Globe, Calendar, HelpCircle 
+  Users, Handshake, Globe, Calendar, HelpCircle, BarChart3 
 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isBefore, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -30,6 +30,7 @@ import { useLeads, useLeadsStats, useCourtiers, LeadsFilters } from '@/hooks/use
 import { LEAD_STATUT_OPTIONS } from '@/types/leads';
 import { cn } from '@/lib/utils';
 import { LeadRappelsBanner } from '@/components/leads/LeadRappelsBanner';
+import { LeadsSummary } from '@/components/leads/LeadsSummary';
 
 // Icônes par source
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -53,13 +54,13 @@ const STATUT_COLORS: Record<string, string> = {
 
 export default function LeadsPage() {
   const navigate = useNavigate();
+  const [showStats, setShowStats] = useState(false);
   const [filters, setFilters] = useState<LeadsFilters>({
     statut: 'tous',
     courtier: 'tous',
     periode: 'tout',
     search: '',
   });
-
   const { data: leads = [], isLoading } = useLeads(filters);
   const { data: stats } = useLeadsStats();
   const { data: courtiers = [] } = useCourtiers();
@@ -100,14 +101,26 @@ export default function LeadsPage() {
               Gérez vos leads entrants
             </p>
           </div>
-          <Button onClick={() => navigate('/leads/new')} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Nouveau
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={showStats ? "secondary" : "outline"} 
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Stats
+            </Button>
+            <Button onClick={() => navigate('/leads/new')} size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Nouveau
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="p-4 space-y-4">
+        {/* Statistiques (toggle) */}
+        {showStats && <LeadsSummary />}
         {/* Filtres */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <Select value={filters.statut} onValueChange={(v) => updateFilter('statut', v)}>
