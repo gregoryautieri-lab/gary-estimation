@@ -55,7 +55,7 @@ serve(async (req) => {
 
     const typeLabels: Record<string, string> = {
       estimation: "🏠 Demande d'estimation",
-      a_qualifier: "❓ À qualifier"
+      a_qualifier: "📋 À qualifier"
     };
 
     const nomComplet = data.leadPrenom 
@@ -89,7 +89,7 @@ serve(async (req) => {
       message += `\n👔 *Assigné à:* ${data.courtierNom}\n`;
     }
     
-    message += `\n🔗 [Voir dans GARY](${data.leadUrl})`;
+    message += `\n👉 Rendez-vous sur GARY WORLD pour voir le détail de ce lead : https://world-gary.lovable.app/leads`;
 
     console.log(`Sending Telegram notification to chat ${data.chatId}`);
 
@@ -102,7 +102,7 @@ serve(async (req) => {
           chat_id: data.chatId,
           text: message,
           parse_mode: "Markdown",
-          disable_web_page_preview: false,
+          disable_web_page_preview: true,
         }),
       }
     );
