@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
 import LeadsPage from "./pages/leads/LeadsPage";
 import LeadNewPage from "./pages/leads/LeadNewPage";
+import LeadDetailPage from "./pages/leads/LeadDetailPage";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
 import NewProject from "./pages/comparables/NewProject";
 import ComparablesExplore from "./pages/comparables/ComparablesExplore";
@@ -84,6 +85,14 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <LeadNewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leads/:id"
+          element={
+            <ProtectedRoute>
+              <LeadDetailPage />
             </ProtectedRoute>
           }
         />
