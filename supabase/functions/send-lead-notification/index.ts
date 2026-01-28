@@ -16,6 +16,12 @@ interface LeadNotificationRequest {
   leadType: string;
   leadNotes?: string;
   leadUrl: string;
+  leadTelephone?: string;
+  leadEmail?: string;
+  leadAdresse?: string;
+  leadNpa?: string;
+  leadLocalite?: string;
+  leadCreatedAt: string;
 }
 
 serve(async (req) => {
@@ -87,17 +93,35 @@ serve(async (req) => {
               <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
                 <strong style="color: #1a2e35;">Nom :</strong> ${nomComplet}
               </p>
+              ${data.leadTelephone ? `
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
+                <strong style="color: #1a2e35;">Téléphone :</strong> ${data.leadTelephone}
+              </p>
+              ` : ''}
+              ${data.leadEmail ? `
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
+                <strong style="color: #1a2e35;">Email :</strong> ${data.leadEmail}
+              </p>
+              ` : ''}
               <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
                 <strong style="color: #1a2e35;">Source :</strong> ${sourceLabels[data.leadSource] || data.leadSource}
               </p>
-              <p style="margin: 0 0 ${data.leadNotes ? '10px' : '0'}; font-size: 14px; color: #64748b;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
                 <strong style="color: #1a2e35;">Type :</strong> ${typeLabels[data.leadType] || data.leadType}
               </p>
+              ${data.leadAdresse ? `
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
+                <strong style="color: #1a2e35;">Adresse :</strong> ${data.leadAdresse}${data.leadNpa ? `, ${data.leadNpa}` : ''} ${data.leadLocalite || ''}
+              </p>
+              ` : ''}
               ${data.leadNotes ? `
-              <p style="margin: 0; font-size: 14px; color: #64748b;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
                 <strong style="color: #1a2e35;">Notes :</strong> ${data.leadNotes}
               </p>
               ` : ''}
+              <p style="margin: 0; font-size: 14px; color: #64748b;">
+                <strong style="color: #1a2e35;">Reçu le :</strong> ${new Date(data.leadCreatedAt).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
             </div>
             
             <!-- CTA Button -->
