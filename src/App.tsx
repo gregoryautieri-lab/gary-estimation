@@ -9,6 +9,7 @@ import { RoleBasedRoute } from "@/components/RoleBasedRoute";
 import { useBeforeUnloadWarning } from "@/hooks/useBeforeUnloadWarning";
 import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
+import LeadsPage from "./pages/leads/LeadsPage";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
 import NewProject from "./pages/comparables/NewProject";
 import ComparablesExplore from "./pages/comparables/ComparablesExplore";
@@ -64,6 +65,16 @@ function AppWithWarning() {
           element={
             <ProtectedRoute>
               <EstimationsList />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Inbox Leads */}
+        <Route
+          path="/leads"
+          element={
+            <ProtectedRoute>
+              <LeadsPage />
             </ProtectedRoute>
           }
         />
