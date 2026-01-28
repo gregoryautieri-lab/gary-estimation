@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import {
   Phone, 
   Mail, 
   Edit, 
-  Home, 
   Users,
   Globe,
   Megaphone,
@@ -19,14 +17,11 @@ import {
   HelpCircle,
   Calendar,
   Building,
-  MapPin,
-  Loader2
+  MapPin
 } from 'lucide-react';
 import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Partner, LEAD_SOURCE_OPTIONS, LEAD_STATUT_OPTIONS, BIEN_TYPE_OPTIONS } from '@/types/leads';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 import { LeadActions } from '@/components/leads/LeadActions';
 interface LeadWithRelations {
   id: string;
@@ -50,6 +45,7 @@ interface LeadWithRelations {
   perdu_raison: string | null;
   assigned_to: string | null;
   rappel_date: string | null;
+  rdv_date: string | null;
   estimation_id: string | null;
   converti_at: string | null;
   bien_adresse: string | null;
@@ -75,6 +71,8 @@ const sourceIcons: Record<string, React.ReactNode> = {
 
 const statusColors: Record<string, string> = {
   nouveau: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  contacte: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  rdv_planifie: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
   en_cours: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
   converti: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   perdu: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -84,8 +82,6 @@ export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const [creatingEstimation, setCreatingEstimation] = useState(false);
 
   const handleLeadUpdate = () => {
     queryClient.invalidateQueries({ queryKey: ['lead', id] });
@@ -372,145 +368,10 @@ export default function LeadDetailPage() {
           <CardTitle className="text-lg">Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          {(lead.statut === 'nouveau' || lead.statut === 'en_cours') && (
-            <div className="space-y-4">
-              {lead.type_demande === 'estimation' && (
-                <Button 
-                  className="bg-primary"
-                  disabled={creatingEstimation}
-                  onClick={async () => {
-                    if (!user) {
-                      toast.error('Vous devez être connecté');
-                      return;
-                    }
-                    
-                    setCreatingEstimation(true);
-                    try {
-                      const typeBienMap: Record<string, string> = {
-                        'appartement': 'appartement',
-                        'maison': 'maison',
-                        'terrain': 'terrain',
-                        'immeuble': 'immeuble',
-                        'commercial': 'commercial'
-                      };
-                      
-                      // Mapping Lead source → Estimation source
-                      const sourceMap: Record<string, string> = {
-                        telephone: 'telephone',
-                        boitage: 'boitage',
-                        partenariat: 'partenariat',
-                        recommandation: 'recommandation',
-                        reseaux_sociaux: 'reseaux_sociaux',
-                        site_web: 'site_web',
-                        salon: 'salon',
-                        autre: 'autre'
-                      };
-                      const mappedSource = sourceMap[lead.source] || 'autre';
-                      
-                      const identificationData = {
-                        vendeur: {
-                          nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
-                          email: lead.email || '',
-                          telephone: lead.telephone || ''
-                        },
-                        adresse: {
-                          rue: lead.bien_adresse || '',
-                          codePostal: lead.bien_npa || '',
-                          localite: lead.bien_localite || ''
-                        },
-                        sourceContact: mappedSource
-                      };
-                      
-                      // Si source = boitage et campagne liée, passer le code campagne
-                      const campagneCode = lead.source === 'boitage' && lead.campagne?.code 
-                        ? lead.campagne.code 
-                        : null;
-                      
-                      const { data: newEstimation, error: createError } = await supabase
-                        .from('estimations')
-                        .insert({
-                          courtier_id: user.id,
-                          lead_id: lead.id,
-                          statut: 'brouillon' as const,
-                          vendeur_nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
-                          vendeur_email: lead.email,
-                          vendeur_telephone: lead.telephone,
-                          adresse: lead.bien_adresse,
-                          code_postal: lead.bien_npa,
-                          localite: lead.bien_localite,
-                          type_bien: (lead.bien_type && typeBienMap[lead.bien_type]) 
-                            ? typeBienMap[lead.bien_type] as 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial'
-                            : null,
-                          identification: identificationData,
-                          campagne_origin_code: campagneCode
-                        })
-                        .select()
-                        .single();
-                      
-                      if (createError) throw createError;
-                      
-                      const { error: updateError } = await supabase
-                        .from('leads')
-                        .update({
-                          statut: 'converti',
-                          estimation_id: newEstimation.id,
-                          converti_at: new Date().toISOString()
-                        })
-                        .eq('id', lead.id);
-                      
-                      if (updateError) {
-                        console.error('Erreur mise à jour lead:', updateError);
-                      }
-                      
-                      toast.success('Estimation créée, lead converti');
-                      navigate(`/estimation/${newEstimation.id}/identification`);
-                      
-                    } catch (error) {
-                      console.error('Erreur création estimation:', error);
-                      toast.error('Erreur lors de la création');
-                    } finally {
-                      setCreatingEstimation(false);
-                    }
-                  }}
-                >
-                  {creatingEstimation ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Home className="h-4 w-4 mr-2" />
-                  )}
-                  Créer estimation
-                </Button>
-              )}
-              
-              <LeadActions 
-                leadId={lead.id} 
-                leadStatut={lead.statut} 
-                onUpdate={handleLeadUpdate} 
-              />
-            </div>
-          )}
-
-          {lead.statut === 'converti' && (
-            <div className="space-y-2">
-              <p className="text-muted-foreground">
-                Ce lead a été converti le {lead.converti_at && format(parseISO(lead.converti_at), 'dd MMMM yyyy', { locale: fr })}
-              </p>
-              {lead.estimation_id && (
-                <Link to={`/estimation/${lead.estimation_id}/overview`} className="text-primary hover:underline inline-flex items-center gap-1">
-                  Voir l'estimation →
-                </Link>
-              )}
-            </div>
-          )}
-
-          {lead.statut === 'perdu' && (
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Ce lead a été marqué perdu</p>
-              {lead.perdu_raison && (
-                <p className="text-sm">Raison : {lead.perdu_raison}</p>
-              )}
-            </div>
-          )}
+          <LeadActions 
+            lead={lead as any} 
+            onUpdate={handleLeadUpdate} 
+          />
         </CardContent>
       </Card>
 
