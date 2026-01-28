@@ -576,6 +576,7 @@ export type Database = {
           bien_localite: string | null
           bien_npa: string | null
           bien_type: string | null
+          campagne_id: string | null
           converti_at: string | null
           created_at: string
           created_by: string | null
@@ -604,6 +605,7 @@ export type Database = {
           bien_localite?: string | null
           bien_npa?: string | null
           bien_type?: string | null
+          campagne_id?: string | null
           converti_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -632,6 +634,7 @@ export type Database = {
           bien_localite?: string | null
           bien_npa?: string | null
           bien_type?: string | null
+          campagne_id?: string | null
           converti_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -655,6 +658,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_campagne_id_fkey"
+            columns: ["campagne_id"]
+            isOneToOne: false
+            referencedRelation: "campagnes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_estimation_id_fkey"
             columns: ["estimation_id"]

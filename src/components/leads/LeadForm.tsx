@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +23,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Package, Smartphone, Phone, Globe, Users, Handshake, CalendarDays, HelpCircle,
-  Home, ClipboardList, CalendarIcon, Plus
+  Home, ClipboardList, CalendarIcon, Plus, Megaphone
 } from 'lucide-react';
 import { 
   LeadSource, LeadTypeDemande, LeadStatut, Partner, BienType,
@@ -44,6 +46,7 @@ interface LeadFormData {
   source: string;
   source_detail: string | null;
   partner_id: string | null;
+  campagne_id: string | null;
   retro_type: string | null;
   retro_valeur: number | null;
   recommande_par: string | null;
@@ -77,12 +80,27 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
 
+  // Fetch active campaigns for boitage source
+  const { data: campagnes = [] } = useQuery({
+    queryKey: ['campagnes-active-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campagnes')
+        .select('id, code, commune')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
 
   // Form state
   const [source, setSource] = useState<LeadSource>((initialData?.source as LeadSource) || 'telephone');
   const [sourceDetail, setSourceDetail] = useState(initialData?.source_detail || '');
   const [partnerId, setPartnerId] = useState<string | null>(initialData?.partner_id || null);
+  const [campagneId, setCampagneId] = useState<string | null>(initialData?.campagne_id || null);
   const [retroType, setRetroType] = useState<'pourcentage' | 'fixe' | null>(
     (initialData?.retro_type as 'pourcentage' | 'fixe' | null) || null
   );
@@ -145,6 +163,7 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
       source,
       source_detail: sourceDetail || null,
       partner_id: source === 'partenariat' ? partnerId : null,
+      campagne_id: source === 'boitage' ? campagneId : null,
       retro_type: source === 'partenariat' && partnerId ? retroType : null,
       retro_valeur: source === 'partenariat' && partnerId ? retroValeur : null,
       recommande_par: source === 'recommandation' ? recommandePar : null,
@@ -260,6 +279,28 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
               </Label>
             ))}
           </RadioGroup>
+
+          {/* Campagne dropdown pour source boitage */}
+          {source === 'boitage' && (
+            <FormRow label="Campagne associée" optional>
+              <Select value={campagneId || ''} onValueChange={(v) => setCampagneId(v || null)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une campagne" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune campagne</SelectItem>
+                  {campagnes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2">
+                        <Megaphone className="h-3 w-3 text-muted-foreground" />
+                        <span>{c.code} — {c.commune}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
+          )}
 
           <FormRow label="Détail source" optional>
             <Input

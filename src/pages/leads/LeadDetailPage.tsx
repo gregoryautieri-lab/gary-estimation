@@ -36,6 +36,8 @@ interface LeadWithRelations {
   source_detail: string | null;
   partner_id: string | null;
   partner: Partner | null;
+  campagne_id: string | null;
+  campagne: { code: string; commune: string } | null;
   retro_type: string | null;
   retro_valeur: number | null;
   recommande_par: string | null;
@@ -91,10 +93,10 @@ export default function LeadDetailPage() {
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', id],
     queryFn: async () => {
-      // Fetch lead with partner
+      // Fetch lead with partner and campagne
       const { data: leadData, error: leadError } = await supabase
         .from('leads')
-        .select(`*, partner:partners(*)`)
+        .select(`*, partner:partners(*), campagne:campagnes(code, commune)`)
         .eq('id', id!)
         .maybeSingle();
 
@@ -263,6 +265,17 @@ export default function LeadDetailPage() {
               <div className="flex items-start gap-3">
                 <dt className="text-muted-foreground w-32 shrink-0">Détail source</dt>
                 <dd>{lead.source_detail}</dd>
+              </div>
+            )}
+
+            {/* Campagne associée (boitage) */}
+            {lead.source === 'boitage' && lead.campagne && (
+              <div className="flex items-start gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">Campagne</dt>
+                <dd className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 text-muted-foreground" />
+                  <span>{lead.campagne.code} — {lead.campagne.commune}</span>
+                </dd>
               </div>
             )}
 
