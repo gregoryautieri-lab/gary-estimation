@@ -58,6 +58,7 @@ interface LeadFormData {
   type_demande: string;
   statut: string;
   perdu_raison: string | null;
+  rdv_date: string | null;
   bien_adresse: string | null;
   bien_npa: string | null;
   bien_localite: string | null;
@@ -117,6 +118,9 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
   );
   const [statut, setStatut] = useState<LeadStatut>((initialData?.statut as LeadStatut) || 'nouveau');
   const [perduRaison, setPerduRaison] = useState(initialData?.perdu_raison || '');
+  const [rdvDate, setRdvDate] = useState<Date | undefined>(
+    initialData?.rdv_date ? parseISO(initialData.rdv_date) : undefined
+  );
   const [bienAdresse, setBienAdresse] = useState(initialData?.bien_adresse || '');
   const [bienNpa, setBienNpa] = useState(initialData?.bien_npa || '');
   const [bienLocalite, setBienLocalite] = useState(initialData?.bien_localite || '');
@@ -175,6 +179,7 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
       type_demande: typeDemande,
       statut: mode === 'edit' ? statut : 'nouveau',
       perdu_raison: statut === 'perdu' ? perduRaison || null : null,
+      rdv_date: statut === 'rdv_planifie' && rdvDate ? rdvDate.toISOString() : null,
       bien_adresse: typeDemande === 'estimation' ? bienAdresse || null : null,
       bien_npa: typeDemande === 'estimation' ? bienNpa || null : null,
       bien_localite: typeDemande === 'estimation' ? bienLocalite || null : null,
@@ -233,14 +238,66 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LEAD_STATUT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="nouveau">Nouveau</SelectItem>
+                  <SelectItem value="contacte">Contacté</SelectItem>
+                  <SelectItem value="rdv_planifie">RDV planifié</SelectItem>
+                  <SelectItem value="converti">Converti</SelectItem>
+                  <SelectItem value="perdu">Perdu</SelectItem>
                 </SelectContent>
               </Select>
             </FormRow>
+            
+            {/* RDV Date - conditionnel */}
+            {statut === 'rdv_planifie' && (
+              <FormRow label="Date et heure du RDV">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !rdvDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rdvDate ? format(rdvDate, 'PPP à HH:mm', { locale: fr }) : 'Sélectionner la date du RDV'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={rdvDate}
+                      onSelect={setRdvDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                    {rdvDate && (
+                      <div className="p-3 border-t">
+                        <Label className="text-sm text-muted-foreground">Heure du RDV</Label>
+                        <Input
+                          type="time"
+                          className="mt-1"
+                          value={rdvDate ? format(rdvDate, 'HH:mm') : ''}
+                          onChange={(e) => {
+                            if (rdvDate && e.target.value) {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const newDate = new Date(rdvDate);
+                              newDate.setHours(hours, minutes);
+                              setRdvDate(newDate);
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                {!rdvDate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ⚠️ Il est recommandé de définir une date de RDV
+                  </p>
+                )}
+              </FormRow>
+            )}
             
             {statut === 'perdu' && (
               <FormRow label="Raison de la perte">
