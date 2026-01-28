@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Inbox, Plus, Search, Eye, Package, Smartphone, Phone, 
@@ -27,8 +27,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useLeads, useLeadsStats, useCourtiers, LeadsFilters } from '@/hooks/useLeads';
-import { Lead, LEAD_STATUT_OPTIONS } from '@/types/leads';
+import { LEAD_STATUT_OPTIONS } from '@/types/leads';
 import { cn } from '@/lib/utils';
+import { LeadRappelsBanner } from '@/components/leads/LeadRappelsBanner';
 
 // Icônes par source
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -194,6 +195,9 @@ export default function LeadsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Rappels Banner */}
+        <LeadRappelsBanner />
 
         {/* Table */}
         <div className="border rounded-lg overflow-hidden">
