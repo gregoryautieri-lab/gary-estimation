@@ -283,12 +283,15 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
           {/* Campagne dropdown pour source boitage */}
           {source === 'boitage' && (
             <FormRow label="Campagne associée" optional>
-              <Select value={campagneId || ''} onValueChange={(v) => setCampagneId(v || null)}>
+              <Select 
+                value={campagneId || '__none__'} 
+                onValueChange={(v) => setCampagneId(v === '__none__' ? null : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une campagne" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Aucune campagne</SelectItem>
+                <SelectContent className="bg-background">
+                  <SelectItem value="__none__">Aucune campagne</SelectItem>
                   {campagnes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <div className="flex items-center gap-2">
