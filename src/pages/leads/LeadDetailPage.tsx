@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,12 +21,14 @@ import {
   HelpCircle,
   Calendar,
   Building,
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Partner, LEAD_SOURCE_OPTIONS, LEAD_STATUT_OPTIONS, BIEN_TYPE_OPTIONS } from '@/types/leads';
-
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 interface LeadWithRelations {
   id: string;
   created_at: string;
@@ -79,7 +82,8 @@ const statusColors: Record<string, string> = {
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
+  const { user } = useAuth();
+  const [creatingEstimation, setCreatingEstimation] = useState(false);
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', id],
     queryFn: async () => {
@@ -356,23 +360,92 @@ export default function LeadDetailPage() {
               {lead.type_demande === 'estimation' && (
                 <Button 
                   className="bg-primary"
-                  onClick={() => navigate('/estimation/express', {
-                    state: {
-                      fromLead: {
-                        lead_id: lead.id,
-                        vendeur_nom: lead.nom,
-                        vendeur_prenom: lead.prenom,
-                        vendeur_telephone: lead.telephone,
-                        vendeur_email: lead.email,
-                        bien_adresse: lead.bien_adresse,
-                        bien_npa: lead.bien_npa,
-                        bien_localite: lead.bien_localite,
-                        bien_type: lead.bien_type
-                      }
+                  disabled={creatingEstimation}
+                  onClick={async () => {
+                    if (!user) {
+                      toast.error('Vous devez être connecté');
+                      return;
                     }
-                  })}
+                    
+                    setCreatingEstimation(true);
+                    try {
+                      // Mapper le type de bien du lead vers le type estimation
+                      const typeBienMap: Record<string, string> = {
+                        'appartement': 'appartement',
+                        'maison': 'maison',
+                        'terrain': 'terrain',
+                        'immeuble': 'immeuble',
+                        'commercial': 'commercial'
+                      };
+                      
+                      // Créer l'estimation avec les données du lead
+                      const identificationData = {
+                        vendeur: {
+                          nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
+                          email: lead.email || '',
+                          telephone: lead.telephone || ''
+                        },
+                        adresse: {
+                          rue: lead.bien_adresse || '',
+                          codePostal: lead.bien_npa || '',
+                          localite: lead.bien_localite || ''
+                        },
+                        sourceContact: 'direct'
+                      };
+                      
+                      const { data: newEstimation, error: createError } = await supabase
+                        .from('estimations')
+                        .insert({
+                          courtier_id: user.id,
+                          lead_id: lead.id,
+                          statut: 'brouillon' as const,
+                          vendeur_nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
+                          vendeur_email: lead.email,
+                          vendeur_telephone: lead.telephone,
+                          adresse: lead.bien_adresse,
+                          code_postal: lead.bien_npa,
+                          localite: lead.bien_localite,
+                          type_bien: (lead.bien_type && typeBienMap[lead.bien_type]) 
+                            ? typeBienMap[lead.bien_type] as 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial'
+                            : null,
+                          identification: identificationData
+                        })
+                        .select()
+                        .single();
+                      
+                      if (createError) throw createError;
+                      
+                      // Mettre à jour le lead comme converti
+                      const { error: updateError } = await supabase
+                        .from('leads')
+                        .update({
+                          statut: 'converti',
+                          estimation_id: newEstimation.id,
+                          converti_at: new Date().toISOString()
+                        })
+                        .eq('id', lead.id);
+                      
+                      if (updateError) {
+                        console.error('Erreur mise à jour lead:', updateError);
+                        // Continue quand même, l'estimation est créée
+                      }
+                      
+                      toast.success('Estimation créée, lead converti');
+                      navigate(`/estimation/${newEstimation.id}/identification`);
+                      
+                    } catch (error) {
+                      console.error('Erreur création estimation:', error);
+                      toast.error('Erreur lors de la création');
+                    } finally {
+                      setCreatingEstimation(false);
+                    }
+                  }}
                 >
-                  <Home className="h-4 w-4 mr-2" />
+                  {creatingEstimation ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Home className="h-4 w-4 mr-2" />
+                  )}
                   Créer estimation
                 </Button>
               )}
