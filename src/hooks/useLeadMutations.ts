@@ -9,14 +9,12 @@ type LeadInsert = Omit<Lead, 'id' | 'created_at' | 'updated_at' | 'partner' | 'a
  * Non-bloquant : ne fait que logger les erreurs
  */
 async function sendLeadNotificationEmail(lead: Lead): Promise<void> {
-  // Vérifier si un courtier est assigné
   if (!lead.assigned_to) {
     console.log('No courtier assigned, skipping email notification');
     return;
   }
 
   try {
-    // Récupérer le profil du courtier assigné
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name, email')
@@ -64,6 +62,40 @@ async function sendLeadNotificationEmail(lead: Lead): Promise<void> {
   }
 }
 
+/**
+ * Envoie une notification Telegram pour chaque nouveau lead
+ * Non-bloquant : ne fait que logger les erreurs
+ */
+async function sendTelegramNotification(lead: Lead, courtierNom?: string): Promise<void> {
+  try {
+    const leadUrl = `${window.location.origin}/leads/${lead.id}`;
+
+    const { error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: {
+        leadNom: lead.nom,
+        leadPrenom: lead.prenom,
+        leadTelephone: lead.telephone,
+        leadEmail: lead.email,
+        leadSource: lead.source,
+        leadType: lead.type_demande,
+        leadAdresse: lead.bien_adresse,
+        leadNpa: lead.bien_npa,
+        leadLocalite: lead.bien_localite,
+        courtierNom: courtierNom,
+        leadUrl: leadUrl
+      }
+    });
+
+    if (error) {
+      console.error('Error sending Telegram notification:', error);
+    } else {
+      console.log('Telegram notification sent successfully');
+    }
+  } catch (err) {
+    console.error('Unexpected error sending Telegram notification:', err);
+  }
+}
+
 export const useCreateLead = () => {
   const queryClient = useQueryClient();
 
@@ -78,13 +110,27 @@ export const useCreateLead = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['leads-stats'] });
       queryClient.invalidateQueries({ queryKey: ['new-leads-count'] });
       
-      // Envoyer la notification email (non-bloquant)
-      sendLeadNotificationEmail(data as Lead);
+      const lead = data as Lead;
+      
+      // Récupérer le nom du courtier pour Telegram (si assigné)
+      let courtierNom: string | undefined;
+      if (lead.assigned_to) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', lead.assigned_to)
+          .maybeSingle();
+        courtierNom = profile?.full_name || undefined;
+      }
+      
+      // Envoyer les notifications (non-bloquant)
+      sendLeadNotificationEmail(lead);
+      sendTelegramNotification(lead, courtierNom);
     },
   });
 };
