@@ -25,6 +25,8 @@ export interface Lead {
   source_detail: string | null;
   partner_id: string | null;
   partner?: Partner;
+  campagne_id: string | null;
+  campagne?: { code: string; commune: string };
   retro_type: 'pourcentage' | 'fixe' | null;
   retro_valeur: number | null;
   recommande_par: string | null;
