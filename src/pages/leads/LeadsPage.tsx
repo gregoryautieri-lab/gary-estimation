@@ -48,7 +48,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
 const STATUT_COLORS: Record<string, string> = {
   nouveau: 'bg-emerald-500',
   en_cours: 'bg-amber-500',
-  converti: 'bg-primary',
+  converti: 'bg-blue-500',
   perdu: 'bg-destructive',
 };
 
