@@ -218,17 +218,38 @@ export default function AdminCommissions() {
     });
 
     // Filtrer pour n'afficher que les vrais courtiers (exclure CEO, Marketing, Back-office)
+    // Helper pour trouver l'objectif d'un courtier (match par prénom)
+    const getCourtierObjectif = (courtierFullName: string): number => {
+      // Cherche d'abord une correspondance exacte
+      if (OBJECTIFS_COURTIERS[courtierFullName]) {
+        return OBJECTIFS_COURTIERS[courtierFullName];
+      }
+      // Sinon cherche par prénom (le premier mot)
+      const prenom = courtierFullName.split(' ')[0];
+      if (OBJECTIFS_COURTIERS[prenom]) {
+        return OBJECTIFS_COURTIERS[prenom];
+      }
+      // Cherche si un prénom dans OBJECTIFS_COURTIERS correspond au début du nom complet
+      const matchingKey = Object.keys(OBJECTIFS_COURTIERS).find(
+        key => courtierFullName.toLowerCase().startsWith(key.toLowerCase())
+      );
+      return matchingKey ? OBJECTIFS_COURTIERS[matchingKey] : 200000;
+    };
+
     const stats: CourtierStats[] = Object.entries(courtierMap)
       .filter(([courtier]) => !NON_COURTIERS.some(nc => courtier.toLowerCase().includes(nc.toLowerCase())))
-      .map(([courtier, data]) => ({
-        courtier,
-        nbVentes: data.count,
-        caTotal: data.total,
-        commissionMoyenne: data.count > 0 ? data.total / data.count : 0,
-        pourcentageTotal: grandTotal > 0 ? (data.total / grandTotal) * 100 : 0,
-        objectif: OBJECTIFS_COURTIERS[courtier] || 200000,
-        pourcentageObjectif: ((data.total / (OBJECTIFS_COURTIERS[courtier] || 200000)) * 100),
-      }))
+      .map(([courtier, data]) => {
+        const objectif = getCourtierObjectif(courtier);
+        return {
+          courtier,
+          nbVentes: data.count,
+          caTotal: data.total,
+          commissionMoyenne: data.count > 0 ? data.total / data.count : 0,
+          pourcentageTotal: grandTotal > 0 ? (data.total / grandTotal) * 100 : 0,
+          objectif,
+          pourcentageObjectif: (data.total / objectif) * 100,
+        };
+      })
       .sort((a, b) => b.caTotal - a.caTotal);
 
     return stats;
