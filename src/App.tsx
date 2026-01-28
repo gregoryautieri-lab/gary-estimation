@@ -10,6 +10,7 @@ import { useBeforeUnloadWarning } from "@/hooks/useBeforeUnloadWarning";
 import Index from "./pages/Index";
 import EstimationsList from "./pages/EstimationsList";
 import LeadsPage from "./pages/leads/LeadsPage";
+import LeadNewPage from "./pages/leads/LeadNewPage";
 import ComparablesProjects from "./pages/comparables/ComparablesProjects";
 import NewProject from "./pages/comparables/NewProject";
 import ComparablesExplore from "./pages/comparables/ComparablesExplore";
@@ -82,15 +83,7 @@ function AppWithWarning() {
           path="/leads/new"
           element={
             <ProtectedRoute>
-              <LeadsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leads/:id"
-          element={
-            <ProtectedRoute>
-              <LeadsPage />
+              <LeadNewPage />
             </ProtectedRoute>
           }
         />
