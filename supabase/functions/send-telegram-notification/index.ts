@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 interface TelegramNotificationRequest {
+  chatId: string; // Chat ID du courtier (reçu en paramètre)
   leadNom: string;
   leadPrenom?: string;
   leadTelephone?: string;
@@ -26,17 +27,16 @@ serve(async (req) => {
 
   try {
     const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const TELEGRAM_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID");
 
     if (!TELEGRAM_BOT_TOKEN) {
       throw new Error("TELEGRAM_BOT_TOKEN is not configured");
     }
 
-    if (!TELEGRAM_CHAT_ID) {
-      throw new Error("TELEGRAM_CHAT_ID is not configured");
-    }
-
     const data: TelegramNotificationRequest = await req.json();
+
+    if (!data.chatId) {
+      throw new Error("Missing required field: chatId");
+    }
 
     if (!data.leadNom) {
       throw new Error("Missing required field: leadNom");
@@ -91,7 +91,7 @@ serve(async (req) => {
     
     message += `\n🔗 [Voir dans GARY](${data.leadUrl})`;
 
-    console.log(`Sending Telegram notification to chat ${TELEGRAM_CHAT_ID}`);
+    console.log(`Sending Telegram notification to chat ${data.chatId}`);
 
     const telegramResponse = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -99,7 +99,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
+          chat_id: data.chatId,
           text: message,
           parse_mode: "Markdown",
           disable_web_page_preview: false,

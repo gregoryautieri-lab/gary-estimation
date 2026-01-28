@@ -63,15 +63,25 @@ async function sendLeadNotificationEmail(lead: Lead): Promise<void> {
 }
 
 /**
- * Envoie une notification Telegram pour chaque nouveau lead
+ * Envoie une notification Telegram au courtier assigné (via son chat_id personnel)
  * Non-bloquant : ne fait que logger les erreurs
  */
-async function sendTelegramNotification(lead: Lead, courtierNom?: string): Promise<void> {
+async function sendTelegramNotification(
+  lead: Lead, 
+  courtierNom?: string, 
+  telegramChatId?: string
+): Promise<void> {
+  if (!telegramChatId) {
+    console.log('Courtier has no Telegram chat_id configured, skipping notification');
+    return;
+  }
+
   try {
     const leadUrl = `${window.location.origin}/leads/${lead.id}`;
 
     const { error } = await supabase.functions.invoke('send-telegram-notification', {
       body: {
+        chatId: telegramChatId,
         leadNom: lead.nom,
         leadPrenom: lead.prenom,
         leadTelephone: lead.telephone,
@@ -89,7 +99,7 @@ async function sendTelegramNotification(lead: Lead, courtierNom?: string): Promi
     if (error) {
       console.error('Error sending Telegram notification:', error);
     } else {
-      console.log('Telegram notification sent successfully');
+      console.log('Telegram notification sent successfully to', telegramChatId);
     }
   } catch (err) {
     console.error('Unexpected error sending Telegram notification:', err);
@@ -117,20 +127,22 @@ export const useCreateLead = () => {
       
       const lead = data as Lead;
       
-      // Récupérer le nom du courtier pour Telegram (si assigné)
+      // Récupérer le profil du courtier (nom + telegram_chat_id) si assigné
       let courtierNom: string | undefined;
+      let telegramChatId: string | undefined;
       if (lead.assigned_to) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, telegram_chat_id')
           .eq('user_id', lead.assigned_to)
           .maybeSingle();
         courtierNom = profile?.full_name || undefined;
+        telegramChatId = profile?.telegram_chat_id || undefined;
       }
       
       // Envoyer les notifications (non-bloquant)
       sendLeadNotificationEmail(lead);
-      sendTelegramNotification(lead, courtierNom);
+      sendTelegramNotification(lead, courtierNom, telegramChatId);
     },
   });
 };
