@@ -54,6 +54,7 @@ function rowToEstimation(row: {
   comparables: Json;
   photos: Json;
   etapes_completees: string[] | null;
+  lead_id: string | null;
   notes_libres: string | null;
   created_at: string;
   updated_at: string;
@@ -127,6 +128,7 @@ function rowToEstimation(row: {
     etapesCompletees: row.etapes_completees || [],
     notesLibres: row.notes_libres || undefined,
     campagneOriginCode: row.campagne_origin_code || undefined,
+    leadId: row.lead_id || undefined,
     // Déduire sourceEstimation depuis campagne_origin_code
     sourceEstimation: row.campagne_origin_code ? 'prospection' : undefined,
     createdAt: row.created_at,
@@ -162,6 +164,7 @@ type InsertData = {
   photos: Json;
   etapes_completees: string[];
   notes_libres: string | null;
+  lead_id: string | null;
 };
 
 function estimationToInsert(data: Partial<EstimationData>, userId: string): InsertData {
@@ -189,7 +192,8 @@ function estimationToInsert(data: Partial<EstimationData>, userId: string): Inse
     comparables: { vendus: [], enVente: [] } as unknown as Json,
     photos: (data.photos || defPhotos) as unknown as Json,
     etapes_completees: data.etapesCompletees || [],
-    notes_libres: data.notesLibres || null
+    notes_libres: data.notesLibres || null,
+    lead_id: data.leadId || null
   };
 }
 

@@ -995,6 +995,7 @@ export interface EstimationData {
   // Source de l'estimation (pour tracking prospection)
   sourceEstimation?: SourceEstimation;
   campagneOriginCode?: string; // Code campagne si source = 'prospection'
+  leadId?: string; // ID du lead si créé depuis un lead
   
   // Champs clés
   typeBien?: TypeBien;
