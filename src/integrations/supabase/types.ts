@@ -443,6 +443,7 @@ export type Database = {
           historique: Json | null
           id: string
           identification: Json | null
+          lead_id: string | null
           localite: string | null
           notes_libres: string | null
           photos: Json | null
@@ -472,6 +473,7 @@ export type Database = {
           historique?: Json | null
           id?: string
           identification?: Json | null
+          lead_id?: string | null
           localite?: string | null
           notes_libres?: string | null
           photos?: Json | null
@@ -501,6 +503,7 @@ export type Database = {
           historique?: Json | null
           id?: string
           identification?: Json | null
+          lead_id?: string | null
           localite?: string | null
           notes_libres?: string | null
           photos?: Json | null
@@ -517,7 +520,15 @@ export type Database = {
           vendeur_nom?: string | null
           vendeur_telephone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "estimations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       etudiants: {
         Row: {
