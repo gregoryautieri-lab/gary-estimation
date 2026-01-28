@@ -13,19 +13,19 @@ import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { PartnerFormModal } from './PartnerFormModal';
 import { usePartners } from '@/hooks/usePartners';
 import { useCourtiers } from '@/hooks/useLeads';
-import { useCreateLead } from '@/hooks/useLeadMutations';
+import { useCreateLead, useUpdateLead } from '@/hooks/useLeadMutations';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Package, Smartphone, Phone, Globe, Users, Handshake, CalendarDays, HelpCircle,
   Home, ClipboardList, CalendarIcon, Plus
 } from 'lucide-react';
 import { 
-  LeadSource, LeadTypeDemande, Partner, BienType,
-  LEAD_SOURCE_OPTIONS, BIEN_TYPE_OPTIONS 
+  LeadSource, LeadTypeDemande, LeadStatut, Partner, BienType,
+  LEAD_SOURCE_OPTIONS, LEAD_STATUT_OPTIONS, BIEN_TYPE_OPTIONS 
 } from '@/types/leads';
 
 const SOURCE_ICONS: Record<LeadSource, React.ReactNode> = {
@@ -39,51 +39,90 @@ const SOURCE_ICONS: Record<LeadSource, React.ReactNode> = {
   autre: <HelpCircle className="h-4 w-4" />,
 };
 
-export const LeadForm = () => {
+interface LeadFormData {
+  id: string;
+  source: string;
+  source_detail: string | null;
+  partner_id: string | null;
+  retro_type: string | null;
+  retro_valeur: number | null;
+  recommande_par: string | null;
+  nom: string;
+  prenom: string | null;
+  telephone: string | null;
+  email: string | null;
+  type_demande: string;
+  statut: string;
+  perdu_raison: string | null;
+  bien_adresse: string | null;
+  bien_npa: string | null;
+  bien_localite: string | null;
+  bien_type: string | null;
+  assigned_to: string | null;
+  rappel_date: string | null;
+  notes: string | null;
+}
+
+interface LeadFormProps {
+  mode?: 'create' | 'edit';
+  initialData?: LeadFormData;
+  onSuccess?: () => void;
+}
+
+export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: partners = [] } = usePartners();
   const { data: courtiers = [] } = useCourtiers();
   const createLead = useCreateLead();
+  const updateLead = useUpdateLead();
 
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
 
   // Form state
-  const [source, setSource] = useState<LeadSource>('telephone');
-  const [sourceDetail, setSourceDetail] = useState('');
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [retroType, setRetroType] = useState<'pourcentage' | 'fixe' | null>(null);
-  const [retroValeur, setRetroValeur] = useState<number | null>(null);
-  const [overrideRetro, setOverrideRetro] = useState(false);
-  const [recommandePar, setRecommandePar] = useState('');
-  const [nom, setNom] = useState('');
-  const [prenom, setPrenom] = useState('');
-  const [telephone, setTelephone] = useState('');
-  const [email, setEmail] = useState('');
-  const [typeDemande, setTypeDemande] = useState<LeadTypeDemande>('estimation');
-  const [bienAdresse, setBienAdresse] = useState('');
-  const [bienNpa, setBienNpa] = useState('');
-  const [bienLocalite, setBienLocalite] = useState('');
-  const [bienType, setBienType] = useState<BienType | null>(null);
-  const [assignedTo, setAssignedTo] = useState<string | null>(null);
-  const [rappelDate, setRappelDate] = useState<Date | undefined>(undefined);
-  const [notes, setNotes] = useState('');
+  const [source, setSource] = useState<LeadSource>((initialData?.source as LeadSource) || 'telephone');
+  const [sourceDetail, setSourceDetail] = useState(initialData?.source_detail || '');
+  const [partnerId, setPartnerId] = useState<string | null>(initialData?.partner_id || null);
+  const [retroType, setRetroType] = useState<'pourcentage' | 'fixe' | null>(
+    (initialData?.retro_type as 'pourcentage' | 'fixe' | null) || null
+  );
+  const [retroValeur, setRetroValeur] = useState<number | null>(initialData?.retro_valeur || null);
+  const [overrideRetro, setOverrideRetro] = useState(mode === 'edit' && !!initialData?.retro_valeur);
+  const [recommandePar, setRecommandePar] = useState(initialData?.recommande_par || '');
+  const [nom, setNom] = useState(initialData?.nom || '');
+  const [prenom, setPrenom] = useState(initialData?.prenom || '');
+  const [telephone, setTelephone] = useState(initialData?.telephone || '');
+  const [email, setEmail] = useState(initialData?.email || '');
+  const [typeDemande, setTypeDemande] = useState<LeadTypeDemande>(
+    (initialData?.type_demande as LeadTypeDemande) || 'estimation'
+  );
+  const [statut, setStatut] = useState<LeadStatut>((initialData?.statut as LeadStatut) || 'nouveau');
+  const [perduRaison, setPerduRaison] = useState(initialData?.perdu_raison || '');
+  const [bienAdresse, setBienAdresse] = useState(initialData?.bien_adresse || '');
+  const [bienNpa, setBienNpa] = useState(initialData?.bien_npa || '');
+  const [bienLocalite, setBienLocalite] = useState(initialData?.bien_localite || '');
+  const [bienType, setBienType] = useState<BienType | null>((initialData?.bien_type as BienType) || null);
+  const [assignedTo, setAssignedTo] = useState<string | null>(initialData?.assigned_to || null);
+  const [rappelDate, setRappelDate] = useState<Date | undefined>(
+    initialData?.rappel_date ? parseISO(initialData.rappel_date) : undefined
+  );
+  const [notes, setNotes] = useState(initialData?.notes || '');
 
-  // Set default assignedTo to current user
+  // Set default assignedTo to current user in create mode
   useEffect(() => {
-    if (user && !assignedTo) {
+    if (mode === 'create' && user && !assignedTo) {
       setAssignedTo(user.id);
     }
-  }, [user, assignedTo]);
+  }, [user, assignedTo, mode]);
 
-  // Update retro values when partner changes
+  // Update retro values when partner changes (only in create mode or if not overriding)
   const selectedPartner = partners.find(p => p.id === partnerId);
   useEffect(() => {
-    if (selectedPartner && !overrideRetro) {
+    if (selectedPartner && !overrideRetro && mode === 'create') {
       setRetroType(selectedPartner.retro_default_type === 'aucune' ? null : selectedPartner.retro_default_type);
       setRetroValeur(selectedPartner.retro_default_valeur);
     }
-  }, [selectedPartner, overrideRetro]);
+  }, [selectedPartner, overrideRetro, mode]);
 
   const handlePartnerCreated = (partner: Partner) => {
     setPartnerId(partner.id);
@@ -102,43 +141,100 @@ export const LeadForm = () => {
       return;
     }
 
-    try {
-      await createLead.mutateAsync({
-        source,
-        source_detail: sourceDetail || null,
-        partner_id: source === 'partenariat' ? partnerId : null,
-        retro_type: source === 'partenariat' && partnerId ? retroType : null,
-        retro_valeur: source === 'partenariat' && partnerId ? retroValeur : null,
-        recommande_par: source === 'recommandation' ? recommandePar : null,
-        nom,
-        prenom: prenom || null,
-        telephone: telephone || null,
-        email: email || null,
-        type_demande: typeDemande,
-        statut: 'nouveau',
-        bien_adresse: typeDemande === 'estimation' ? bienAdresse || null : null,
-        bien_npa: typeDemande === 'estimation' ? bienNpa || null : null,
-        bien_localite: typeDemande === 'estimation' ? bienLocalite || null : null,
-        bien_type: typeDemande === 'estimation' ? bienType : null,
-        assigned_to: assignedTo,
-        rappel_date: rappelDate ? format(rappelDate, 'yyyy-MM-dd') : null,
-        notes: notes || null,
-        created_by: user?.id || null,
-        perdu_raison: null,
-        estimation_id: null,
-        converti_at: null,
-      });
+    const formData = {
+      source,
+      source_detail: sourceDetail || null,
+      partner_id: source === 'partenariat' ? partnerId : null,
+      retro_type: source === 'partenariat' && partnerId ? retroType : null,
+      retro_valeur: source === 'partenariat' && partnerId ? retroValeur : null,
+      recommande_par: source === 'recommandation' ? recommandePar : null,
+      nom,
+      prenom: prenom || null,
+      telephone: telephone || null,
+      email: email || null,
+      type_demande: typeDemande,
+      statut: mode === 'edit' ? statut : 'nouveau',
+      perdu_raison: statut === 'perdu' ? perduRaison || null : null,
+      bien_adresse: typeDemande === 'estimation' ? bienAdresse || null : null,
+      bien_npa: typeDemande === 'estimation' ? bienNpa || null : null,
+      bien_localite: typeDemande === 'estimation' ? bienLocalite || null : null,
+      bien_type: typeDemande === 'estimation' ? bienType : null,
+      assigned_to: assignedTo,
+      rappel_date: rappelDate ? format(rappelDate, 'yyyy-MM-dd') : null,
+      notes: notes || null,
+      updated_at: new Date().toISOString(),
+    };
 
-      toast({ title: 'Succès', description: 'Lead créé avec succès' });
-      navigate('/leads');
+    try {
+      if (mode === 'edit' && initialData) {
+        await updateLead.mutateAsync({
+          id: initialData.id,
+          ...formData,
+        });
+        toast({ title: 'Succès', description: 'Lead mis à jour' });
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate(`/leads/${initialData.id}`);
+        }
+      } else {
+        await createLead.mutateAsync({
+          ...formData,
+          created_by: user?.id || null,
+          estimation_id: null,
+          converti_at: null,
+        });
+        toast({ title: 'Succès', description: 'Lead créé avec succès' });
+        navigate('/leads');
+      }
     } catch (error) {
-      console.error('Error creating lead:', error);
-      toast({ title: 'Erreur', description: 'Impossible de créer le lead', variant: 'destructive' });
+      console.error('Error saving lead:', error);
+      toast({ 
+        title: 'Erreur', 
+        description: mode === 'edit' ? 'Impossible de mettre à jour le lead' : 'Impossible de créer le lead', 
+        variant: 'destructive' 
+      });
     }
   };
 
+  const isPending = createLead.isPending || updateLead.isPending;
+  const cancelPath = mode === 'edit' && initialData ? `/leads/${initialData.id}` : '/leads';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* STATUT - Only in edit mode */}
+      {mode === 'edit' && (
+        <FormSection title="Statut">
+          <div className="space-y-4">
+            <FormRow label="Statut du lead">
+              <Select value={statut} onValueChange={(v) => setStatut(v as LeadStatut)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAD_STATUT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
+            
+            {statut === 'perdu' && (
+              <FormRow label="Raison de la perte">
+                <Textarea
+                  value={perduRaison}
+                  onChange={(e) => setPerduRaison(e.target.value)}
+                  placeholder="Pourquoi ce lead n'a pas abouti ?"
+                  rows={2}
+                />
+              </FormRow>
+            )}
+          </div>
+        </FormSection>
+      )}
+
       {/* SOURCE */}
       <FormSection title="Source du lead">
         <div className="space-y-4">
@@ -428,11 +524,16 @@ export const LeadForm = () => {
 
       {/* FOOTER */}
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={() => navigate('/leads')}>
+        <Button type="button" variant="outline" onClick={() => navigate(cancelPath)}>
           Annuler
         </Button>
-        <Button type="submit" disabled={createLead.isPending}>
-          {createLead.isPending ? 'Enregistrement...' : 'Enregistrer'}
+        <Button type="submit" disabled={isPending}>
+          {isPending 
+            ? 'Enregistrement...' 
+            : mode === 'edit' 
+              ? 'Enregistrer les modifications' 
+              : 'Enregistrer'
+          }
         </Button>
       </div>
 
