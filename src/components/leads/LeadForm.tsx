@@ -13,6 +13,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FormSection, FormRow } from '@/components/gary/FormSection';
 import { PartnerFormModal } from './PartnerFormModal';
+import { AddressAutocomplete, AddressDetails } from '@/components/address/AddressAutocomplete';
 import { usePartners } from '@/hooks/usePartners';
 import { useCourtiers } from '@/hooks/useLeads';
 import { useCreateLead, useUpdateLead } from '@/hooks/useLeadMutations';
@@ -477,10 +478,18 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
         <FormSection title="Informations sur le bien" variant="highlight">
           <div className="space-y-4">
             <FormRow label="Adresse">
-              <Input
+              <AddressAutocomplete
                 value={bienAdresse}
-                onChange={(e) => setBienAdresse(e.target.value)}
-                placeholder="Rue et numéro"
+                onAddressSelect={(details: AddressDetails) => {
+                  setBienAdresse(details.rue || details.formatted || '');
+                  if (details.postalCode || details.codePostal) {
+                    setBienNpa(details.postalCode || details.codePostal || '');
+                  }
+                  if (details.locality || details.localite) {
+                    setBienLocalite(details.locality || details.localite || '');
+                  }
+                }}
+                placeholder="Commencez à taper une adresse..."
               />
             </FormRow>
             <div className="grid grid-cols-3 gap-4">
