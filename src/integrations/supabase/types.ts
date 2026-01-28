@@ -163,6 +163,7 @@ export type Database = {
           origine_detail: string | null
           prix_vente: number
           repartition: Json | null
+          repartition_ca: Json | null
           statut: string
           updated_at: string
         }
@@ -183,6 +184,7 @@ export type Database = {
           origine_detail?: string | null
           prix_vente: number
           repartition?: Json | null
+          repartition_ca?: Json | null
           statut?: string
           updated_at?: string
         }
@@ -203,6 +205,7 @@ export type Database = {
           origine_detail?: string | null
           prix_vente?: number
           repartition?: Json | null
+          repartition_ca?: Json | null
           statut?: string
           updated_at?: string
         }

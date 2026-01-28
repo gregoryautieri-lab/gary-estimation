@@ -35,6 +35,7 @@ interface Commission {
   notes: string | null;
   statut: string;
   repartition: Record<string, number>;
+  repartition_ca?: Record<string, number>; // Split CA en pourcentages
 }
 
 interface EstimationSuggestion {
@@ -161,6 +162,8 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
   const [notes, setNotes] = useState("");
   const [statut, setStatut] = useState("Payée");
   const [repartition, setRepartition] = useState<{ courtier: string; pourcentage: string }[]>([]);
+  const [repartitionCA, setRepartitionCA] = useState<{ courtier: string; pourcentage: string }[]>([]);
+  const [useCustomCARepart, setUseCustomCARepart] = useState(false);
 
   // Estimation linking state
   const [estimationId, setEstimationId] = useState<string | null>(null);
@@ -196,6 +199,16 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
             pourcentage: totalComm > 0 ? ((montant as number / totalComm) * 100).toFixed(0) : "0",
           }))
         );
+        // Load CA repartition (stored as percentages directly)
+        const caRepart = commission.repartition_ca || {};
+        const hasCustomCARepart = Object.keys(caRepart).length > 0;
+        setUseCustomCARepart(hasCustomCARepart);
+        setRepartitionCA(
+          Object.entries(caRepart).map(([courtier, pourcentage]) => ({
+            courtier,
+            pourcentage: (pourcentage as number).toString(),
+          }))
+        );
         setEstimationId(commission.estimation_id);
         // Load linked estimation details if exists
         if (commission.estimation_id) {
@@ -218,6 +231,8 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         setNotes("");
         setStatut("Payée");
         setRepartition([]);
+        setRepartitionCA([]);
+        setUseCustomCARepart(false);
         setEstimationId(null);
         setLinkedEstimation(null);
       }
@@ -433,6 +448,26 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
     setRepartition(updated);
   };
 
+  // CA Repartition helpers
+  const addRepartitionCARow = () => {
+    setRepartitionCA([...repartitionCA, { courtier: "", pourcentage: "" }]);
+  };
+
+  const removeRepartitionCARow = (index: number) => {
+    setRepartitionCA(repartitionCA.filter((_, i) => i !== index));
+  };
+
+  const updateRepartitionCARow = (index: number, field: "courtier" | "pourcentage", value: string) => {
+    const updated = [...repartitionCA];
+    updated[index][field] = value;
+    setRepartitionCA(updated);
+  };
+
+  // Calculate CA repartition totals
+  const prixVenteNum = parseFloat(prixVente) || 0;
+  const repartitionCAPourcentageSum = repartitionCA.reduce((sum, r) => sum + (parseFloat(r.pourcentage) || 0), 0);
+  const isRepartitionCAValid = repartitionCAPourcentageSum === 100 || repartitionCA.length === 0;
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -445,6 +480,16 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
           repartitionObj[r.courtier] = Math.round((pct / 100) * totalComm);
         }
       });
+
+      // Build CA repartition object (stored as percentages)
+      const repartitionCAObj: Record<string, number> = {};
+      if (useCustomCARepart) {
+        repartitionCA.forEach((r) => {
+          if (r.courtier && r.pourcentage) {
+            repartitionCAObj[r.courtier] = parseFloat(r.pourcentage) || 0;
+          }
+        });
+      }
 
       const payload = {
         adresse,
@@ -460,6 +505,7 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
         notes: notes || null,
         statut,
         repartition: repartitionObj,
+        repartition_ca: repartitionCAObj,
         estimation_id: estimationId,
       };
 
@@ -874,6 +920,100 @@ export function CommissionFormModal({ open, onOpenChange, commission, onDelete }
               </div>
             )}
           </div>
+
+          {/* Répartition du CA (optionnel) */}
+          {repartition.length >= 2 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-sm text-muted-foreground">Répartition du CA</h3>
+                  <Badge variant="outline" className="text-xs">Optionnel</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="customCA" className="text-xs text-muted-foreground">Personnaliser</Label>
+                  <input 
+                    type="checkbox" 
+                    id="customCA"
+                    checked={useCustomCARepart}
+                    onChange={(e) => {
+                      setUseCustomCARepart(e.target.checked);
+                      if (e.target.checked && repartitionCA.length === 0) {
+                        // Pré-remplir avec les courtiers de la répartition commission
+                        const courtiers = repartition.filter(r => r.courtier).map(r => r.courtier);
+                        const equalShare = courtiers.length > 0 ? (100 / courtiers.length).toFixed(0) : "50";
+                        setRepartitionCA(courtiers.map(c => ({ courtier: c, pourcentage: equalShare })));
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Par défaut, le CA ({prixVenteNum.toLocaleString("fr-CH")} CHF) est réparti équitablement. 
+                Activez pour personnaliser le split.
+              </p>
+
+              {useCustomCARepart && (
+                <div className="space-y-2">
+                  {repartitionCA.map((r, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Select value={r.courtier} onValueChange={(v) => updateRepartitionCARow(index, "courtier", v)}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Courtier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {courtierNames.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={r.pourcentage}
+                          onChange={(e) => updateRepartitionCARow(index, "pourcentage", e.target.value)}
+                          placeholder="50"
+                          className="w-20 text-right"
+                          min="0"
+                          max="100"
+                          step="any"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                      <div className="w-28 text-right text-sm text-muted-foreground">
+                        {((parseFloat(r.pourcentage) || 0) / 100 * prixVenteNum).toLocaleString("fr-CH")} CHF
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeRepartitionCARow(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  <Button type="button" variant="outline" size="sm" onClick={addRepartitionCARow}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter
+                  </Button>
+
+                  {/* Total CA */}
+                  <div className="pt-2 border-t text-sm">
+                    <div className={`flex justify-between font-medium ${repartitionCAPourcentageSum !== 100 && repartitionCA.length > 0 ? "text-destructive" : ""}`}>
+                      <span>Total :</span>
+                      <span>
+                        {repartitionCAPourcentageSum.toFixed(0)}%
+                        {repartitionCAPourcentageSum !== 100 && repartitionCA.length > 0 && " (doit égaler 100%)"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-2">
