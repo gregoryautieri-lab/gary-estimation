@@ -84,6 +84,7 @@ export default function AdminCommissions() {
   const [filterYear, setFilterYear] = useState<string>(currentYear.toString());
   const [filterCourtier, setFilterCourtier] = useState<string>("all");
   const [filterStatut, setFilterStatut] = useState<string>("all");
+  const [filterCourtierGraph, setFilterCourtierGraph] = useState<string>("all");
 
   // Fetch objectives for the selected year
   const { data: objectives = [] } = useQuery({
@@ -270,14 +271,50 @@ export default function AdminCommissions() {
     return stats;
   }, [commissionsYear, OBJECTIFS_COURTIERS]);
 
+  // Helper pour normaliser les accents (pour matching courtier)
+  const normalizeAccentsHelper = (str: string): string => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  };
+
+  // Filtrer les commissions par courtier pour le graphique
+  const commissionsYearFiltered = useMemo(() => {
+    if (filterCourtierGraph === "all") return commissionsYear;
+    const normalizedFilter = normalizeAccentsHelper(filterCourtierGraph);
+    return commissionsYear.filter(c => {
+      const normalizedCourtier = normalizeAccentsHelper(c.courtier_principal);
+      return normalizedCourtier.startsWith(normalizedFilter);
+    });
+  }, [commissionsYear, filterCourtierGraph]);
+
+  const commissionsProbableFiltered = useMemo(() => {
+    if (filterCourtierGraph === "all") return commissionsProbable;
+    const normalizedFilter = normalizeAccentsHelper(filterCourtierGraph);
+    return commissionsProbable.filter(c => {
+      const normalizedCourtier = normalizeAccentsHelper(c.courtier_principal);
+      return normalizedCourtier.startsWith(normalizedFilter);
+    });
+  }, [commissionsProbable, filterCourtierGraph]);
+
+  // Objectif pour le graphique (courtier spécifique ou global)
+  const graphObjectif = useMemo(() => {
+    if (filterCourtierGraph === "all") return OBJECTIF_ANNUEL;
+    // Chercher l'objectif du courtier sélectionné
+    const normalizedFilter = normalizeAccentsHelper(filterCourtierGraph);
+    const matchingKey = Object.keys(OBJECTIFS_COURTIERS).find(key => {
+      const normalizedKey = normalizeAccentsHelper(key);
+      return normalizedFilter.startsWith(normalizedKey) || normalizedKey.startsWith(normalizedFilter);
+    });
+    return matchingKey ? OBJECTIFS_COURTIERS[matchingKey] : 200000;
+  }, [filterCourtierGraph, OBJECTIF_ANNUEL, OBJECTIFS_COURTIERS]);
+
   // Données pour le graphique mensuel
   const monthlyData = useMemo(() => {
     const monthlyCA: number[] = Array(12).fill(0);
     const monthlyProbable: number[] = Array(12).fill(0);
-    const objectifMensuel = OBJECTIF_ANNUEL / 12;
+    const objectifMensuel = graphObjectif / 12;
 
     // CA réel (Payée + En attente)
-    commissionsYear.forEach((c) => {
+    commissionsYearFiltered.forEach((c) => {
       if (c.date_paiement) {
         const month = new Date(c.date_paiement).getMonth();
         monthlyCA[month] += Number(c.commission_totale);
@@ -285,7 +322,7 @@ export default function AdminCommissions() {
     });
 
     // CA Probable
-    commissionsProbable.forEach((c) => {
+    commissionsProbableFiltered.forEach((c) => {
       if (c.date_paiement) {
         const month = new Date(c.date_paiement).getMonth();
         monthlyProbable[month] += Number(c.commission_totale);
@@ -308,7 +345,7 @@ export default function AdminCommissions() {
     });
 
     return data;
-  }, [commissionsYear, commissionsProbable, OBJECTIF_ANNUEL]);
+  }, [commissionsYearFiltered, commissionsProbableFiltered, graphObjectif]);
 
   // Liste des années disponibles
   const availableYears = useMemo(() => {
@@ -565,7 +602,21 @@ export default function AdminCommissions() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Évolution du chiffre d'affaires
+              {filterCourtierGraph !== "all" && (
+                <span className="ml-2 text-primary">— {filterCourtierGraph}</span>
+              )}
             </h2>
+            <Select value={filterCourtierGraph} onValueChange={setFilterCourtierGraph}>
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue placeholder="Tous les courtiers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les courtiers</SelectItem>
+                {COURTIERS_LIST.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="h-[320px]">
