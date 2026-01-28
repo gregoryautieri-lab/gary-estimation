@@ -589,6 +589,7 @@ export type Database = {
           perdu_raison: string | null
           prenom: string | null
           rappel_date: string | null
+          rdv_date: string | null
           recommande_par: string | null
           retro_type: string | null
           retro_valeur: number | null
@@ -618,6 +619,7 @@ export type Database = {
           perdu_raison?: string | null
           prenom?: string | null
           rappel_date?: string | null
+          rdv_date?: string | null
           recommande_par?: string | null
           retro_type?: string | null
           retro_valeur?: number | null
@@ -647,6 +649,7 @@ export type Database = {
           perdu_raison?: string | null
           prenom?: string | null
           rappel_date?: string | null
+          rdv_date?: string | null
           recommande_par?: string | null
           retro_type?: string | null
           retro_valeur?: number | null
