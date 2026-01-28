@@ -88,6 +88,18 @@ export default function LeadsPage() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
+      // D'abord, délier les estimations liées à ce lead
+      const { error: unlinkError } = await supabase
+        .from('estimations')
+        .update({ lead_id: null })
+        .eq('lead_id', deleteTarget.id);
+      
+      if (unlinkError) {
+        console.error('Erreur déliaison estimations:', unlinkError);
+        // Continue anyway - there might not be any linked estimations
+      }
+
+      // Ensuite, supprimer le lead
       const { error } = await supabase
         .from('leads')
         .delete()
