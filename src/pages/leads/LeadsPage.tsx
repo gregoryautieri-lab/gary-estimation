@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Inbox, Plus, Search, Eye, Package, Smartphone, Phone, 
-  Users, Handshake, Globe, Calendar, HelpCircle, BarChart3 
+  Users, Handshake, Globe, Calendar, HelpCircle, BarChart3, Trash2, Loader2
 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isBefore, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -31,6 +31,20 @@ import { LEAD_STATUT_OPTIONS } from '@/types/leads';
 import { cn } from '@/lib/utils';
 import { LeadRappelsBanner } from '@/components/leads/LeadRappelsBanner';
 import { LeadsSummary } from '@/components/leads/LeadsSummary';
+import { useUserRole } from '@/hooks/useUserRole';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Icônes par source
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -54,6 +68,8 @@ const STATUT_COLORS: Record<string, string> = {
 
 export default function LeadsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAdmin } = useUserRole();
   const [showStats, setShowStats] = useState(false);
   const [filters, setFilters] = useState<LeadsFilters>({
     statut: 'tous',
@@ -61,9 +77,35 @@ export default function LeadsPage() {
     periode: 'tout',
     search: '',
   });
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const { data: leads = [], isLoading } = useLeads(filters);
   const { data: stats } = useLeadsStats();
   const { data: courtiers = [] } = useCourtiers();
+
+  const handleDeleteLead = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', deleteTarget.id);
+      
+      if (error) throw error;
+      
+      toast.success('Lead supprimé');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['leads-stats'] });
+    } catch (error) {
+      console.error('Erreur suppression lead:', error);
+      toast.error('Erreur lors de la suppression');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   const updateFilter = (key: keyof LeadsFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -290,16 +332,31 @@ export default function LeadsPage() {
                       })}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(lead.id);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(lead.id);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: lead.id, name: `${lead.prenom || ''} ${lead.nom}`.trim() });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -308,6 +365,29 @@ export default function LeadsPage() {
           </Table>
         </div>
       </main>
+
+      {/* Dialog suppression */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer le lead <strong>{deleteTarget?.name}</strong> ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteLead}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>
