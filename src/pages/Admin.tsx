@@ -65,6 +65,7 @@ import {
   Eye,
   EyeOff,
   Mail,
+  MessageCircle,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -79,6 +80,7 @@ interface UserWithRole {
   roles: AppRole[];
   email?: string;
   is_disabled?: boolean;
+  telegram_chat_id?: string | null;
 }
 
 // Only display 3 roles in UI (simplified from 6)
@@ -117,6 +119,10 @@ export default function Admin() {
   // État pour modifier l'email
   const [showEditEmail, setShowEditEmail] = useState<UserWithRole | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  
+  // État pour modifier le Telegram Chat ID
+  const [showEditTelegram, setShowEditTelegram] = useState<UserWithRole | null>(null);
+  const [newTelegramChatId, setNewTelegramChatId] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -153,6 +159,7 @@ export default function Admin() {
         full_name: profile.full_name,
         avatar_url: profile.avatar_url,
         created_at: profile.created_at,
+        telegram_chat_id: profile.telegram_chat_id,
         roles: allRoles
           ?.filter((r) => r.user_id === profile.user_id)
           .map((r) => r.role) || [],
@@ -357,6 +364,32 @@ export default function Admin() {
     } catch (error: any) {
       console.error("Error updating email:", error);
       toast.error(error.message || "Erreur lors de la mise à jour de l'email");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateTelegramChatId = async () => {
+    if (!showEditTelegram) return;
+
+    const chatIdTrimmed = newTelegramChatId.trim();
+
+    setActionLoading(showEditTelegram.user_id);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ telegram_chat_id: chatIdTrimmed || null })
+        .eq("user_id", showEditTelegram.user_id);
+
+      if (error) throw error;
+
+      toast.success(`Telegram Chat ID mis à jour pour ${showEditTelegram.full_name || "l'utilisateur"}`);
+      setShowEditTelegram(null);
+      setNewTelegramChatId("");
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error updating Telegram Chat ID:", error);
+      toast.error(error.message || "Erreur lors de la mise à jour");
     } finally {
       setActionLoading(null);
     }
@@ -686,6 +719,18 @@ export default function Admin() {
                               }}>
                                 <Mail className="h-4 w-4 mr-2" />
                                 Modifier l'email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setShowEditTelegram(u);
+                                setNewTelegramChatId(u.telegram_chat_id || "");
+                              }}>
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Telegram Chat ID
+                                {u.telegram_chat_id && (
+                                  <span className="ml-auto text-xs text-muted-foreground">
+                                    ✓
+                                  </span>
+                                )}
                               </DropdownMenuItem>
                               {u.user_id !== user?.id && (
                                 <>
@@ -1065,6 +1110,73 @@ export default function Admin() {
                 <Mail className="h-4 w-4 mr-2" />
               )}
               Mettre à jour
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Telegram Chat ID Dialog */}
+      <Dialog open={!!showEditTelegram} onOpenChange={() => {
+        setShowEditTelegram(null);
+        setNewTelegramChatId("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Telegram Chat ID
+            </DialogTitle>
+            <DialogDescription>
+              Entrez l'ID de chat Telegram pour recevoir les notifications de leads
+            </DialogDescription>
+          </DialogHeader>
+          {showEditTelegram && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Avatar>
+                  <AvatarImage src={showEditTelegram.avatar_url || undefined} />
+                  <AvatarFallback>{getInitials(showEditTelegram.full_name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{showEditTelegram.full_name || "Sans nom"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ID: {showEditTelegram.user_id.slice(0, 8)}...
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="telegram-chat-id">Chat ID</Label>
+                <Input
+                  id="telegram-chat-id"
+                  type="text"
+                  placeholder="Ex: 123456789"
+                  value={newTelegramChatId}
+                  onChange={(e) => setNewTelegramChatId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Pour trouver son Chat ID : démarrer une conversation avec @garyworld_bot puis vérifier via l'API Telegram
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowEditTelegram(null);
+              setNewTelegramChatId("");
+            }}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleUpdateTelegramChatId}
+              disabled={actionLoading === showEditTelegram?.user_id}
+            >
+              {actionLoading === showEditTelegram?.user_id ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <MessageCircle className="h-4 w-4 mr-2" />
+              )}
+              {newTelegramChatId.trim() ? "Mettre à jour" : "Supprimer"}
             </Button>
           </DialogFooter>
         </DialogContent>
