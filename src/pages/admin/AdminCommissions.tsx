@@ -218,21 +218,36 @@ export default function AdminCommissions() {
     });
 
     // Filtrer pour n'afficher que les vrais courtiers (exclure CEO, Marketing, Back-office)
-    // Helper pour trouver l'objectif d'un courtier (match par prénom)
+    // Helper pour normaliser les accents (Frédéric -> Frederic)
+    const normalizeAccents = (str: string): string => {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    };
+    
+    // Helper pour trouver l'objectif d'un courtier (match par prénom, insensible aux accents)
     const getCourtierObjectif = (courtierFullName: string): number => {
       // Cherche d'abord une correspondance exacte
       if (OBJECTIFS_COURTIERS[courtierFullName]) {
         return OBJECTIFS_COURTIERS[courtierFullName];
       }
-      // Sinon cherche par prénom (le premier mot)
+      
+      const normalizedFullName = normalizeAccents(courtierFullName);
       const prenom = courtierFullName.split(' ')[0];
+      const normalizedPrenom = normalizeAccents(prenom);
+      
+      // Cherche par prénom exact
       if (OBJECTIFS_COURTIERS[prenom]) {
         return OBJECTIFS_COURTIERS[prenom];
       }
-      // Cherche si un prénom dans OBJECTIFS_COURTIERS correspond au début du nom complet
-      const matchingKey = Object.keys(OBJECTIFS_COURTIERS).find(
-        key => courtierFullName.toLowerCase().startsWith(key.toLowerCase())
-      );
+      
+      // Cherche correspondance insensible aux accents
+      const matchingKey = Object.keys(OBJECTIFS_COURTIERS).find(key => {
+        const normalizedKey = normalizeAccents(key);
+        // Match si le nom complet commence par la clé OU si le prénom commence par la clé
+        return normalizedFullName.startsWith(normalizedKey) || 
+               normalizedPrenom.startsWith(normalizedKey) ||
+               normalizedKey.startsWith(normalizedPrenom.slice(0, 4)); // "fred" matches "fre" de Frédéric
+      });
+      
       return matchingKey ? OBJECTIFS_COURTIERS[matchingKey] : 200000;
     };
 
