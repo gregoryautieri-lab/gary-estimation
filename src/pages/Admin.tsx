@@ -64,6 +64,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Mail,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -112,6 +113,10 @@ export default function Admin() {
   const [showResetPassword, setShowResetPassword] = useState<UserWithRole | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
+  
+  // État pour modifier l'email
+  const [showEditEmail, setShowEditEmail] = useState<UserWithRole | null>(null);
+  const [newEmail, setNewEmail] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -309,6 +314,49 @@ export default function Admin() {
     } catch (error: any) {
       console.error("Error resetting password:", error);
       toast.error(error.message || "Erreur lors de la réinitialisation");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!showEditEmail || !newEmail) return;
+
+    const emailTrimmed = newEmail.trim();
+    if (!z.string().email().safeParse(emailTrimmed).success) {
+      toast.error("Email invalide");
+      return;
+    }
+
+    setActionLoading(showEditEmail.user_id);
+    try {
+      if (!session?.access_token) {
+        throw new Error("Session invalide");
+      }
+
+      const response = await supabase.functions.invoke("admin-users", {
+        body: { 
+          action: "update_email", 
+          target_user_id: showEditEmail.user_id,
+          email: emailTrimmed,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        const detailed = await readInvokeErrorMessage(response.error);
+        throw new Error(detailed || response.error.message);
+      }
+
+      toast.success(`Email mis à jour pour ${showEditEmail.full_name || "l'utilisateur"}`);
+      setShowEditEmail(null);
+      setNewEmail("");
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error updating email:", error);
+      toast.error(error.message || "Erreur lors de la mise à jour de l'email");
     } finally {
       setActionLoading(null);
     }
@@ -632,6 +680,13 @@ export default function Admin() {
                                 <KeyRound className="h-4 w-4 mr-2" />
                                 Réinitialiser mot de passe
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setShowEditEmail(u);
+                                setNewEmail("");
+                              }}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Modifier l'email
+                              </DropdownMenuItem>
                               {u.user_id !== user?.id && (
                                 <>
                                   <DropdownMenuSeparator />
@@ -946,6 +1001,70 @@ export default function Admin() {
                 <KeyRound className="h-4 w-4 mr-2" />
               )}
               Réinitialiser
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Email Dialog */}
+      <Dialog open={!!showEditEmail} onOpenChange={() => {
+        setShowEditEmail(null);
+        setNewEmail("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Modifier l'email
+            </DialogTitle>
+          </DialogHeader>
+          {showEditEmail && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Avatar>
+                  <AvatarImage src={showEditEmail.avatar_url || undefined} />
+                  <AvatarFallback>{getInitials(showEditEmail.full_name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{showEditEmail.full_name || "Sans nom"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ID: {showEditEmail.user_id.slice(0, 8)}...
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-email">Nouvel email</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  placeholder="exemple@email.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  L'email sera mis à jour immédiatement sans confirmation
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowEditEmail(null);
+              setNewEmail("");
+            }}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleUpdateEmail}
+              disabled={actionLoading === showEditEmail?.user_id || !newEmail.trim()}
+            >
+              {actionLoading === showEditEmail?.user_id ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
+              Mettre à jour
             </Button>
           </DialogFooter>
         </DialogContent>

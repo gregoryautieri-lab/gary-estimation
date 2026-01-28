@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 interface AdminUserRequest {
-  action: "create" | "delete" | "disable" | "enable" | "reset_password";
+  action: "create" | "delete" | "disable" | "enable" | "reset_password" | "update_email";
   target_user_id?: string;
   new_password?: string;
   email?: string;
@@ -169,6 +169,24 @@ const handler = async (req: Request): Promise<Response> => {
         });
         if (resetError) throw resetError;
         result = { success: true, message: "Password reset successfully" };
+        break;
+
+      case "update_email":
+        if (!email) {
+          return new Response(
+            JSON.stringify({ error: "email is required for update_email" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log(`Updating email for user ${target_user_id} to ${email}`);
+        const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(target_user_id!, {
+          email,
+          email_confirm: true,
+        });
+        if (emailError) throw emailError;
+        // Also update the profiles table
+        await supabaseAdmin.from("profiles").update({ email }).eq("user_id", target_user_id);
+        result = { success: true, message: "Email updated successfully" };
         break;
 
       default:
