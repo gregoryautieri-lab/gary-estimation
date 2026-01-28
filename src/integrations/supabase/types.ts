@@ -558,6 +558,108 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          bien_adresse: string | null
+          bien_localite: string | null
+          bien_npa: string | null
+          bien_type: string | null
+          converti_at: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          estimation_id: string | null
+          id: string
+          nom: string
+          notes: string | null
+          partner_id: string | null
+          perdu_raison: string | null
+          prenom: string | null
+          rappel_date: string | null
+          recommande_par: string | null
+          retro_type: string | null
+          retro_valeur: number | null
+          source: string
+          source_detail: string | null
+          statut: string
+          telephone: string | null
+          type_demande: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          bien_adresse?: string | null
+          bien_localite?: string | null
+          bien_npa?: string | null
+          bien_type?: string | null
+          converti_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          estimation_id?: string | null
+          id?: string
+          nom: string
+          notes?: string | null
+          partner_id?: string | null
+          perdu_raison?: string | null
+          prenom?: string | null
+          rappel_date?: string | null
+          recommande_par?: string | null
+          retro_type?: string | null
+          retro_valeur?: number | null
+          source: string
+          source_detail?: string | null
+          statut?: string
+          telephone?: string | null
+          type_demande: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          bien_adresse?: string | null
+          bien_localite?: string | null
+          bien_npa?: string | null
+          bien_type?: string | null
+          converti_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          estimation_id?: string | null
+          id?: string
+          nom?: string
+          notes?: string | null
+          partner_id?: string | null
+          perdu_raison?: string | null
+          prenom?: string | null
+          rappel_date?: string | null
+          recommande_par?: string | null
+          retro_type?: string | null
+          retro_valeur?: number | null
+          source?: string
+          source_detail?: string | null
+          statut?: string
+          telephone?: string | null
+          type_demande?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       missions: {
         Row: {
           campagne_id: string
@@ -713,6 +815,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partners: {
+        Row: {
+          contact_email: string | null
+          contact_nom: string | null
+          contact_role: string | null
+          contact_tel: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          nom: string | null
+          notes: string | null
+          retro_default_type: string | null
+          retro_default_valeur: number | null
+          societe: string
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_nom?: string | null
+          contact_role?: string | null
+          contact_tel?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nom?: string | null
+          notes?: string | null
+          retro_default_type?: string | null
+          retro_default_valeur?: number | null
+          societe: string
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_nom?: string | null
+          contact_role?: string | null
+          contact_tel?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nom?: string | null
+          notes?: string | null
+          retro_default_type?: string | null
+          retro_default_valeur?: number | null
+          societe?: string
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
