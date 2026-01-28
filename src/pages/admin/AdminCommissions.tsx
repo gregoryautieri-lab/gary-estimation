@@ -49,6 +49,7 @@ interface Commission {
   notes: string | null;
   statut: string;
   repartition: Record<string, number>;
+  repartition_ca?: Record<string, number>; // Split CA en pourcentages
 }
 
 interface CourtierStats {
@@ -167,20 +168,21 @@ export default function AdminCommissions() {
     });
   }, [allCommissionsYear, filterCourtier, filterStatut]);
 
-  // Stats globales (CA réalisé = Payée + En attente)
+  // Stats globales (CA réalisé = prix_vente total des commissions Payée + En attente)
   const statsGlobal = useMemo(() => {
-    const caTotal = commissionsYear.reduce((sum, c) => sum + Number(c.commission_totale), 0);
-    const caProbable = commissionsProbable.reduce((sum, c) => sum + Number(c.commission_totale), 0);
+    const caTotal = commissionsYear.reduce((sum, c) => sum + Number(c.prix_vente), 0);
+    const caProbable = commissionsProbable.reduce((sum, c) => sum + Number(c.prix_vente), 0);
+    const commissionTotal = commissionsYear.reduce((sum, c) => sum + Number(c.commission_totale), 0);
     const caTotalPlusProbable = caTotal + caProbable;
     const nbVentes = commissionsYear.length;
-    const commissionMoyenne = nbVentes > 0 ? caTotal / nbVentes : 0;
+    const commissionMoyenne = nbVentes > 0 ? commissionTotal / nbVentes : 0;
     const pourcentageObjectif = (caTotal / OBJECTIF_ANNUEL) * 100;
     const pourcentageObjectifProbable = (caTotalPlusProbable / OBJECTIF_ANNUEL) * 100;
 
-    return { caTotal, caProbable, caTotalPlusProbable, nbVentes, commissionMoyenne, pourcentageObjectif, pourcentageObjectifProbable };
+    return { caTotal, caProbable, caTotalPlusProbable, nbVentes, commissionMoyenne, pourcentageObjectif, pourcentageObjectifProbable, commissionTotal };
   }, [commissionsYear, commissionsProbable, OBJECTIF_ANNUEL]);
 
-  // Stats par courtier - CA divisé équitablement entre les courtiers présents dans la répartition
+  // Stats par courtier - CA divisé selon repartition_ca si défini, sinon équitablement
   // Les non-courtiers (Gregory/CEO, Jared/Marketing, Florie) ne comptent pas dans le partage du CA
   const statsCourtiers = useMemo(() => {
     const courtierMap: Record<string, { total: number; count: number }> = {};
@@ -188,24 +190,40 @@ export default function AdminCommissions() {
 
     commissionsYear.forEach((c) => {
       const repartition = c.repartition || {};
+      const repartitionCA = c.repartition_ca || {};
+      const prixVente = Number(c.prix_vente) || 0;
       
-      // Trouver les vrais courtiers dans cette répartition (exclure CEO, Marketing, etc.)
+      // Trouver les vrais courtiers dans la répartition commission (exclure CEO, Marketing, etc.)
       const courtiersInDeal = Object.keys(repartition).filter(
         name => !NON_COURTIERS.some(nc => name.toLowerCase().includes(nc.toLowerCase()))
       );
       
-      if (courtiersInDeal.length === 0) {
+      // Vérifier si on a une répartition CA personnalisée
+      const hasCustomCARepart = Object.keys(repartitionCA).length > 0;
+      
+      if (hasCustomCARepart) {
+        // Utiliser la répartition CA personnalisée (stockée en pourcentages)
+        Object.entries(repartitionCA).forEach(([courtier, pourcentage]) => {
+          if (!courtierMap[courtier]) {
+            courtierMap[courtier] = { total: 0, count: 0 };
+          }
+          const caShare = (pourcentage as number / 100) * prixVente;
+          courtierMap[courtier].total += caShare;
+          courtierMap[courtier].count += 1;
+        });
+        grandTotal += prixVente;
+      } else if (courtiersInDeal.length === 0) {
         // Si aucun courtier identifié dans la répartition, attribuer au courtier_principal
         const courtier = c.courtier_principal;
         if (!courtierMap[courtier]) {
           courtierMap[courtier] = { total: 0, count: 0 };
         }
-        courtierMap[courtier].total += Number(c.commission_totale);
+        courtierMap[courtier].total += prixVente;
         courtierMap[courtier].count += 1;
-        grandTotal += Number(c.commission_totale);
+        grandTotal += prixVente;
       } else {
         // Diviser le CA équitablement entre les courtiers présents
-        const sharePerCourtier = Number(c.commission_totale) / courtiersInDeal.length;
+        const sharePerCourtier = prixVente / courtiersInDeal.length;
         
         courtiersInDeal.forEach(courtier => {
           if (!courtierMap[courtier]) {
@@ -214,7 +232,7 @@ export default function AdminCommissions() {
           courtierMap[courtier].total += sharePerCourtier;
           courtierMap[courtier].count += 1;
         });
-        grandTotal += Number(c.commission_totale);
+        grandTotal += prixVente;
       }
     });
 
@@ -276,24 +294,8 @@ export default function AdminCommissions() {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   };
 
-  // Filtrer les commissions par courtier pour le graphique
-  const commissionsYearFiltered = useMemo(() => {
-    if (filterCourtierGraph === "all") return commissionsYear;
-    const normalizedFilter = normalizeAccentsHelper(filterCourtierGraph);
-    return commissionsYear.filter(c => {
-      const normalizedCourtier = normalizeAccentsHelper(c.courtier_principal);
-      return normalizedCourtier.startsWith(normalizedFilter);
-    });
-  }, [commissionsYear, filterCourtierGraph]);
-
-  const commissionsProbableFiltered = useMemo(() => {
-    if (filterCourtierGraph === "all") return commissionsProbable;
-    const normalizedFilter = normalizeAccentsHelper(filterCourtierGraph);
-    return commissionsProbable.filter(c => {
-      const normalizedCourtier = normalizeAccentsHelper(c.courtier_principal);
-      return normalizedCourtier.startsWith(normalizedFilter);
-    });
-  }, [commissionsProbable, filterCourtierGraph]);
+  // Note: Le filtrage par courtier pour le graphique est géré directement dans monthlyData
+  // pour calculer correctement le split CA personnalisé
 
   // Objectif pour le graphique (courtier spécifique ou global)
   const graphObjectif = useMemo(() => {
@@ -307,25 +309,69 @@ export default function AdminCommissions() {
     return matchingKey ? OBJECTIFS_COURTIERS[matchingKey] : 200000;
   }, [filterCourtierGraph, OBJECTIF_ANNUEL, OBJECTIFS_COURTIERS]);
 
-  // Données pour le graphique mensuel
+  // Données pour le graphique mensuel (CA = prix de vente, avec split CA si défini)
   const monthlyData = useMemo(() => {
     const monthlyCA: number[] = Array(12).fill(0);
     const monthlyProbable: number[] = Array(12).fill(0);
     const objectifMensuel = graphObjectif / 12;
 
+    // Helper pour calculer la part CA d'un courtier pour une commission
+    const getCourtierCAShare = (c: Commission, courtierFilter: string): number => {
+      const prixVente = Number(c.prix_vente) || 0;
+      const normalizedFilter = normalizeAccentsHelper(courtierFilter);
+      
+      // Si on filtre par courtier
+      if (courtierFilter !== "all") {
+        const repartitionCA = c.repartition_ca || {};
+        const repartition = c.repartition || {};
+        
+        // Chercher le courtier dans repartition_ca
+        const caCourtierKey = Object.keys(repartitionCA).find(k => 
+          normalizeAccentsHelper(k).startsWith(normalizedFilter)
+        );
+        
+        if (caCourtierKey) {
+          // Utiliser le split CA personnalisé
+          return (repartitionCA[caCourtierKey] as number / 100) * prixVente;
+        }
+        
+        // Sinon, chercher dans la répartition commission (split égal)
+        const courtiersInDeal = Object.keys(repartition).filter(
+          name => !NON_COURTIERS.some(nc => name.toLowerCase().includes(nc.toLowerCase()))
+        );
+        
+        const courtierInDeal = courtiersInDeal.find(k => 
+          normalizeAccentsHelper(k).startsWith(normalizedFilter)
+        );
+        
+        if (courtierInDeal) {
+          return prixVente / courtiersInDeal.length;
+        }
+        
+        // Vérifier si c'est le courtier principal
+        if (normalizeAccentsHelper(c.courtier_principal).startsWith(normalizedFilter)) {
+          return prixVente;
+        }
+        
+        return 0; // Ce courtier n'est pas impliqué
+      }
+      
+      return prixVente;
+    };
+
     // CA réel (Payée + En attente)
-    commissionsYearFiltered.forEach((c) => {
+    commissionsYear.forEach((c) => {
       if (c.date_paiement) {
         const month = new Date(c.date_paiement).getMonth();
-        monthlyCA[month] += Number(c.commission_totale);
+        monthlyCA[month] += getCourtierCAShare(c, filterCourtierGraph);
       }
     });
 
     // CA Probable
-    commissionsProbableFiltered.forEach((c) => {
+    commissionsProbable.forEach((c) => {
       if (c.date_paiement) {
         const month = new Date(c.date_paiement).getMonth();
-        monthlyProbable[month] += Number(c.commission_totale);
+        monthlyProbable[month] += getCourtierCAShare(c, filterCourtierGraph);
       }
     });
 
@@ -345,7 +391,7 @@ export default function AdminCommissions() {
     });
 
     return data;
-  }, [commissionsYearFiltered, commissionsProbableFiltered, graphObjectif]);
+  }, [commissionsYear, commissionsProbable, graphObjectif, filterCourtierGraph]);
 
   // Liste des années disponibles
   const availableYears = useMemo(() => {
