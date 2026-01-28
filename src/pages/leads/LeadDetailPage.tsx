@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,6 @@ import {
   Mail, 
   Edit, 
   Home, 
-  CheckCircle, 
-  XCircle,
   Users,
   Globe,
   Megaphone,
@@ -29,6 +27,7 @@ import { fr } from 'date-fns/locale';
 import { Partner, LEAD_SOURCE_OPTIONS, LEAD_STATUT_OPTIONS, BIEN_TYPE_OPTIONS } from '@/types/leads';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { LeadActions } from '@/components/leads/LeadActions';
 interface LeadWithRelations {
   id: string;
   created_at: string;
@@ -82,8 +81,13 @@ const statusColors: Record<string, string> = {
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [creatingEstimation, setCreatingEstimation] = useState(false);
+
+  const handleLeadUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['lead', id] });
+  };
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', id],
     queryFn: async () => {
@@ -356,7 +360,7 @@ export default function LeadDetailPage() {
         </CardHeader>
         <CardContent>
           {(lead.statut === 'nouveau' || lead.statut === 'en_cours') && (
-            <div className="flex flex-wrap gap-3">
+            <div className="space-y-4">
               {lead.type_demande === 'estimation' && (
                 <Button 
                   className="bg-primary"
@@ -369,7 +373,6 @@ export default function LeadDetailPage() {
                     
                     setCreatingEstimation(true);
                     try {
-                      // Mapper le type de bien du lead vers le type estimation
                       const typeBienMap: Record<string, string> = {
                         'appartement': 'appartement',
                         'maison': 'maison',
@@ -378,7 +381,6 @@ export default function LeadDetailPage() {
                         'commercial': 'commercial'
                       };
                       
-                      // Créer l'estimation avec les données du lead
                       const identificationData = {
                         vendeur: {
                           nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
@@ -415,7 +417,6 @@ export default function LeadDetailPage() {
                       
                       if (createError) throw createError;
                       
-                      // Mettre à jour le lead comme converti
                       const { error: updateError } = await supabase
                         .from('leads')
                         .update({
@@ -427,7 +428,6 @@ export default function LeadDetailPage() {
                       
                       if (updateError) {
                         console.error('Erreur mise à jour lead:', updateError);
-                        // Continue quand même, l'estimation est créée
                       }
                       
                       toast.success('Estimation créée, lead converti');
@@ -449,14 +449,12 @@ export default function LeadDetailPage() {
                   Créer estimation
                 </Button>
               )}
-              <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Marquer converti
-              </Button>
-              <Button variant="outline" className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                <XCircle className="h-4 w-4 mr-2" />
-                Marquer perdu
-              </Button>
+              
+              <LeadActions 
+                leadId={lead.id} 
+                leadStatut={lead.statut} 
+                onUpdate={handleLeadUpdate} 
+              />
             </div>
           )}
 
