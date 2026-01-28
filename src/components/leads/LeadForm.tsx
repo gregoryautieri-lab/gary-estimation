@@ -508,7 +508,10 @@ export const LeadForm = ({ mode = 'create', initialData, onSuccess }: LeadFormPr
                   <SelectValue placeholder="Sélectionner un type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BIEN_TYPE_OPTIONS.map((opt) => (
+                  {(typeDemande === 'estimation' 
+                    ? BIEN_TYPE_OPTIONS.filter(opt => opt.value === 'appartement' || opt.value === 'villa')
+                    : BIEN_TYPE_OPTIONS
+                  ).map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
