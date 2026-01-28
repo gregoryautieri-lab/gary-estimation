@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useLeads, useLeadsStats, useCourtiers, LeadsFilters } from '@/hooks/useLeads';
-import { LEAD_STATUT_OPTIONS } from '@/types/leads';
+import { LEAD_STATUT_OPTIONS, LEAD_STATUT_CONFIG, normalizeLeadStatut } from '@/types/leads';
 import { cn } from '@/lib/utils';
 import { LeadRappelsBanner } from '@/components/leads/LeadRappelsBanner';
 import { LeadsSummary } from '@/components/leads/LeadsSummary';
@@ -58,12 +58,10 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
   autre: <HelpCircle className="h-4 w-4" />,
 };
 
-// Couleurs statut - utilisant des classes sémantiques
-const STATUT_COLORS: Record<string, string> = {
-  nouveau: 'bg-emerald-500',
-  en_cours: 'bg-amber-500',
-  converti: 'bg-blue-500',
-  perdu: 'bg-destructive',
+// Couleurs statut depuis la config centralisée
+const getStatutColor = (statut: string): string => {
+  const normalized = normalizeLeadStatut(statut);
+  return LEAD_STATUT_CONFIG[normalized]?.color || 'bg-gray-500';
 };
 
 export default function LeadsPage() {
@@ -183,9 +181,11 @@ export default function LeadsPage() {
             </SelectTrigger>
             <SelectContent className="bg-background">
               <SelectItem value="tous">Tous les statuts</SelectItem>
-              {LEAD_STATUT_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
+              <SelectItem value="nouveau">Nouveau</SelectItem>
+              <SelectItem value="contacte">Contacté</SelectItem>
+              <SelectItem value="rdv_planifie">RDV planifié</SelectItem>
+              <SelectItem value="converti">Converti</SelectItem>
+              <SelectItem value="perdu">Perdu</SelectItem>
             </SelectContent>
           </Select>
 
@@ -234,31 +234,28 @@ export default function LeadsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <p className="text-sm text-muted-foreground">Nouveaux</p>
+                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                <p className="text-sm text-muted-foreground">À traiter</p>
               </div>
-              <p className="text-2xl font-bold">{stats?.nouveaux ?? 0}</p>
+              <p className="text-2xl font-bold">{stats?.aTraiter ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <p className="text-sm text-muted-foreground">En cours</p>
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                <p className="text-sm text-muted-foreground">RDV planifiés</p>
               </div>
-              <p className="text-2xl font-bold">{stats?.enCours ?? 0}</p>
+              <p className="text-2xl font-bold">{stats?.rdvPlanifies ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  "w-2 h-2 rounded-full",
-                  (stats?.rappelsAujourdhui ?? 0) > 0 ? "bg-orange-500" : "bg-muted"
-                )} />
-                <p className="text-sm text-muted-foreground">Rappels</p>
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <p className="text-sm text-muted-foreground">Convertis</p>
               </div>
-              <p className="text-2xl font-bold">{stats?.rappelsAujourdhui ?? 0}</p>
+              <p className="text-2xl font-bold">{stats?.convertis ?? 0}</p>
             </CardContent>
           </Card>
         </div>
@@ -305,9 +302,9 @@ export default function LeadsPage() {
                       <span 
                         className={cn(
                           "w-3 h-3 rounded-full inline-block",
-                          STATUT_COLORS[lead.statut] || 'bg-gray-500'
+                          getStatutColor(lead.statut)
                         )}
-                        title={LEAD_STATUT_OPTIONS.find(o => o.value === lead.statut)?.label}
+                        title={LEAD_STATUT_CONFIG[normalizeLeadStatut(lead.statut)]?.label}
                       />
                     </TableCell>
                     <TableCell className="font-medium">
