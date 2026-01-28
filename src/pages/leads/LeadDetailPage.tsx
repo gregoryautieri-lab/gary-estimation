@@ -354,7 +354,24 @@ export default function LeadDetailPage() {
           {(lead.statut === 'nouveau' || lead.statut === 'en_cours') && (
             <div className="flex flex-wrap gap-3">
               {lead.type_demande === 'estimation' && (
-                <Button className="bg-primary">
+                <Button 
+                  className="bg-primary"
+                  onClick={() => navigate('/estimation/express', {
+                    state: {
+                      fromLead: {
+                        lead_id: lead.id,
+                        vendeur_nom: lead.nom,
+                        vendeur_prenom: lead.prenom,
+                        vendeur_telephone: lead.telephone,
+                        vendeur_email: lead.email,
+                        bien_adresse: lead.bien_adresse,
+                        bien_npa: lead.bien_npa,
+                        bien_localite: lead.bien_localite,
+                        bien_type: lead.bien_type
+                      }
+                    }
+                  })}
+                >
                   <Home className="h-4 w-4 mr-2" />
                   Créer estimation
                 </Button>

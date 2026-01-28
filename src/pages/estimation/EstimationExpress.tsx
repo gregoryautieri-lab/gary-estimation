@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEstimationPersistence } from '@/hooks/useEstimationPersistence';
+import { supabase } from '@/integrations/supabase/client';
 import { GaryLogo } from '@/components/gary/GaryLogo';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -76,9 +77,25 @@ const PRIX_M2_SUGGESTIONS: Record<string, { min: number; max: number; default: n
   'default': { min: 10000, max: 16000, default: 13000 }
 };
 
+interface FromLeadData {
+  lead_id: string;
+  vendeur_nom: string;
+  vendeur_prenom: string | null;
+  vendeur_telephone: string | null;
+  vendeur_email: string | null;
+  bien_adresse: string | null;
+  bien_npa: string | null;
+  bien_localite: string | null;
+  bien_type: string | null;
+}
+
 const EstimationExpress = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createEstimation, loading } = useEstimationPersistence();
+  
+  // Récupérer les données du lead si on vient de la page lead
+  const fromLead = location.state?.fromLead as FromLeadData | undefined;
   
   const [formData, setFormData] = useState<ExpressFormData>({
     vendeurNom: '',
@@ -98,6 +115,30 @@ const EstimationExpress = () => {
   
   const [showResult, setShowResult] = useState(false);
   const [createdEstimationId, setCreatedEstimationId] = useState<string | null>(null);
+
+  // Pré-remplir le formulaire si on vient d'un lead
+  useEffect(() => {
+    if (fromLead) {
+      const fullName = [fromLead.vendeur_prenom, fromLead.vendeur_nom]
+        .filter(Boolean)
+        .join(' ');
+      
+      // Mapper le type de bien (lead → express)
+      let typeBien: 'appartement' | 'maison' | '' = '';
+      if (fromLead.bien_type === 'appartement') typeBien = 'appartement';
+      else if (fromLead.bien_type === 'villa') typeBien = 'maison';
+      
+      setFormData(prev => ({
+        ...prev,
+        vendeurNom: fullName || '',
+        telephone: fromLead.vendeur_telephone || '',
+        adresse: fromLead.bien_adresse || '',
+        codePostal: fromLead.bien_npa || '',
+        localite: fromLead.bien_localite || '',
+        typeBien
+      }));
+    }
+  }, [fromLead]);
 
   // Suggestions prix/m² selon le code postal
   const prixM2Suggestion = useMemo(() => {
@@ -192,6 +233,7 @@ const EstimationExpress = () => {
       statut: 'brouillon',
       vendeurNom: formData.vendeurNom,
       vendeurTelephone: formData.telephone,
+      vendeurEmail: fromLead?.vendeur_email || '',
       adresse: formData.adresse,
       codePostal: formData.codePostal,
       localite: formData.localite,
@@ -199,11 +241,12 @@ const EstimationExpress = () => {
       prixMin: estimation.prixMin,
       prixMax: estimation.prixMax,
       prixFinal: estimation.prixEstime,
+      leadId: fromLead?.lead_id,
       identification: {
         vendeur: {
           nom: formData.vendeurNom,
           telephone: formData.telephone,
-          email: '',
+          email: fromLead?.vendeur_email || '',
           situation: ''
         },
         adresse: {
@@ -256,9 +299,30 @@ const EstimationExpress = () => {
     });
 
     if (created?.id) {
+      // Si on vient d'un lead, le marquer comme converti
+      if (fromLead?.lead_id) {
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({
+            statut: 'converti',
+            estimation_id: created.id,
+            converti_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', fromLead.lead_id);
+
+        if (updateError) {
+          console.error('Erreur lors de la mise à jour du lead:', updateError);
+          toast.error('Estimation créée mais erreur lors de la conversion du lead');
+        } else {
+          toast.success('Estimation créée et lead converti');
+        }
+      } else {
+        toast.success('Estimation express créée !');
+      }
+      
       setCreatedEstimationId(created.id);
       setShowResult(true);
-      toast.success('Estimation express créée !');
     }
   };
 
