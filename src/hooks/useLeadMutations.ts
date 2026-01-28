@@ -44,7 +44,13 @@ async function sendLeadNotificationEmail(lead: Lead): Promise<void> {
         leadSource: lead.source,
         leadType: lead.type_demande,
         leadNotes: lead.notes,
-        leadUrl: leadUrl
+        leadUrl: leadUrl,
+        leadTelephone: lead.telephone,
+        leadEmail: lead.email,
+        leadAdresse: lead.bien_adresse,
+        leadNpa: lead.bien_npa,
+        leadLocalite: lead.bien_localite,
+        leadCreatedAt: lead.created_at
       }
     });
 
