@@ -130,7 +130,7 @@ function rowToEstimation(row: {
     campagneOriginCode: row.campagne_origin_code || undefined,
     leadId: row.lead_id || undefined,
     // Déduire sourceEstimation depuis campagne_origin_code
-    sourceEstimation: row.campagne_origin_code ? 'prospection' : undefined,
+    sourceEstimation: row.campagne_origin_code ? 'boitage' : undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

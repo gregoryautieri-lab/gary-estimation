@@ -15,13 +15,16 @@ export type EstimationStatus =
 
 export type TypeBien = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial';
 export type TypeMiseEnVente = 'offmarket' | 'comingsoon' | 'public';
-export type SourceEstimation = 'direct' | 'prospection' | 'partenaire' | 'siteweb' | 'autre';
+export type SourceEstimation = 'telephone' | 'boitage' | 'partenariat' | 'recommandation' | 'reseaux_sociaux' | 'site_web' | 'salon' | 'autre';
 
 export const SOURCE_ESTIMATION_LABELS: Record<SourceEstimation, string> = {
-  direct: 'Direct',
-  prospection: 'Prospection',
-  partenaire: 'Partenaire',
-  siteweb: 'Site web',
+  telephone: 'Téléphone',
+  boitage: 'Boîtage',
+  partenariat: 'Partenariat',
+  recommandation: 'Recommandation',
+  reseaux_sociaux: 'Réseaux sociaux',
+  site_web: 'Site web',
+  salon: 'Salon/Event',
   autre: 'Autre'
 };
 export type NiveauContrainte = 'faible' | 'moyenne' | 'forte' | 'critique';
