@@ -394,6 +394,19 @@ export default function LeadDetailPage() {
                         'commercial': 'commercial'
                       };
                       
+                      // Mapping Lead source → Estimation source
+                      const sourceMap: Record<string, string> = {
+                        telephone: 'telephone',
+                        boitage: 'boitage',
+                        partenariat: 'partenariat',
+                        recommandation: 'recommandation',
+                        reseaux_sociaux: 'reseaux_sociaux',
+                        site_web: 'site_web',
+                        salon: 'salon',
+                        autre: 'autre'
+                      };
+                      const mappedSource = sourceMap[lead.source] || 'autre';
+                      
                       const identificationData = {
                         vendeur: {
                           nom: [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.nom,
@@ -405,8 +418,13 @@ export default function LeadDetailPage() {
                           codePostal: lead.bien_npa || '',
                           localite: lead.bien_localite || ''
                         },
-                        sourceContact: 'direct'
+                        sourceContact: mappedSource
                       };
+                      
+                      // Si source = boitage et campagne liée, passer le code campagne
+                      const campagneCode = lead.source === 'boitage' && lead.campagne?.code 
+                        ? lead.campagne.code 
+                        : null;
                       
                       const { data: newEstimation, error: createError } = await supabase
                         .from('estimations')
@@ -423,7 +441,8 @@ export default function LeadDetailPage() {
                           type_bien: (lead.bien_type && typeBienMap[lead.bien_type]) 
                             ? typeBienMap[lead.bien_type] as 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'commercial'
                             : null,
-                          identification: identificationData
+                          identification: identificationData,
+                          campagne_origin_code: campagneCode
                         })
                         .select()
                         .single();

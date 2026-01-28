@@ -224,7 +224,7 @@ const Module1Identification = () => {
     delay: 2000,
     onSave: async () => {
       if (!id || isLocked) return;
-      const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
+      const campagneCode = sourceEstimation === 'boitage' ? selectedCampagneCode : null;
       // Inclure sourceContact dans identification pour persistance
       const identificationWithSource = {
         ...identification,
@@ -290,7 +290,7 @@ const Module1Identification = () => {
       
       // Charger les infos de source depuis identification.sourceContact
       if (data.campagneOriginCode) {
-        setSourceEstimation('prospection');
+        setSourceEstimation('boitage');
         setSelectedCampagneCode(data.campagneOriginCode);
       } else if (ident.sourceContact) {
         setSourceEstimation(ident.sourceContact as SourceEstimation);
@@ -435,7 +435,7 @@ const Module1Identification = () => {
     setSaving(true);
     
     // Déterminer le code campagne à sauvegarder
-    const campagneCode = sourceEstimation === 'prospection' ? selectedCampagneCode : null;
+    const campagneCode = sourceEstimation === 'boitage' ? selectedCampagneCode : null;
     
     // Inclure sourceContact dans identification pour persistance
     const identificationWithSource = {
@@ -470,8 +470,8 @@ const Module1Identification = () => {
   // Handler pour changement de source
   const handleSourceChange = (newSource: SourceEstimation | '') => {
     setSourceEstimation(newSource);
-    // Si on quitte "prospection", vider le code campagne
-    if (newSource !== 'prospection') {
+    // Si on quitte "boitage", vider le code campagne
+    if (newSource !== 'boitage') {
       setSelectedCampagneCode('');
     }
     scheduleSave();
@@ -574,8 +574,8 @@ const Module1Identification = () => {
             </Select>
           </FormRow>
           
-          {/* Dropdown campagne si source = prospection */}
-          {sourceEstimation === 'prospection' && (
+          {/* Dropdown campagne si source = boitage */}
+          {sourceEstimation === 'boitage' && (
             <FormRow label="Campagne de prospection">
               <Select
                 value={selectedCampagneCode}
