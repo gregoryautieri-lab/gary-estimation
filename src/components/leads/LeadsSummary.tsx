@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { startOfWeek as getStartOfWeek } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, UserCheck, UserX, Percent, AlertTriangle } from 'lucide-react';
-import { LEAD_SOURCE_OPTIONS } from '@/types/leads';
+import { TrendingUp, Users, UserCheck, UserX, Percent, AlertTriangle, Calendar } from 'lucide-react';
+import { LEAD_SOURCE_OPTIONS, normalizeLeadStatut } from '@/types/leads';
 import { cn } from '@/lib/utils';
 
 interface LeadData {
@@ -78,16 +78,21 @@ export function LeadsSummary() {
     [profiles]
   );
 
-  // Calculate metrics
+  // Calculate metrics with normalized statut
   const metrics = useMemo(() => {
     const recus = weekLeads.length;
-    const convertis = weekLeads.filter(l => l.statut === 'converti').length;
-    const perdus = weekLeads.filter(l => l.statut === 'perdu').length;
+    const contactes = weekLeads.filter(l => {
+      const normalized = normalizeLeadStatut(l.statut);
+      return normalized === 'contacte';
+    }).length;
+    const rdvPlanifies = weekLeads.filter(l => normalizeLeadStatut(l.statut) === 'rdv_planifie').length;
+    const convertis = weekLeads.filter(l => normalizeLeadStatut(l.statut) === 'converti').length;
+    const perdus = weekLeads.filter(l => normalizeLeadStatut(l.statut) === 'perdu').length;
     const tauxConversion = convertis + perdus > 0 
       ? Math.round((convertis / (convertis + perdus)) * 100) 
       : 0;
 
-    return { recus, convertis, perdus, tauxConversion };
+    return { recus, contactes, rdvPlanifies, convertis, perdus, tauxConversion };
   }, [weekLeads]);
 
   // Group by source
@@ -152,32 +157,46 @@ export function LeadsSummary() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Section 1: Métriques KPI */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           <Card className="bg-background">
-            <CardContent className="p-4 text-center">
-              <Users className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-              <p className="text-2xl font-bold">{metrics.recus}</p>
-              <p className="text-xs text-muted-foreground">Reçus cette sem.</p>
+            <CardContent className="p-3 text-center">
+              <Users className="h-4 w-4 mx-auto text-green-500 mb-1" />
+              <p className="text-xl font-bold">{metrics.recus}</p>
+              <p className="text-xs text-muted-foreground">Reçus</p>
             </CardContent>
           </Card>
           <Card className="bg-background">
-            <CardContent className="p-4 text-center">
-              <UserCheck className="h-5 w-5 mx-auto text-green-500 mb-1" />
-              <p className="text-2xl font-bold text-green-600">{metrics.convertis}</p>
+            <CardContent className="p-3 text-center">
+              <Users className="h-4 w-4 mx-auto text-yellow-500 mb-1" />
+              <p className="text-xl font-bold text-yellow-600">{metrics.contactes}</p>
+              <p className="text-xs text-muted-foreground">Contactés</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="p-3 text-center">
+              <Calendar className="h-4 w-4 mx-auto text-orange-500 mb-1" />
+              <p className="text-xl font-bold text-orange-600">{metrics.rdvPlanifies}</p>
+              <p className="text-xs text-muted-foreground">RDV</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="p-3 text-center">
+              <UserCheck className="h-4 w-4 mx-auto text-blue-500 mb-1" />
+              <p className="text-xl font-bold text-blue-600">{metrics.convertis}</p>
               <p className="text-xs text-muted-foreground">Convertis</p>
             </CardContent>
           </Card>
           <Card className="bg-background">
-            <CardContent className="p-4 text-center">
-              <UserX className="h-5 w-5 mx-auto text-destructive mb-1" />
-              <p className="text-2xl font-bold text-destructive">{metrics.perdus}</p>
+            <CardContent className="p-3 text-center">
+              <UserX className="h-4 w-4 mx-auto text-destructive mb-1" />
+              <p className="text-xl font-bold text-destructive">{metrics.perdus}</p>
               <p className="text-xs text-muted-foreground">Perdus</p>
             </CardContent>
           </Card>
           <Card className="bg-background">
-            <CardContent className="p-4 text-center">
-              <Percent className="h-5 w-5 mx-auto text-primary mb-1" />
-              <p className="text-2xl font-bold">{metrics.tauxConversion}%</p>
+            <CardContent className="p-3 text-center">
+              <Percent className="h-4 w-4 mx-auto text-primary mb-1" />
+              <p className="text-xl font-bold">{metrics.tauxConversion}%</p>
               <p className="text-xs text-muted-foreground">Taux conv.</p>
             </CardContent>
           </Card>

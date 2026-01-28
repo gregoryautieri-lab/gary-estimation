@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/leads';
-import { startOfWeek, startOfMonth, isToday, isBefore, startOfDay } from 'date-fns';
+import { startOfWeek, startOfMonth } from 'date-fns';
 
 export interface LeadsFilters {
   statut?: string;
@@ -12,9 +12,9 @@ export interface LeadsFilters {
 
 export interface LeadsStats {
   total: number;
-  nouveaux: number;
-  enCours: number;
-  rappelsAujourdhui: number;
+  aTraiter: number;      // nouveau + contacte
+  rdvPlanifies: number;  // rdv_planifie
+  convertis: number;     // converti
 }
 
 export function useLeads(filters: LeadsFilters = {}) {
@@ -97,22 +97,20 @@ export function useLeadsStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('statut, rappel_date');
+        .select('statut');
 
       if (error) throw error;
 
       const leads = data || [];
-      const today = startOfDay(new Date());
+
+      // Normalize en_cours → contacte for counting
+      const normalizeStatut = (s: string) => s === 'en_cours' ? 'contacte' : s;
 
       const stats: LeadsStats = {
         total: leads.length,
-        nouveaux: leads.filter(l => l.statut === 'nouveau').length,
-        enCours: leads.filter(l => l.statut === 'en_cours').length,
-        rappelsAujourdhui: leads.filter(l => {
-          if (!l.rappel_date) return false;
-          const rappelDate = startOfDay(new Date(l.rappel_date));
-          return isToday(rappelDate) || isBefore(rappelDate, today);
-        }).length,
+        aTraiter: leads.filter(l => ['nouveau', 'contacte', 'en_cours'].includes(l.statut)).length,
+        rdvPlanifies: leads.filter(l => normalizeStatut(l.statut) === 'rdv_planifie').length,
+        convertis: leads.filter(l => normalizeStatut(l.statut) === 'converti').length,
       };
 
       return stats;
