@@ -79,6 +79,22 @@ function AppWithWarning() {
           }
         />
         <Route
+          path="/leads/new"
+          element={
+            <ProtectedRoute>
+              <LeadsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leads/:id"
+          element={
+            <ProtectedRoute>
+              <LeadsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/estimation-express"
           element={
             <ProtectedRoute>
