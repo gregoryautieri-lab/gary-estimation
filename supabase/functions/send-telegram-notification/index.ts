@@ -77,12 +77,13 @@ serve(async (req) => {
     message += `📋 *Type:* ${typeLabels[data.leadType] || data.leadType}\n`;
     
     if (data.leadAdresse) {
-      const adresseComplete = [
+      const fullAddress = [
         data.leadAdresse,
         data.leadNpa,
         data.leadLocalite
       ].filter(Boolean).join(", ");
-      message += `📍 ${adresseComplete}\n`;
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+      message += `📍 [${fullAddress}](${mapsUrl})\n`;
     }
     
     if (data.courtierNom) {
